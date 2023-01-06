@@ -2,6 +2,7 @@
 name = "domain_schedule_models"
 version = "0.1.0"
 edition = "2021"
+authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }

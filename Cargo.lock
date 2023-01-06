@@ -1427,15 +1427,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rocket_hello"
-version = "0.1.0"
-dependencies = [
- "domain_schedule_models",
- "rocket",
- "serde",
-]
-
-[[package]]
 name = "rocket_http"
 version = "0.5.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -2,6 +2,7 @@
 name = "feature_schedule"
 version = "0.1.0"
 edition = "2021"
+authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
 domain_schedule = { path = "../domain_schedule" }

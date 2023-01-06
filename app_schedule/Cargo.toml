@@ -2,10 +2,11 @@
 name = "app_schedule"
 version = "0.1.0"
 edition = "2021"
+authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
 feature_schedule = { path = "../feature_schedule" }
 domain_schedule_models = { path = "../domain_schedule_models" }
 
 serde = { version = "1.0", features = ["derive"] }
-rocket = { version="0.5.0-rc.2", features=["json"] }
+rocket = { version = "0.5.0-rc.2", features = ["json"] }
