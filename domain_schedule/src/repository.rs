@@ -1,9 +1,10 @@
 use crate::sources;
 use crate::time::DateTimeExt;
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, ensure, Context};
 use chrono::{Local, Weekday};
 use common_errors::errors::CommonError;
 use domain_schedule_models::dto::v1::{Schedule, ScheduleType};
+use lazy_static::lazy_static;
 
 #[derive(Default)]
 pub struct State {
@@ -17,12 +18,25 @@ pub async fn get_id(name: String, r#type: ScheduleType, state: &State) -> anyhow
         .with_context(|| "Error while getting schedule id")
 }
 
+lazy_static! {
+    static ref MAX_OFFSET: i32 = i32::MAX / 7;
+    static ref MIN_OFFSET: i32 = i32::MIN / 7;
+}
+
 pub async fn get_schedule(
     name: String,
     r#type: ScheduleType,
     offset: i32,
     state: &State,
 ) -> anyhow::Result<Schedule> {
+    ensure!(
+        offset < *MAX_OFFSET,
+        CommonError::user("Unacceptably large offset")
+    );
+    ensure!(
+        offset > *MIN_OFFSET,
+        CommonError::user("Unacceptably small offset")
+    );
     let week_start = Local::now()
         .with_days_offset(offset * 7)
         .map(|dt| dt.date_naive())
