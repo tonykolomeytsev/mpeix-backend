@@ -1,9 +1,10 @@
+use anyhow::{anyhow, Context};
+use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
 use domain_schedule_models::dto::v1::ScheduleType;
 use lazy_static::lazy_static;
 use regex::Regex;
 use reqwest::{redirect::Policy, Client, ClientBuilder};
-use thiserror::Error;
 use tokio::sync::Mutex;
 
 use crate::dto::mpei::MpeiSearchResult;
@@ -50,19 +51,9 @@ impl Default for State {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("Request error: {0}")]
-    RequestError(reqwest::Error),
-    #[error("Response deserialization error: {0}")]
-    DeserializationError(reqwest::Error),
-    #[error("Schedule with name \"{0}\" not found")]
-    ScheduleNotFound(String),
-}
-
 /// Get `id` from in-memory cache if value present in cache,
 /// or get `id` from remote (`ts.mpei.ru`).
-pub async fn get_id(name: String, r#type: ScheduleType, state: &State) -> Result<i64, Error> {
+pub async fn get_id(name: String, r#type: ScheduleType, state: &State) -> anyhow::Result<i64> {
     let cache_key = ScheduleName {
         r#type: r#type.to_mpei(),
         name: name.to_owned(),
@@ -80,10 +71,12 @@ pub async fn get_id(name: String, r#type: ScheduleType, state: &State) -> Result
         ])
         .send()
         .await
-        .map_err(Error::RequestError)?
+        .map_err(|e| anyhow!(CommonError::gateway(e)))
+        .with_context(|| "Error while executing a request to MPEI backend")?
         .json::<Vec<MpeiSearchResult>>()
         .await
-        .map_err(Error::DeserializationError)?;
+        .map_err(|e| anyhow!(CommonError::internal(e)))
+        .with_context(|| "Error while deserializing response from MPEI backend")?;
 
     match search_results.first() {
         Some(search_result) if fuzzy_equals(&search_result.label, &name) => {
@@ -91,7 +84,10 @@ pub async fn get_id(name: String, r#type: ScheduleType, state: &State) -> Result
             cache.insert(cache_key, ScheduleId(search_result.id));
             Ok(search_result.id)
         }
-        _ => Err(Error::ScheduleNotFound(name.to_owned())),
+        _ => Err(anyhow!(CommonError::user(format!(
+            "Schedule with type '{:?}' and name '{}' not found",
+            r#type, name
+        )))),
     }
 }
 

@@ -5,13 +5,14 @@ use crate::{
     sources,
     time::{NaiveDateExt, WeekOfSemester},
 };
+use anyhow::{anyhow, bail, Context};
 use chrono::{Datelike, Days, NaiveDate, NaiveTime};
+use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
 use domain_schedule_models::dto::v1::{
     self, Classes, ClassesTime, ClassesType, Day, ScheduleType, Week,
 };
 use reqwest::{redirect::Policy, Client, ClientBuilder};
-use thiserror::Error;
 use tokio::sync::Mutex;
 
 #[derive(Hash, PartialEq, Eq)]
@@ -45,18 +46,6 @@ impl Default for State {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("Error while getting schedule id: {0}")]
-    IdSourceError(sources::id::Error),
-    #[error("Request error: {0}")]
-    RequestError(reqwest::Error),
-    #[error("Response deserialization error: {0}")]
-    DeserializationError(reqwest::Error),
-    #[error("Cannot calculate week of semester for date: {0}")]
-    WeekOfSemesterError(NaiveDate),
-}
-
 /// Get schedule from in-memory cache if value present in cache,
 /// or get schedule from remote (`ts.mpei.ru`).
 pub async fn get_schedule(
@@ -65,7 +54,7 @@ pub async fn get_schedule(
     week_start: NaiveDate,
     schedule_source_state: &State,
     id_source_state: &sources::id::State,
-) -> Result<v1::Schedule, Error> {
+) -> anyhow::Result<v1::Schedule> {
     let cache_key = ScheduleKey {
         name: name.to_owned(),
         r#type: r#type.to_mpei(),
@@ -77,7 +66,7 @@ pub async fn get_schedule(
     }
     let schedule_id = sources::id::get_id(name, r#type.to_owned(), id_source_state)
         .await
-        .map_err(Error::IdSourceError)?;
+        .with_context(|| "Error while using id_source from schedule_source")?;
 
     let week_end = week_start
         .checked_add_days(Days::new(6))
@@ -95,10 +84,12 @@ pub async fn get_schedule(
         ])
         .send()
         .await
-        .map_err(Error::RequestError)?
+        .map_err(|e| anyhow!(CommonError::gateway(e)))
+        .with_context(|| "Error while executing a request to MPEI backend")?
         .json::<Vec<MpeiClasses>>()
         .await
-        .map_err(Error::DeserializationError)?;
+        .map_err(|e| anyhow!(CommonError::internal(e)))
+        .with_context(|| "Error while deserializing response from MPEI backend")?;
 
     map_schedule_models(&cache_key, schedule_id, r#type, schedule_response)
 }
@@ -112,7 +103,7 @@ fn map_schedule_models(
     schedule_id: i64,
     r#type: ScheduleType,
     mpei_classes: Vec<MpeiClasses>,
-) -> Result<v1::Schedule, Error> {
+) -> anyhow::Result<v1::Schedule> {
     let mut map_of_days = HashMap::<NaiveDate, Vec<Classes>>::new();
     for ref cls in mpei_classes {
         let time = ClassesTime {
@@ -156,7 +147,10 @@ fn map_schedule_models(
             week_of_semester: match week_start.week_of_semester() {
                 Some(WeekOfSemester::Studying(num)) => num as i8,
                 Some(WeekOfSemester::NonStudying) => -1,
-                None => return Err(Error::WeekOfSemesterError(week_start.to_owned())),
+                None => bail!(CommonError::internal(format!(
+                    "Cannot calculate week of semester for offset {}",
+                    week_start,
+                ))),
             },
             week_of_year: week_start.week_of_year(),
             first_day_of_week: week_start.to_owned(),

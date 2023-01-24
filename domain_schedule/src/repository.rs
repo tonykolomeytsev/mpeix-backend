@@ -1,8 +1,9 @@
 use crate::sources;
 use crate::time::DateTimeExt;
+use anyhow::{anyhow, Context};
 use chrono::{Local, Weekday};
+use common_errors::errors::CommonError;
 use domain_schedule_models::dto::v1::{Schedule, ScheduleType};
-use thiserror::Error;
 
 #[derive(Default)]
 pub struct State {
@@ -10,20 +11,10 @@ pub struct State {
     schedule_source_state: sources::schedule::State,
 }
 
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("Error while getting schedule id: {0}")]
-    IdSourceError(sources::id::Error),
-    #[error("Error while getting schedule: {0}")]
-    ScheduleSourceError(sources::schedule::Error),
-    #[error("Cannot calculate date for given offset: {0}")]
-    InvalidWeekOffset(i32),
-}
-
-pub async fn get_id(name: String, r#type: ScheduleType, state: &State) -> Result<i64, Error> {
+pub async fn get_id(name: String, r#type: ScheduleType, state: &State) -> anyhow::Result<i64> {
     sources::id::get_id(name, r#type, &state.id_source_state)
         .await
-        .map_err(Error::IdSourceError)
+        .with_context(|| "Error while getting schedule id")
 }
 
 pub async fn get_schedule(
@@ -31,12 +22,17 @@ pub async fn get_schedule(
     r#type: ScheduleType,
     offset: i32,
     state: &State,
-) -> Result<Schedule, Error> {
+) -> anyhow::Result<Schedule> {
     let week_start = Local::now()
         .with_days_offset(offset * 7)
         .map(|dt| dt.date_naive())
         .map(|dt| dt.week(Weekday::Mon).first_day())
-        .ok_or_else(|| Error::InvalidWeekOffset(offset))?;
+        .ok_or_else(|| {
+            anyhow!(CommonError::user(format!(
+                "Invalid week offset: {}",
+                offset
+            )))
+        })?;
     sources::schedule::get_schedule(
         name,
         r#type,
@@ -45,5 +41,5 @@ pub async fn get_schedule(
         &state.id_source_state,
     )
     .await
-    .map_err(Error::ScheduleSourceError)
+    .with_context(|| "Error while getting schedule")
 }
