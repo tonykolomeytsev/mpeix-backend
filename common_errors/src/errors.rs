@@ -1,14 +1,9 @@
 use std::{error::Error, fmt::Display};
 
-use derive_more::Display;
-
-#[derive(Debug, Display)]
+#[derive(Debug)]
 pub enum CommonError {
-    #[display(fmt = "Internal error: {}", _0)]
     InternalError(String),
-    #[display(fmt = "Gateway error: {}", _0)]
     GatewayError(String),
-    #[display(fmt = "User error: {}", _0)]
     UserError(String),
 }
 
@@ -23,6 +18,16 @@ impl CommonError {
 
     pub fn user<E: Display>(e: E) -> CommonError {
         CommonError::UserError(e.to_string())
+    }
+}
+
+impl Display for CommonError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CommonError::InternalError(s) => writeln!(f, "Internal error: {}", s),
+            CommonError::GatewayError(s) => writeln!(f, "Gateway error: {}", s),
+            CommonError::UserError(s) => writeln!(f, "User error: {}", s),
+        }
     }
 }
 
