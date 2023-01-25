@@ -13,7 +13,7 @@ pub struct State {
 }
 
 pub async fn get_id(name: String, r#type: ScheduleType, state: &State) -> anyhow::Result<i64> {
-    sources::id::get_id(name, r#type, &state.id_source_state)
+    sources::id::get_id(&name, r#type, &state.id_source_state)
         .await
         .with_context(|| "Error while getting schedule id")
 }

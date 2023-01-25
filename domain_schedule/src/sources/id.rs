@@ -1,16 +1,14 @@
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
 use domain_schedule_models::dto::v1::ScheduleType;
 use lazy_static::lazy_static;
+use log::info;
 use regex::Regex;
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 use tokio::sync::Mutex;
 
 use crate::dto::mpei::MpeiSearchResult;
-
-const CACHE_CAPACITY: usize = 3000;
-const CACHE_LIFETIME_HOURS: i64 = 12;
 
 const MPEI_API_SEARCH_ENDPOINT: &str = "http://ts.mpei.ru/api/search";
 const MPEI_QUERY_TERM: &str = "term";
@@ -44,8 +42,8 @@ impl Default for State {
                 .build()
                 .expect("Something went wrong when building HttClient"),
             cache: Mutex::new(
-                InMemoryCache::with_capacity(CACHE_CAPACITY)
-                    .expires_after_creation(chrono::Duration::hours(CACHE_LIFETIME_HOURS)),
+                InMemoryCache::with_capacity(3000)
+                    .expires_after_creation(chrono::Duration::hours(12)),
             ),
         }
     }
@@ -53,13 +51,14 @@ impl Default for State {
 
 /// Get `id` from in-memory cache if value present in cache,
 /// or get `id` from remote (`ts.mpei.ru`).
-pub async fn get_id(name: String, r#type: ScheduleType, state: &State) -> anyhow::Result<i64> {
+pub async fn get_id(name: &String, r#type: ScheduleType, state: &State) -> anyhow::Result<i64> {
     let cache_key = ScheduleName {
         r#type: r#type.to_mpei(),
         name: name.to_owned(),
     };
     let mut cache = state.cache.lock().await;
     if let Some(value) = cache.get(&cache_key) {
+        info!("Got schedule id from cache");
         return Ok(value.0);
     };
     let search_results = state
@@ -79,15 +78,16 @@ pub async fn get_id(name: String, r#type: ScheduleType, state: &State) -> anyhow
         .with_context(|| "Error while deserializing response from MPEI backend")?;
 
     match search_results.first() {
-        Some(search_result) if fuzzy_equals(&search_result.label, &name) => {
+        Some(search_result) if fuzzy_equals(&search_result.label, name) => {
+            info!("Got schedule id from remote");
             // Put value to cache
             cache.insert(cache_key, ScheduleId(search_result.id));
             Ok(search_result.id)
         }
-        _ => Err(anyhow!(CommonError::user(format!(
+        _ => bail!(CommonError::user(format!(
             "Schedule with type '{:?}' and name '{}' not found",
             r#type, name
-        )))),
+        ))),
     }
 }
 

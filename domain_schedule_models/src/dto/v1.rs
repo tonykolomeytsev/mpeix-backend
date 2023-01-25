@@ -1,7 +1,7 @@
 use chrono::{NaiveDate, NaiveTime};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Schedule {
     pub id: String,
@@ -11,7 +11,7 @@ pub struct Schedule {
     pub weeks: Vec<Week>,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ScheduleType {
     Group,
@@ -29,7 +29,7 @@ impl ScheduleType {
     }
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Week {
     pub week_of_year: u8,
@@ -38,7 +38,7 @@ pub struct Week {
     pub days: Vec<Day>,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Day {
     pub day_of_week: u8,
@@ -46,7 +46,7 @@ pub struct Day {
     pub classes: Vec<Classes>,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Classes {
     pub name: String,
@@ -59,7 +59,7 @@ pub struct Classes {
     pub number: i8,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ClassesType {
     Undefined,
@@ -71,7 +71,7 @@ pub enum ClassesType {
     Exam,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ClassesTime {
     pub start: NaiveTime,

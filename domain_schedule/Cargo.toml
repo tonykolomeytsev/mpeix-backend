@@ -7,6 +7,7 @@ authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 [dependencies]
 common_errors = { path = "../common_errors" }
 common_in_memory_cache = { path = "../common_in_memory_cache" }
+common_persistent_cache = { path = "../common_persistent_cache" }
 domain_schedule_models = { path = "../domain_schedule_models" }
 
 serde = { version = "1.0", features = ["derive"] }
@@ -17,3 +18,5 @@ tokio = { version = "1.23" }
 num-traits = { version = "0.2.15" }
 regex = { version = "1.7" }
 lazy_static = { version = "1.4" }
+env_logger = "0.10"
+log = "0.4"

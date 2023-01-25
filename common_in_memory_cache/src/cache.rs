@@ -3,6 +3,7 @@ use std::num::NonZeroUsize;
 
 use chrono::{DateTime, Duration, Local};
 use lru::LruCache;
+use serde::{Deserialize, Serialize};
 
 /// # InMemoryCache
 ///
@@ -38,16 +39,30 @@ pub struct InMemoryCache<K: Eq + Hash, V> {
     entries: LruCache<K, Entry<V>>,
     expires_after_creation: Option<Duration>,
     expires_after_access: Option<Duration>,
+    max_hits: Option<u32>,
 }
 
 /// # InMemoryCache.Entry
 ///
-/// For internal use only.
 /// The `Entry` wraps stored value and holds info about creation and access time.
-struct Entry<V> {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Entry<V> {
     value: V,
-    created_at: Option<DateTime<Local>>,
+    created_at: DateTime<Local>,
     accessed_at: DateTime<Local>,
+    hits: u32,
+}
+
+impl<V> Entry<V> {
+    pub fn new(value: V) -> Self {
+        let now = Local::now();
+        Self {
+            value,
+            created_at: now.to_owned(),
+            accessed_at: now,
+            hits: 0,
+        }
+    }
 }
 
 impl<K: Eq + Hash, V> InMemoryCache<K, V> {
@@ -64,6 +79,7 @@ impl<K: Eq + Hash, V> InMemoryCache<K, V> {
             ),
             expires_after_creation: None,
             expires_after_access: None,
+            max_hits: None,
         }
     }
 
@@ -85,49 +101,89 @@ impl<K: Eq + Hash, V> InMemoryCache<K, V> {
         self
     }
 
-    /// Insert value into the cache
-    pub fn insert(&mut self, key: K, value: V) {
-        self.insert_entry(
-            key,
-            Entry {
-                value,
-                created_at: self.expires_after_creation.map(|_| Local::now()),
-                accessed_at: Local::now(),
-            },
-        );
+    /// Set expiration policy by access time.
+    ///
+    /// Value stored in the cache will be considered as expired
+    /// if sum of its last access time and this policy `duration` is less than current time.
+    pub fn max_hits(mut self, max_hits: u32) -> Self {
+        self.max_hits = Some(max_hits);
+        self
     }
 
-    fn insert_entry(&mut self, key: K, entry: Entry<V>) {
-        self.entries.put(key, entry);
+    /// Insert value into the cache
+    ///
+    /// If an entry with key `k` already exists in the cache or another cache entry is removed
+    /// (due to the lru's capacity), then it returns the old entry's key-value pair.
+    /// Otherwise, returns `None`.
+    pub fn insert(&mut self, key: K, value: V) -> Option<(K, Entry<V>)> {
+        self.insert_entry(key, Entry::new(value))
+    }
+
+    pub fn insert_entry(&mut self, key: K, entry: Entry<V>) -> Option<(K, Entry<V>)> {
+        self.entries.push(key, entry)
     }
 
     /// Get value from the cache.
     ///
+    /// Returns value if it is not expired, otherwise returns None.
+    ///
     /// Exactly at the moment of a method call there are checks on expiration.
+    /// Removes expired values from cache.
     pub fn get(&mut self, key: &K) -> Option<&'_ V> {
+        self.get_entry(key, false).map(|entry| &entry.0.value)
+    }
+
+    /// Get value from the cache.
+    ///
+    /// Returns tuple:
+    /// - (&value, false) - if value is not expired
+    /// - (&value, true) - if value expired
+    ///
+    /// Exactly at the moment of a method call there are checks on expiration.
+    /// Keeps expired values from cache.
+    pub fn peek(&mut self, key: &K) -> Option<(&'_ V, bool)> {
+        self.get_entry(key, true)
+            .map(|(entry, expired)| (&entry.value, expired))
+    }
+
+    /// For internal use only
+    fn get_entry(&mut self, key: &K, keep_expired_value: bool) -> Option<(&'_ Entry<V>, bool)> {
         let entry = self.entries.get(key);
         // Check 'created_at' expiration policy
-        if match (self.expires_after_creation, &entry) {
-            (Some(ref duration), Some(entry)) => is_expired(&entry.created_at, duration),
+        let expired = match (self.expires_after_creation, &entry) {
+            (Some(ref duration), Some(entry)) => is_expired(&Some(entry.created_at), duration),
             (_, _) => false,
-        } {
-            self.entries.pop(key);
-            return None;
-        }
+        };
         // Check 'accessed_at' expiration policy
-        if match (self.expires_after_access, &entry) {
-            (Some(ref duration), Some(entry)) => is_expired(&Some(entry.accessed_at), duration),
-            (_, _) => false,
-        } {
+        let expired = expired
+            || match (self.expires_after_access, &entry) {
+                (Some(ref duration), Some(entry)) => is_expired(&Some(entry.accessed_at), duration),
+                (_, _) => false,
+            };
+        // Check 'max_hits' expiration policy
+        let expired = expired
+            || match (self.max_hits, &entry) {
+                (Some(max_hits), Some(entry)) => max_hits >= entry.hits,
+                (_, _) => false,
+            };
+
+        if !keep_expired_value && expired {
             self.entries.pop(key);
             return None;
         }
-        // Modify last access date
+
+        // Modify last access date and hits number
         if let Some(entry) = self.entries.get_mut(key) {
             entry.accessed_at = Local::now();
+            entry.hits = entry.hits.saturating_add(1);
         };
+
         // Return entry
-        self.entries.get(key).map(|entry| &entry.value)
+        self.entries.get(key).map(|entry| (entry, expired))
+    }
+
+    pub fn contains(&self, key: &K) -> bool {
+        self.entries.contains(key)
     }
 }
 
@@ -159,21 +215,19 @@ mod tests {
             InMemoryCache::with_capacity(10).expires_after_creation(Duration::minutes(5));
         let expired_entry = Entry {
             value: 2,
-            created_at: Some(
-                Local::now()
-                    .checked_sub_signed(Duration::minutes(5))
-                    .unwrap(),
-            ),
+            created_at: Local::now()
+                .checked_sub_signed(Duration::minutes(5))
+                .unwrap(),
             accessed_at: Local::now(),
+            hits: 0,
         };
         let not_expired_entry = Entry {
             value: 3,
-            created_at: Some(
-                Local::now()
-                    .checked_sub_signed(Duration::minutes(4))
-                    .unwrap(),
-            ),
+            created_at: Local::now()
+                .checked_sub_signed(Duration::minutes(4))
+                .unwrap(),
             accessed_at: Local::now(),
+            hits: 0,
         };
 
         cache.insert_entry("Expired", expired_entry);
@@ -190,14 +244,16 @@ mod tests {
             accessed_at: Local::now()
                 .checked_sub_signed(Duration::minutes(5))
                 .unwrap(),
-            created_at: None,
+            created_at: Local::now(),
+            hits: 0,
         };
         let not_expired_entry = Entry {
             value: "NotExpired",
             accessed_at: Local::now()
                 .checked_sub_signed(Duration::minutes(4))
                 .unwrap(),
-            created_at: None,
+            created_at: Local::now(),
+            hits: 0,
         };
 
         cache.insert_entry(2, expired_entry);

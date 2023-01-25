@@ -1,4 +1,4 @@
-use chrono::{DateTime, Datelike, Days, Month, NaiveDate, TimeZone, Weekday};
+use chrono::{DateTime, Datelike, Days, Local, Month, NaiveDate, TimeZone, Weekday};
 use num_traits::FromPrimitive;
 use std::cmp::Ordering;
 
@@ -34,6 +34,10 @@ pub trait NaiveDateExt {
     /// semester is 18. Summer time is from July to August. For this date range,
     /// and for school weeks greater than 18, -1 will be returned.
     fn week_of_semester(self) -> Option<WeekOfSemester>
+    where
+        Self: Sized;
+
+    fn is_past_week(&self) -> bool
     where
         Self: Sized;
 }
@@ -82,5 +86,14 @@ impl NaiveDateExt for NaiveDate {
             0..=17 => Some(WeekOfSemester::Studying(result)),
             _ => Some(WeekOfSemester::NonStudying),
         }
+    }
+
+    fn is_past_week(&self) -> bool
+    where
+        Self: Sized,
+    {
+        self.checked_add_days(Days::new(6))
+            .filter(|it| it < &Local::now().naive_local().date())
+            .is_some()
     }
 }

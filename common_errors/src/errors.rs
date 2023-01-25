@@ -1,5 +1,13 @@
 use std::{error::Error, fmt::Display};
 
+/// # CommonError
+///
+/// All errors in this project should be divided into three categories:
+/// - `InternalError` - errors that occur if the algorithms of this project do not work correctly.
+/// - `GatewayError` - errors that occur when MPEI backend is unavailable.
+/// - `UserError` - errors that occur due to the fact that the user sent incorrect data.
+///
+/// All low-level project components should wrap their root/leaf errors with `CommonError`.
 #[derive(Debug)]
 pub enum CommonError {
     InternalError(String),

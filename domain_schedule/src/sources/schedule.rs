@@ -1,30 +1,23 @@
-use std::collections::HashMap;
-
-use crate::{
-    dto::mpei::MpeiClasses,
-    sources,
-    time::{NaiveDateExt, WeekOfSemester},
-};
-use anyhow::{anyhow, bail, Context};
-use chrono::{Datelike, Days, NaiveDate, NaiveTime};
+use crate::{dto::mpei::MpeiClasses, sources, time::NaiveDateExt};
+use anyhow::{anyhow, Context, Ok};
+use chrono::{Days, NaiveDate};
 use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
-use domain_schedule_models::dto::v1::{
-    self, Classes, ClassesTime, ClassesType, Day, ScheduleType, Week,
-};
+use common_persistent_cache::PersistentCache;
+use domain_schedule_models::dto::v1::{self, ScheduleType};
+use log::info;
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 use tokio::sync::Mutex;
 
-#[derive(Hash, PartialEq, Eq)]
-struct ScheduleKey {
-    name: String,
-    r#type: String,
-    week_start: NaiveDate,
-}
+use super::{
+    mapping::map_schedule_models,
+    mediator::{CacheMediator, InMemoryCacheKey},
+};
 
 pub struct State {
     client: Client,
-    cache: Mutex<InMemoryCache<ScheduleKey, v1::Schedule>>,
+    in_memory_cache: Mutex<InMemoryCache<InMemoryCacheKey, v1::Schedule>>,
+    persistent_cache: Mutex<PersistentCache>,
 }
 
 impl Default for State {
@@ -38,10 +31,11 @@ impl Default for State {
                 .connect_timeout(std::time::Duration::from_secs(3))
                 .build()
                 .expect("Something went wrong when building HttClient"),
-            cache: Mutex::new(
+            in_memory_cache: Mutex::new(
                 InMemoryCache::with_capacity(3000)
                     .expires_after_creation(chrono::Duration::hours(6)),
             ),
+            persistent_cache: Mutex::new(PersistentCache::new("./cache".into())),
         }
     }
 }
@@ -55,19 +49,63 @@ pub async fn get_schedule(
     schedule_source_state: &State,
     id_source_state: &sources::id::State,
 ) -> anyhow::Result<v1::Schedule> {
-    let cache_key = ScheduleKey {
+    let mut mediator = CacheMediator::new(
+        &schedule_source_state.in_memory_cache,
+        &schedule_source_state.persistent_cache,
+    );
+    let key = InMemoryCacheKey {
         name: name.to_owned(),
         r#type: r#type.to_mpei(),
-        week_start: week_start.to_owned(),
+        week_start,
     };
-    let mut cache = schedule_source_state.cache.lock().await;
-    if let Some(value) = cache.get(&cache_key) {
-        return Ok(value.clone());
+    let ignore_expiration = week_start.is_past_week();
+
+    if let Some(schedule) = mediator.get(&key, ignore_expiration).await? {
+        // if we have not expired value in cache, return this value
+        info!("Got schedule from cache");
+        return Ok(schedule);
     }
-    let schedule_id = sources::id::get_id(name, r#type.to_owned(), id_source_state)
+
+    // or try to get value from remote
+    let remote = get_schedule_from_remote(
+        name,
+        r#type,
+        week_start,
+        schedule_source_state,
+        id_source_state,
+    )
+    .await;
+
+    // if we cannot get value from remote and didn't disable expiration policy at the beginning,
+    // try to disable expiration policy and look for cached value again
+    if remote.is_err() && !ignore_expiration {
+        if let Some(schedule) = mediator.get(&key, true).await? {
+            info!("Got expired schedule from cache (remote unavailable)");
+            return Ok(schedule);
+        }
+    }
+
+    if remote.is_ok() {
+        // put new remote value into the cache
+        mediator
+            .insert(key, remote.as_ref().unwrap().to_owned())
+            .await?;
+    }
+
+    // if we have not even expired cached value, return error about remote request
+    remote
+}
+
+async fn get_schedule_from_remote(
+    name: String,
+    r#type: ScheduleType,
+    week_start: NaiveDate,
+    schedule_source_state: &State,
+    id_source_state: &sources::id::State,
+) -> anyhow::Result<v1::Schedule> {
+    let schedule_id = sources::id::get_id(&name, r#type.to_owned(), id_source_state)
         .await
         .with_context(|| "Error while using id_source from schedule_source")?;
-
     let week_end = week_start
         .checked_add_days(Days::new(6))
         .expect("Week end date always reachable");
@@ -91,112 +129,5 @@ pub async fn get_schedule(
         .map_err(|e| anyhow!(CommonError::internal(e)))
         .with_context(|| "Error while deserializing response from MPEI backend")?;
 
-    map_schedule_models(&cache_key, schedule_id, r#type, schedule_response)
-}
-
-fn map_schedule_models(
-    ScheduleKey {
-        name,
-        r#type: _,
-        week_start,
-    }: &ScheduleKey,
-    schedule_id: i64,
-    r#type: ScheduleType,
-    mpei_classes: Vec<MpeiClasses>,
-) -> anyhow::Result<v1::Schedule> {
-    let mut map_of_days = HashMap::<NaiveDate, Vec<Classes>>::new();
-    for ref cls in mpei_classes {
-        let time = ClassesTime {
-            start: cls.begin_lesson,
-            end: cls.end_lesson,
-        };
-        let mpeix_cls = Classes {
-            name: cls.discipline.to_owned(),
-            r#type: get_classes_type(&cls.kind_of_work),
-            raw_type: cls.kind_of_work.to_owned(),
-            place: cls.auditorium.to_owned(),
-            groups: match (&cls.stream, &cls.group) {
-                (Some(stream), _) => stream.to_owned(),
-                (None, Some(group)) => group.to_owned(),
-                (_, _) => String::new(),
-            },
-            person: check_is_not_empty(&cls.lecturer),
-            number: get_number(&time),
-            time,
-        };
-        if !map_of_days.contains_key(&cls.date) {
-            map_of_days.insert(cls.date.to_owned(), vec![]);
-        }
-        if let Some(vec) = map_of_days.get_mut(&cls.date) {
-            vec.push(mpeix_cls)
-        };
-    }
-    let mut days = Vec::<Day>::new();
-    for (day_of_week, classes) in map_of_days {
-        days.push(Day {
-            day_of_week: day_of_week.weekday().number_from_monday() as u8,
-            date: day_of_week,
-            classes,
-        });
-    }
-    Ok(v1::Schedule {
-        id: schedule_id.to_string(),
-        name: name.to_owned(),
-        r#type,
-        weeks: vec![Week {
-            week_of_semester: match week_start.week_of_semester() {
-                Some(WeekOfSemester::Studying(num)) => num as i8,
-                Some(WeekOfSemester::NonStudying) => -1,
-                None => bail!(CommonError::internal(format!(
-                    "Cannot calculate week of semester for offset {}",
-                    week_start,
-                ))),
-            },
-            week_of_year: week_start.week_of_year(),
-            first_day_of_week: week_start.to_owned(),
-            days,
-        }],
-    })
-}
-
-fn get_classes_type(raw_type: &str) -> ClassesType {
-    let raw_type = raw_type.to_lowercase();
-    if raw_type.contains("лек") {
-        ClassesType::Lecture
-    } else if raw_type.contains("лаб") {
-        ClassesType::Lab
-    } else if raw_type.contains("прак") {
-        ClassesType::Practice
-    } else if raw_type.contains("курс") || raw_type.contains("кп") {
-        ClassesType::Course
-    } else {
-        ClassesType::Undefined
-    }
-}
-
-fn check_is_not_empty(lecturer: &str) -> String {
-    if lecturer.to_lowercase().contains("вакансия") {
-        return String::new();
-    }
-    lecturer.trim().to_owned()
-}
-
-fn get_number(time: &ClassesTime) -> i8 {
-    if time.start == NaiveTime::from_hms_opt(9, 20, 0).unwrap() {
-        1
-    } else if time.start == NaiveTime::from_hms_opt(11, 10, 0).unwrap() {
-        2
-    } else if time.start == NaiveTime::from_hms_opt(13, 45, 0).unwrap() {
-        3
-    } else if time.start == NaiveTime::from_hms_opt(15, 35, 0).unwrap() {
-        4
-    } else if time.start == NaiveTime::from_hms_opt(17, 20, 0).unwrap() {
-        5
-    } else if time.start == NaiveTime::from_hms_opt(18, 55, 0).unwrap() {
-        6
-    } else if time.start == NaiveTime::from_hms_opt(20, 30, 0).unwrap() {
-        7
-    } else {
-        -1
-    }
+    map_schedule_models(name, week_start, schedule_id, r#type, schedule_response)
 }

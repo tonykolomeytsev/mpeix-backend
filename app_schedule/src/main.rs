@@ -14,7 +14,9 @@ use serde::Serialize;
 
 use crate::errors::AppScheduleError;
 
-#[get("/are_you_alive")]
+/// Health check method
+/// Returns `200 OK` with text `"I'm alive"` if service is alive
+#[get("/v1/are_you_alive")]
 async fn are_you_alive() -> impl Responder {
     HttpResponse::Ok().body("I'm alive :)")
 }
@@ -51,6 +53,7 @@ async fn get_schedule_v1(
 
 /// Because we cannot implement trait `actix_web::FromRequest` for `ScheduleType`.
 /// They belongs to different crates and no one belongs this crate.
+/// I do not want to add `actix-web` dependency to `domain_schedule_models` crate.
 fn parse_schedule_type(r#type: String) -> anyhow::Result<ScheduleType> {
     match r#type.as_str() {
         "group" => Ok(ScheduleType::Group),
@@ -70,6 +73,7 @@ struct AppScheduleState {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    std::env::set_var("RUST_LOG", "info");
     env_logger::init();
 
     HttpServer::new(|| {
