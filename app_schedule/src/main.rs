@@ -9,7 +9,7 @@ use actix_web::{
 use anyhow::bail;
 use common_errors::errors::CommonError;
 use domain_schedule_models::dto::v1::{self, ScheduleType};
-use feature_schedule::v1::FeatureScheduleState;
+use feature_schedule::v1::FeatureSchedule;
 use serde::Serialize;
 
 use crate::errors::AppScheduleError;
@@ -29,26 +29,23 @@ struct GetIdResponse {
 #[actix_web::get("/v1/{type}/{name}/id")]
 async fn get_id_v1(
     path: Path<(String, String)>,
-    state: Data<AppScheduleState>,
+    state: Data<AppSchedule>,
 ) -> Result<Json<GetIdResponse>, AppScheduleError> {
     let (r#type, name) = path.into_inner();
     let r#type = parse_schedule_type(r#type)?;
     Ok(Json(GetIdResponse {
-        id: feature_schedule::v1::get_id(name, r#type, &state.feature_schedule_state).await?,
+        id: state.0.get_id(name, r#type).await?,
     }))
 }
 
 #[actix_web::get("/v1/{type}/{name}/schedule/{offset}")]
 async fn get_schedule_v1(
     path: Path<(String, String, i32)>,
-    state: Data<AppScheduleState>,
+    state: Data<AppSchedule>,
 ) -> Result<Json<v1::Schedule>, AppScheduleError> {
     let (r#type, name, offset) = path.into_inner();
     let r#type = parse_schedule_type(r#type)?;
-    Ok(Json(
-        feature_schedule::v1::get_schedule(name, r#type, offset, &state.feature_schedule_state)
-            .await?,
-    ))
+    Ok(Json(state.0.get_schedule(name, r#type, offset).await?))
 }
 
 /// Because we cannot implement trait `actix_web::FromRequest` for `ScheduleType`.
@@ -67,9 +64,7 @@ fn parse_schedule_type(r#type: String) -> anyhow::Result<ScheduleType> {
 }
 
 #[derive(Default)]
-struct AppScheduleState {
-    feature_schedule_state: FeatureScheduleState,
-}
+struct AppSchedule(FeatureSchedule);
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -80,7 +75,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(middleware::Logger::default())
             .wrap(middleware::Compress::default())
-            .app_data(Data::new(AppScheduleState::default()))
+            .app_data(Data::new(AppSchedule::default()))
             .service(are_you_alive)
             .service(get_id_v1)
             .service(get_schedule_v1)
