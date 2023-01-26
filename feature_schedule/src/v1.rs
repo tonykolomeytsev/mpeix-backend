@@ -1,8 +1,20 @@
-use domain_schedule::usecases::{GetIdUseCase, GetScheduleUseCase};
+use domain_schedule::{
+    di::DomainScheduleModule,
+    usecases::{GetScheduleIdUseCase, GetScheduleUseCase},
+};
 use domain_schedule_models::dto::v1::{self, ScheduleType};
 
-#[derive(Default)]
-pub struct FeatureSchedule(GetIdUseCase, GetScheduleUseCase);
+pub struct FeatureSchedule(GetScheduleIdUseCase, GetScheduleUseCase);
+
+impl Default for FeatureSchedule {
+    fn default() -> Self {
+        let domain_schedule_module = DomainScheduleModule::new();
+        Self(
+            domain_schedule_module.get_schedule_id_use_case,
+            domain_schedule_module.get_schedule_use_case,
+        )
+    }
+}
 
 impl FeatureSchedule {
     pub async fn get_id(&self, name: String, r#type: ScheduleType) -> anyhow::Result<i64> {

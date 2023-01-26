@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::{anyhow, ensure};
 use chrono::{Local, Weekday};
 use common_errors::errors::CommonError;
@@ -12,9 +14,9 @@ use crate::{
 };
 
 #[derive(Default)]
-pub struct GetIdUseCase(ScheduleIdRepository);
+pub struct GetScheduleIdUseCase(pub(crate) Arc<ScheduleIdRepository>);
 
-impl GetIdUseCase {
+impl GetScheduleIdUseCase {
     pub async fn get_id(&self, name: String, r#type: ScheduleType) -> anyhow::Result<i64> {
         self.0.get_id(name, r#type).await
     }
@@ -26,7 +28,10 @@ lazy_static! {
 }
 
 #[derive(Default)]
-pub struct GetScheduleUseCase(ScheduleIdRepository, ScheduleRepository);
+pub struct GetScheduleUseCase(
+    pub(crate) Arc<ScheduleIdRepository>,
+    pub(crate) Arc<ScheduleRepository>,
+);
 
 impl GetScheduleUseCase {
     pub async fn get_schedule(
