@@ -26,6 +26,10 @@ The dependency rules are also respected:
 - `feature` crates shall not depend on other `feature` crates;
 - `domain` and `common` crates shall not depend on `feature` crates.
 
+![dependency rule demo](https://github.com/tonykolomeytsev/mpeix-backend/raw/master/media/mpeix-backend-arch-demo.png)
+
+### About caching policy
+
 All microservices cache all information in the database and on disk as much as possible. For example, the `app_schedule` microservice takes data from the MPEI website and immediately saves it to disk. The old cache is not invalidated at all by design, because the old schedules are deleted from the university's site and invalidating the old cache will cause the data to be lost forever.
 
 A detailed description of each microservice can be found in the README of each `app` crate.
