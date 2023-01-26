@@ -119,6 +119,10 @@ impl<K: Eq + Hash, V> InMemoryCache<K, V> {
         self.insert_entry(key, Entry::new(value))
     }
 
+    /// Insert complete LRU cache entry into the cache
+    ///
+    /// Used for interaction with persistent cache. Because we can keep
+    /// oldest items outside of the RAM. For example, in DB or in files.
     pub fn insert_entry(&mut self, key: K, entry: Entry<V>) -> Option<(K, Entry<V>)> {
         self.entries.push(key, entry)
     }
@@ -140,7 +144,7 @@ impl<K: Eq + Hash, V> InMemoryCache<K, V> {
     /// - (&value, true) - if value expired
     ///
     /// Exactly at the moment of a method call there are checks on expiration.
-    /// Keeps expired values from cache.
+    /// Does not remove expired values from cache.
     pub fn peek(&mut self, key: &K) -> Option<(&'_ V, bool)> {
         self.get_entry(key, true)
             .map(|(entry, expired)| (&entry.value, expired))
@@ -182,6 +186,9 @@ impl<K: Eq + Hash, V> InMemoryCache<K, V> {
         self.entries.get(key).map(|entry| (entry, expired))
     }
 
+    /// Returns a bool indicating whether the given key is in the cache.
+    /// There are no any checks on expiration or cache modification
+    /// during this call.
     pub fn contains(&self, key: &K) -> bool {
         self.entries.contains(key)
     }

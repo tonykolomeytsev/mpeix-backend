@@ -18,6 +18,7 @@ pub struct PersistentCache {
     cache_dir: PathBuf,
 }
 
+/// The error type for persistent cache `insert`/`get` operations
 pub enum Error {
     IOError(std::io::Error),
     DeserializationError(serde_json::Error),
