@@ -13,10 +13,17 @@ use crate::{
     time::{DateTimeExt, NaiveDateExt},
 };
 
+/// Get numeric `ID` of schedule by its `name` and `type`.
+/// - `type` is enum of `Group`, `Person`, `Room`.
+///
+/// This UseCase uses injected singleton instance of [ScheduleIdRepository].
+/// Check [crate::di] module for details.
 #[derive(Default)]
 pub struct GetScheduleIdUseCase(pub(crate) Arc<ScheduleIdRepository>);
 
 impl GetScheduleIdUseCase {
+    /// Get numeric `ID` of schedule by its `name` and `type`.
+    /// See [GetScheduleIdUseCase] description.
     pub async fn get_id(&self, name: String, r#type: ScheduleType) -> anyhow::Result<i64> {
         self.0.get_id(name, r#type).await
     }
@@ -27,6 +34,19 @@ lazy_static! {
     static ref MIN_OFFSET: i32 = i32::MIN / 7;
 }
 
+/// Get [Schedule] model by schedule `name`, `type`, and `offset`.
+/// - `type` is enum of `Group`, `Person`, `Room`.
+/// - `offset` is the number from which the required week for the answer is calculated.
+///     * If `offset` is `0`, the schedule for the current week will be returned.
+///     * If offset is `1`, the next week will be returned.
+///     * If offset is `-1`, the previous week will be returned.
+///     * If offset is `-4`, the week that was 28 days ago will be returned.
+///
+/// This UseCase is maximally cache-friendly.
+/// It returns even expired cache entries in cases when remote is unavailable.
+///
+/// This UseCase uses injected singleton instances of [ScheduleIdRepository] and [ScheduleRepository].
+/// Check [crate::di] module for details.
 #[derive(Default)]
 pub struct GetScheduleUseCase(
     pub(crate) Arc<ScheduleIdRepository>,
@@ -34,6 +54,8 @@ pub struct GetScheduleUseCase(
 );
 
 impl GetScheduleUseCase {
+    /// Get [Schedule] model by schedule `name`, `type`, and `offset`.
+    /// See [GetScheduleUseCase] descrition.
     pub async fn get_schedule(
         &self,
         name: String,
