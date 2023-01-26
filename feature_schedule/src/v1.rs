@@ -8,7 +8,7 @@ pub struct FeatureSchedule(GetScheduleIdUseCase, GetScheduleUseCase);
 
 impl Default for FeatureSchedule {
     fn default() -> Self {
-        let domain_schedule_module = DomainScheduleModule::new();
+        let domain_schedule_module = DomainScheduleModule::default();
         Self(
             domain_schedule_module.get_schedule_id_use_case,
             domain_schedule_module.get_schedule_use_case,

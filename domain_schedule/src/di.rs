@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use log::info;
-
 use crate::{
     id::repository::ScheduleIdRepository,
     schedule::repository::ScheduleRepository,
@@ -13,8 +11,8 @@ pub struct DomainScheduleModule {
     pub get_schedule_use_case: GetScheduleUseCase,
 }
 
-impl DomainScheduleModule {
-    pub fn new() -> Self {
+impl Default for DomainScheduleModule {
+    fn default() -> Self {
         let schedule_id_repository = Arc::new(ScheduleIdRepository::default());
         let schedule_repository = Arc::new(ScheduleRepository::default());
         Self {

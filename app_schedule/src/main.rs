@@ -10,7 +10,6 @@ use anyhow::bail;
 use common_errors::errors::CommonError;
 use domain_schedule_models::dto::v1::{self, ScheduleType};
 use feature_schedule::v1::FeatureSchedule;
-use log::info;
 use serde::Serialize;
 
 use crate::errors::AppScheduleError;
