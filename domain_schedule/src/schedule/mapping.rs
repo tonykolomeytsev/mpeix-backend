@@ -54,6 +54,7 @@ pub fn map_schedule_models(
             classes,
         });
     }
+    days.sort_by(|a, b| a.date.cmp(&b.date));
     Ok(Schedule {
         id: schedule_id.to_string(),
         name,
