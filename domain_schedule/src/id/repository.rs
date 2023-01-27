@@ -1,14 +1,14 @@
 use anyhow::{anyhow, bail, Context};
 use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
-use domain_schedule_models::dto::v1::ScheduleType;
+use domain_schedule_models::dto::{mpei::MpeiSearchResult, v1::ScheduleType};
 use lazy_static::lazy_static;
 use log::info;
 use regex::Regex;
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 use tokio::sync::Mutex;
 
-use crate::dto::{mpei::MpeiSearchResult, mpeix::ScheduleName as ValidScheduleName};
+use crate::dto::mpeix::ScheduleName as ValidScheduleName;
 
 const MPEI_API_SEARCH_ENDPOINT: &str = "http://ts.mpei.ru/api/search";
 const MPEI_QUERY_TERM: &str = "term";

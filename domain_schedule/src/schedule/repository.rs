@@ -3,11 +3,14 @@ use chrono::{Days, NaiveDate};
 use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
 use common_persistent_cache::PersistentCache;
-use domain_schedule_models::dto::v1::{Schedule, ScheduleType};
+use domain_schedule_models::dto::{
+    mpei::MpeiClasses,
+    v1::{Schedule, ScheduleType},
+};
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 use tokio::sync::Mutex;
 
-use crate::dto::{mpei::MpeiClasses, mpeix::ScheduleName};
+use crate::dto::mpeix::ScheduleName;
 
 use super::{
     mapping::map_schedule_models,
