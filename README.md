@@ -26,7 +26,9 @@ The dependency rules are also respected:
 - `feature` crates shall not depend on other `feature` crates;
 - `domain` and `common` crates shall not depend on `feature` crates.
 
-![dependency rule demo](https://github.com/tonykolomeytsev/mpeix-backend/raw/master/media/mpeix-backend-arch-demo.svg)
+<p align="center">
+  <img src="https://github.com/tonykolomeytsev/mpeix-backend/raw/master/media/mpeix-backend-arch-demo.svg" />
+</p>
 
 ### About caching policy
 
