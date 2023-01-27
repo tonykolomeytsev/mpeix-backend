@@ -167,7 +167,7 @@ impl<K: Eq + Hash, V> InMemoryCache<K, V> {
         // Check 'max_hits' expiration policy
         let expired = expired
             || match (self.max_hits, &entry) {
-                (Some(max_hits), Some(entry)) => max_hits >= entry.hits,
+                (Some(max_hits), Some(entry)) => max_hits <= entry.hits,
                 (_, _) => false,
             };
 
