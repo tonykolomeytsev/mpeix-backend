@@ -8,7 +8,7 @@ use regex::Regex;
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 use tokio::sync::Mutex;
 
-use crate::dto::mpei::MpeiSearchResult;
+use crate::dto::{mpei::MpeiSearchResult, mpeix::ScheduleName as ValidScheduleName};
 
 const MPEI_API_SEARCH_ENDPOINT: &str = "http://ts.mpei.ru/api/search";
 const MPEI_QUERY_TERM: &str = "term";
@@ -55,10 +55,14 @@ impl Default for ScheduleIdRepository {
 }
 
 impl ScheduleIdRepository {
-    pub async fn get_id(&self, name: String, r#type: ScheduleType) -> anyhow::Result<i64> {
+    pub async fn get_id(
+        &self,
+        name: ValidScheduleName,
+        r#type: ScheduleType,
+    ) -> anyhow::Result<i64> {
         let cache_key = ScheduleName {
             r#type: r#type.to_mpei(),
-            name: name.to_owned(),
+            name: name.to_string(),
         };
         if let Some(value) = self.cache.lock().await.get(&cache_key) {
             info!("Got schedule id from cache");
@@ -68,7 +72,7 @@ impl ScheduleIdRepository {
             .client
             .get(MPEI_API_SEARCH_ENDPOINT)
             .query(&[
-                (MPEI_QUERY_TERM, name.to_owned()),
+                (MPEI_QUERY_TERM, name.to_string()),
                 (MPEI_QUERY_TYPE, r#type.to_mpei()),
             ])
             .send()
@@ -81,7 +85,7 @@ impl ScheduleIdRepository {
             .with_context(|| "Error while deserializing response from MPEI backend")?;
 
         match search_results.first() {
-            Some(search_result) if self.fuzzy_equals(&search_result.label, &name) => {
+            Some(search_result) if self.fuzzy_equals(&search_result.label, name.as_ref()) => {
                 info!("Got schedule id from remote");
                 // Put value to cache
                 self.cache
@@ -92,7 +96,8 @@ impl ScheduleIdRepository {
             }
             _ => bail!(CommonError::user(format!(
                 "Schedule with type '{:?}' and name '{}' not found",
-                r#type, name
+                r#type,
+                name.as_ref()
             ))),
         }
     }

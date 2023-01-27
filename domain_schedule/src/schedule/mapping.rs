@@ -8,12 +8,12 @@ use domain_schedule_models::dto::v1::{
 };
 
 use crate::{
-    dto::mpei::MpeiClasses,
+    dto::{mpei::MpeiClasses, mpeix::ScheduleName},
     time::{NaiveDateExt, WeekOfSemester},
 };
 
 pub fn map_schedule_models(
-    name: String,
+    name: ScheduleName,
     week_start: NaiveDate,
     schedule_id: i64,
     r#type: ScheduleType,
@@ -57,7 +57,7 @@ pub fn map_schedule_models(
     days.sort_by(|a, b| a.date.cmp(&b.date));
     Ok(Schedule {
         id: schedule_id.to_string(),
-        name,
+        name: name.as_string(),
         r#type,
         weeks: vec![Week {
             week_of_semester: match week_start.week_of_semester() {

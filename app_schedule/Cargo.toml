@@ -15,7 +15,3 @@ anyhow = { version = "1.0" }
 derive_more = { version = "0.99.17" }
 env_logger = "0.10"
 log = "0.4"
-
-[profile.release]
-opt-level = 3
-lto = true

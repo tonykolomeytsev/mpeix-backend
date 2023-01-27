@@ -8,6 +8,7 @@ use lazy_static::lazy_static;
 use log::info;
 
 use crate::{
+    dto::mpeix::ScheduleName,
     id::repository::ScheduleIdRepository,
     schedule::repository::ScheduleRepository,
     time::{DateTimeExt, NaiveDateExt},
@@ -25,6 +26,7 @@ impl GetScheduleIdUseCase {
     /// Get numeric `ID` of schedule by its `name` and `type`.
     /// See [GetScheduleIdUseCase] description.
     pub async fn get_id(&self, name: String, r#type: ScheduleType) -> anyhow::Result<i64> {
+        let name = ScheduleName::new(name, r#type.clone())?;
         self.0.get_id(name, r#type).await
     }
 }
@@ -65,6 +67,7 @@ impl GetScheduleUseCase {
         ensure!(offset < *MAX_OFFSET, CommonError::user("Too large offset"));
         ensure!(offset > *MIN_OFFSET, CommonError::user("Too small offset"));
 
+        let name = ScheduleName::new(name, r#type.clone())?;
         let week_start = Local::now()
             .with_days_offset(offset * 7)
             .map(|dt| dt.date_naive())

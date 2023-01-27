@@ -7,7 +7,7 @@ use domain_schedule_models::dto::v1::{Schedule, ScheduleType};
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 use tokio::sync::Mutex;
 
-use crate::dto::mpei::MpeiClasses;
+use crate::dto::{mpei::MpeiClasses, mpeix::ScheduleName};
 
 use super::{
     mapping::map_schedule_models,
@@ -32,7 +32,7 @@ impl Default for ScheduleRepository {
                 .build()
                 .expect("Something went wrong when building HttClient"),
             in_memory_cache: Mutex::new(
-                InMemoryCache::with_capacity(3000)
+                InMemoryCache::with_capacity(500)
                     .expires_after_creation(chrono::Duration::hours(6)),
             ),
             persistent_cache: Mutex::new(PersistentCache::new("./cache".into())),
@@ -43,14 +43,14 @@ impl Default for ScheduleRepository {
 impl ScheduleRepository {
     pub async fn get_schedule_from_cache(
         &self,
-        name: String,
+        name: ScheduleName,
         r#type: ScheduleType,
         week_start: NaiveDate,
         ignore_expiration: bool,
     ) -> anyhow::Result<Option<Schedule>> {
         let mut mediator = CacheMediator::new(&self.in_memory_cache, &self.persistent_cache);
         let key = InMemoryCacheKey {
-            name: name.to_owned(),
+            name: name.as_string(),
             r#type: r#type.to_mpei(),
             week_start,
         };
@@ -60,14 +60,14 @@ impl ScheduleRepository {
 
     pub async fn insert_schedule_to_cache(
         &self,
-        name: String,
+        name: ScheduleName,
         r#type: ScheduleType,
         week_start: NaiveDate,
         schedule: Schedule,
     ) -> anyhow::Result<()> {
         let mut mediator = CacheMediator::new(&self.in_memory_cache, &self.persistent_cache);
         let key = InMemoryCacheKey {
-            name: name.to_owned(),
+            name: name.as_string(),
             r#type: r#type.to_mpei(),
             week_start,
         };
@@ -78,7 +78,7 @@ impl ScheduleRepository {
     pub async fn get_schedule_from_remote(
         &self,
         schedule_id: i64,
-        name: String,
+        name: ScheduleName,
         r#type: ScheduleType,
         week_start: NaiveDate,
     ) -> anyhow::Result<Schedule> {

@@ -8,3 +8,7 @@ members = [
   "domain_schedule_models",
   "feature_schedule",
 ]
+
+[profile.release]
+opt-level = 3
+lto = true
