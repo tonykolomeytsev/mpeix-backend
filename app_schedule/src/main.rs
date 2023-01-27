@@ -10,6 +10,7 @@ use anyhow::bail;
 use common_errors::errors::CommonError;
 use domain_schedule_models::dto::v1::{self, ScheduleType};
 use feature_schedule::v1::FeatureSchedule;
+use log::info;
 use serde::Serialize;
 
 use crate::errors::AppScheduleError;
@@ -63,12 +64,26 @@ fn parse_schedule_type(r#type: String) -> anyhow::Result<ScheduleType> {
     }
 }
 
+fn get_addr() -> (String, u16) {
+    let host = envmnt::get_or(
+        "HOST",
+        if cfg!(debug_assertions) {
+            "127.0.0.1"
+        } else {
+            "0.0.0.0"
+        },
+    );
+    let port = envmnt::get_u16("PORT", 8080);
+    info!("Starting server on {}:{}", host, port);
+    (host, port)
+}
+
 #[derive(Default)]
 struct AppSchedule(FeatureSchedule);
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "info");
+    std::env::set_var("RUST_LOG", envmnt::get_or("RUST_LOG", "info"));
     env_logger::init();
     let app_state = Data::new(AppSchedule::default());
 
@@ -81,7 +96,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_id_v1)
             .service(get_schedule_v1)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(get_addr())?
     .run()
     .await
 }

@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use anyhow::{anyhow, Ok};
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 use common_errors::errors::CommonError;
 use common_in_memory_cache::{Entry, InMemoryCache};
 use common_persistent_cache::PersistentCache;
@@ -104,11 +104,13 @@ impl<'a> CacheMediator<'a> {
 
 impl ToString for InMemoryCacheKey {
     fn to_string(&self) -> String {
+        let year = &self.week_start.year();
         let r#type = &self.r#type;
         let name = &self.name;
 
         format!(
-            "{} {} [{}].cache",
+            "{}/{} {} [{}].cache",
+            year,
             r#type,
             name,
             &self.week_start.format("%Y-%m-%d")

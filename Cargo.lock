@@ -260,6 +260,7 @@ dependencies = [
  "derive_more",
  "domain_schedule_models",
  "env_logger",
+ "envmnt",
  "feature_schedule",
  "log",
  "serde",
@@ -556,6 +557,7 @@ dependencies = [
  "common_persistent_cache",
  "domain_schedule_models",
  "env_logger",
+ "envmnt",
  "lazy_static",
  "log",
  "num-traits",
@@ -572,6 +574,12 @@ dependencies = [
  "chrono",
  "serde",
 ]
+
+[[package]]
+name = "dunce"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bd4b30a6560bbd9b4620f4de34c3f14f60848e58a9b7216801afcb4c7b31c3c"
 
 [[package]]
 name = "encoding_rs"
@@ -593,6 +601,16 @@ dependencies = [
  "log",
  "regex",
  "termcolor",
+]
+
+[[package]]
+name = "envmnt"
+version = "0.10.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d73999a2b8871e74c8b8bc23759ee9f3d85011b24fafc91a4b3b5c8cc8185501"
+dependencies = [
+ "fsio",
+ "indexmap",
 ]
 
 [[package]]
@@ -674,6 +692,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9c384f161156f5260c24a097c56119f9be8c798586aecc13afbcbe7b7e26bf8"
 dependencies = [
  "percent-encoding",
+]
+
+[[package]]
+name = "fsio"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dad0ce30be0cc441b325c5d705c8b613a0ca0d92b6a8953d41bd236dc09a36d0"
+dependencies = [
+ "dunce",
 ]
 
 [[package]]

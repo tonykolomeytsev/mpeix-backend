@@ -22,6 +22,11 @@ pub struct ScheduleRepository {
 
 impl Default for ScheduleRepository {
     fn default() -> Self {
+        let cache_capacity = envmnt::get_usize("CACHE_CAPACITY", 500);
+        let cache_max_hits = envmnt::get_u32("CACHE_MAX_HITS", 10);
+        let cache_lifetife = envmnt::get_i64("CACHE_LIFETIME_HOURS", 6);
+        let cache_dir = envmnt::get_or("CACHE_DIR", "./cache");
+
         Self {
             client: ClientBuilder::new()
                 .gzip(true)
@@ -32,10 +37,11 @@ impl Default for ScheduleRepository {
                 .build()
                 .expect("Something went wrong when building HttClient"),
             in_memory_cache: Mutex::new(
-                InMemoryCache::with_capacity(500)
-                    .expires_after_creation(chrono::Duration::hours(6)),
+                InMemoryCache::with_capacity(cache_capacity)
+                    .max_hits(cache_max_hits)
+                    .expires_after_creation(chrono::Duration::hours(cache_lifetife)),
             ),
-            persistent_cache: Mutex::new(PersistentCache::new("./cache".into())),
+            persistent_cache: Mutex::new(PersistentCache::new(cache_dir.into())),
         }
     }
 }
