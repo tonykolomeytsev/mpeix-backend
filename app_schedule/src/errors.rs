@@ -5,7 +5,7 @@ use actix_web::{
 use common_errors::errors::CommonError;
 
 #[derive(Debug, derive_more::Display)]
-#[display(fmt = "{}", _0)]
+#[display(fmt = "{_0}")]
 pub struct AppScheduleError(anyhow::Error);
 
 impl From<anyhow::Error> for AppScheduleError {

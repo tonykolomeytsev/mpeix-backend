@@ -96,9 +96,9 @@ impl From<serde_json::Error> for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::IOError(e) => writeln!(f, "Persistent cache IO error: {}", e),
+            Error::IOError(e) => writeln!(f, "Persistent cache IO error: {e}"),
             Error::DeserializationError(e) => {
-                writeln!(f, "Persistent cache deserialization error: {}", e)
+                writeln!(f, "Persistent cache deserialization error: {e}")
             }
         }
     }

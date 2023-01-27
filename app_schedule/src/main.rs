@@ -58,8 +58,7 @@ fn parse_schedule_type(r#type: String) -> anyhow::Result<ScheduleType> {
         "person" => Ok(ScheduleType::Person),
         "room" => Ok(ScheduleType::Room),
         _ => bail!(CommonError::UserError(format!(
-            "Unsupported schedule type: {}",
-            r#type
+            "Unsupported schedule type: {type}"
         ))),
     }
 }

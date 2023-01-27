@@ -64,8 +64,7 @@ pub fn map_schedule_models(
                 Some(WeekOfSemester::Studying(num)) => num as i8,
                 Some(WeekOfSemester::NonStudying) => -1,
                 None => bail!(CommonError::internal(format!(
-                    "Cannot calculate week of semester for offset {}",
-                    week_start,
+                    "Cannot calculate week of semester for offset {week_start}",
                 ))),
             },
             week_of_year: week_start.week_of_year(),

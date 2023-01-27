@@ -32,9 +32,9 @@ impl CommonError {
 impl Display for CommonError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CommonError::InternalError(s) => writeln!(f, "Internal error: {}", s),
-            CommonError::GatewayError(s) => writeln!(f, "Gateway error: {}", s),
-            CommonError::UserError(s) => writeln!(f, "User error: {}", s),
+            CommonError::InternalError(s) => writeln!(f, "Internal error: {s}"),
+            CommonError::GatewayError(s) => writeln!(f, "Gateway error: {s}"),
+            CommonError::UserError(s) => writeln!(f, "User error: {s}"),
         }
     }
 }
