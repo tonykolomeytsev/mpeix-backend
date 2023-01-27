@@ -576,6 +576,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "domain_schedule_search"
+version = "0.1.0"
+
+[[package]]
 name = "dunce"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

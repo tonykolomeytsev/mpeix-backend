@@ -37,6 +37,10 @@ struct ScheduleId(i64);
 
 impl Default for ScheduleIdRepository {
     fn default() -> Self {
+        let cache_capacity = envmnt::get_usize("SCHEDULE_ID_CACHE_CAPACITY", 3000);
+        let cache_max_hits = envmnt::get_u32("SCHEDULE_ID_CACHE_MAX_HITS", 10);
+        let cache_lifetife = envmnt::get_i64("SCHEDULE_ID_CACHE_LIFETIME_HOURS", 12);
+
         Self {
             client: ClientBuilder::new()
                 .gzip(true)
@@ -47,8 +51,9 @@ impl Default for ScheduleIdRepository {
                 .build()
                 .expect("Something went wrong when building HttClient"),
             cache: Mutex::new(
-                InMemoryCache::with_capacity(3000)
-                    .expires_after_creation(chrono::Duration::hours(12)),
+                InMemoryCache::with_capacity(cache_capacity)
+                    .max_hits(cache_max_hits)
+                    .expires_after_creation(chrono::Duration::hours(cache_lifetife)),
             ),
         }
     }

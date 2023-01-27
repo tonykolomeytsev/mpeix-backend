@@ -22,10 +22,10 @@ pub struct ScheduleRepository {
 
 impl Default for ScheduleRepository {
     fn default() -> Self {
-        let cache_capacity = envmnt::get_usize("CACHE_CAPACITY", 500);
-        let cache_max_hits = envmnt::get_u32("CACHE_MAX_HITS", 10);
-        let cache_lifetife = envmnt::get_i64("CACHE_LIFETIME_HOURS", 6);
-        let cache_dir = envmnt::get_or("CACHE_DIR", "./cache");
+        let cache_capacity = envmnt::get_usize("SCHEDULE_CACHE_CAPACITY", 500);
+        let cache_max_hits = envmnt::get_u32("SCHEDULE_CACHE_MAX_HITS", 10);
+        let cache_lifetife = envmnt::get_i64("SCHEDULE_CACHE_LIFETIME_HOURS", 6);
+        let cache_dir = envmnt::get_or("SCHEDULE_CACHE_DIR", "./cache");
 
         Self {
             client: ClientBuilder::new()
