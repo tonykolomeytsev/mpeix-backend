@@ -270,6 +270,28 @@ mod tests {
     }
 
     #[test]
+    fn test_insert_then_get_max_hits_expired() {
+        let mut cache = InMemoryCache::with_capacity(10).max_hits(10);
+        let expired_entry = Entry {
+            value: "Expired",
+            accessed_at: Local::now(),
+            created_at: Local::now(),
+            hits: 10,
+        };
+        let not_expired_entry = Entry {
+            value: "NotExpired",
+            accessed_at: Local::now(),
+            created_at: Local::now(),
+            hits: 0,
+        };
+
+        cache.insert_entry(2, expired_entry);
+        cache.insert_entry(3, not_expired_entry);
+        assert!(cache.get(&2).is_none());
+        assert!(cache.get(&3).is_some());
+    }
+
+    #[test]
     fn test_maximum_capacity() {
         let mut cache = InMemoryCache::with_capacity(3);
         cache.insert(1, "Lorem");
