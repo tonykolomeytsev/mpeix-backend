@@ -29,9 +29,9 @@ impl ScheduleName {
                 }
                 let name = name.to_uppercase();
                 if SHORTENED_GROUP_NAME_PATTERN.is_match(&name) {
-                    return Ok(Self(name.replacen('-', "-0", 1)));
+                    Ok(Self(name.replacen('-', "-0", 1)))
                 } else {
-                    return Ok(Self(name));
+                    Ok(Self(name))
                 }
             }
             ScheduleType::Person => {
