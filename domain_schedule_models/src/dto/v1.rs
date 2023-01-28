@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use chrono::{NaiveDate, NaiveTime};
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +13,7 @@ pub struct Schedule {
     pub weeks: Vec<Week>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ScheduleType {
     Group,
@@ -19,12 +21,12 @@ pub enum ScheduleType {
     Room,
 }
 
-impl ScheduleType {
-    pub fn to_mpei(&self) -> String {
+impl Display for ScheduleType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
-            Self::Group => "group".to_owned(),
-            Self::Person => "peron".to_owned(),
-            Self::Room => "room".to_owned(),
+            Self::Group => write!(f, "group"),
+            Self::Person => write!(f, "person"),
+            Self::Room => write!(f, "room"),
         }
     }
 }
@@ -76,4 +78,12 @@ pub enum ClassesType {
 pub struct ClassesTime {
     pub start: NaiveTime,
     pub end: NaiveTime,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ScheduleSearchResult {
+    pub name: String,
+    pub description: String,
+    pub id: String,
+    pub r#type: ScheduleType,
 }

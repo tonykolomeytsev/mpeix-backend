@@ -1,14 +1,16 @@
+use std::collections::VecDeque;
+
 use anyhow::{anyhow, bail, Context};
 use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
-use domain_schedule_models::dto::{mpei::MpeiSearchResult, v1::ScheduleType};
+use domain_schedule_models::dto::v1::ScheduleType;
 use lazy_static::lazy_static;
 use log::info;
 use regex::Regex;
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 use tokio::sync::Mutex;
 
-use crate::dto::mpeix::ScheduleName as ValidScheduleName;
+use crate::dto::{mpei::MpeiSearchResult, mpeix::ScheduleName as ValidScheduleName};
 
 const MPEI_API_SEARCH_ENDPOINT: &str = "http://ts.mpei.ru/api/search";
 const MPEI_QUERY_TERM: &str = "term";
@@ -23,15 +25,15 @@ pub struct ScheduleIdRepository {
     cache: Mutex<InMemoryCache<ScheduleName, ScheduleId>>,
 }
 
-/// Helper struct for [GetIdUseCase]:
+/// Helper struct for [ScheduleIdRepository]:
 /// Key for in-memory cache
 #[derive(Hash, PartialEq, Eq)]
 struct ScheduleName {
     name: String,
-    r#type: String,
+    r#type: ScheduleType,
 }
 
-/// Helper struct for [GetIdUseCase]:
+/// Helper struct for [ScheduleIdRepository]:
 /// Value for in-memory cache
 struct ScheduleId(i64);
 
@@ -66,31 +68,19 @@ impl ScheduleIdRepository {
         r#type: ScheduleType,
     ) -> anyhow::Result<i64> {
         let cache_key = ScheduleName {
-            r#type: r#type.to_mpei(),
+            r#type: r#type.to_owned(),
             name: name.to_string(),
         };
         if let Some(value) = self.cache.lock().await.get(&cache_key) {
             info!("Got schedule id from cache");
             return Ok(value.0);
         };
-        let search_results = self
-            .client
-            .get(MPEI_API_SEARCH_ENDPOINT)
-            .query(&[
-                (MPEI_QUERY_TERM, name.to_string()),
-                (MPEI_QUERY_TYPE, r#type.to_mpei()),
-            ])
-            .send()
-            .await
-            .map_err(|e| anyhow!(CommonError::gateway(e)))
-            .with_context(|| "Error while executing a request to MPEI backend")?
-            .json::<Vec<MpeiSearchResult>>()
-            .await
-            .map_err(|e| anyhow!(CommonError::internal(e)))
-            .with_context(|| "Error while deserializing response from MPEI backend")?;
 
-        match search_results.first() {
-            Some(search_result) if self.fuzzy_equals(&search_result.label, name.as_ref()) => {
+        match self
+            .get_id_from_remote(name.to_owned(), r#type.to_owned())
+            .await?
+        {
+            Some(search_result) if self.fuzzy_equals(&search_result.label, &cache_key.name) => {
                 info!("Got schedule id from remote");
                 // Put value to cache
                 self.cache
@@ -101,10 +91,33 @@ impl ScheduleIdRepository {
             }
             _ => bail!(CommonError::user(format!(
                 "Schedule with type '{:?}' and name '{}' not found",
-                r#type,
-                name.as_ref()
+                r#type, cache_key.name
             ))),
         }
+    }
+
+    async fn get_id_from_remote(
+        &self,
+        name: ValidScheduleName,
+        r#type: ScheduleType,
+    ) -> anyhow::Result<Option<MpeiSearchResult>> {
+        let mut search_results = self
+            .client
+            .get(MPEI_API_SEARCH_ENDPOINT)
+            .query(&[
+                (MPEI_QUERY_TERM, name.to_string()),
+                (MPEI_QUERY_TYPE, r#type.to_string()),
+            ])
+            .send()
+            .await
+            .map_err(|e| anyhow!(CommonError::gateway(e)))
+            .with_context(|| "Error while executing a request to MPEI backend")?
+            .json::<VecDeque<MpeiSearchResult>>()
+            .await
+            .map_err(|e| anyhow!(CommonError::internal(e)))
+            .with_context(|| "Error while deserializing response from MPEI backend")?;
+
+        Ok(search_results.pop_front())
     }
 
     fn fuzzy_equals(&self, a: &str, b: &str) -> bool {

@@ -3,17 +3,16 @@ use std::collections::HashMap;
 use anyhow::bail;
 use chrono::{Datelike, NaiveDate, NaiveTime};
 use common_errors::errors::CommonError;
-use domain_schedule_models::dto::{
-    mpei::MpeiClasses,
-    v1::{Classes, ClassesTime, ClassesType, Day, Schedule, ScheduleType, Week},
+use domain_schedule_models::dto::v1::{
+    Classes, ClassesTime, ClassesType, Day, Schedule, ScheduleType, Week,
 };
 
 use crate::{
-    dto::mpeix::ScheduleName,
+    dto::{mpei::MpeiClasses, mpeix::ScheduleName},
     time::{NaiveDateExt, WeekOfSemester},
 };
 
-pub fn map_schedule_models(
+pub(crate) fn map_schedule_models(
     name: ScheduleName,
     week_start: NaiveDate,
     schedule_id: i64,

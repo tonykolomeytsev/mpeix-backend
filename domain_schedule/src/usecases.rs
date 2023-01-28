@@ -3,14 +3,15 @@ use std::sync::Arc;
 use anyhow::{anyhow, ensure};
 use chrono::{Local, Weekday};
 use common_errors::errors::CommonError;
-use domain_schedule_models::dto::v1::{Schedule, ScheduleType};
+use domain_schedule_models::dto::v1::{Schedule, ScheduleSearchResult, ScheduleType};
 use lazy_static::lazy_static;
 use log::info;
 
 use crate::{
-    dto::mpeix::ScheduleName,
+    dto::mpeix::{ScheduleName, ScheduleSearchQuery},
     id::repository::ScheduleIdRepository,
     schedule::repository::ScheduleRepository,
+    search::repository::ScheduleSearchRepository,
     time::{DateTimeExt, NaiveDateExt},
 };
 
@@ -19,7 +20,6 @@ use crate::{
 ///
 /// This UseCase uses injected singleton instance of [ScheduleIdRepository].
 /// Check [crate::di] module for details.
-#[derive(Default)]
 pub struct GetScheduleIdUseCase(pub(crate) Arc<ScheduleIdRepository>);
 
 impl GetScheduleIdUseCase {
@@ -49,7 +49,6 @@ lazy_static! {
 ///
 /// This UseCase uses injected singleton instances of [ScheduleIdRepository] and [ScheduleRepository].
 /// Check [crate::di] module for details.
-#[derive(Default)]
 pub struct GetScheduleUseCase(
     pub(crate) Arc<ScheduleIdRepository>,
     pub(crate) Arc<ScheduleRepository>,
@@ -93,7 +92,12 @@ impl GetScheduleUseCase {
 
         let remote = self
             .1
-            .get_schedule_from_remote(schedule_id, name.to_owned(), r#type.to_owned(), week_start)
+            .get_schedule_from_remote(
+                schedule_id,
+                name.to_owned(),
+                r#type.to_owned(),
+                week_start,
+            )
             .await;
 
         // if we cannot get value from remote and didn't disable expiration policy at the beginning,
@@ -124,5 +128,56 @@ impl GetScheduleUseCase {
 
         // if we have not even expired cached value, return error about remote request
         remote
+    }
+}
+
+/// Get [Vec] of [ScheduleSearchResult].
+///
+/// This use-case is similar to [GetScheduleIdUseCase], but differs from it in that
+/// it does not return the ID of the first search result, but returns all search results,
+/// plus searches against previously saved results in the database.
+///
+/// Due to the fact that a database is connected to this use case,
+/// users can do search even when the MPEI website is unavailable.
+pub struct SearchScheduleUseCase(pub(crate) ScheduleSearchRepository);
+
+impl SearchScheduleUseCase {
+    pub async fn search(
+        &self,
+        query: String,
+        r#type: Option<ScheduleType>,
+    ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
+        let query = ScheduleSearchQuery::new(query)?;
+        if let Some(cached_value) = self
+            .0
+            .get_results_from_cache(query.to_owned(), r#type.to_owned())
+            .await
+        {
+            info!("Got schedule search result from cache");
+            return Ok(cached_value);
+        }
+        let output = if let Some(r#type) = &r#type {
+            self.0.get_results_from_remote(&query, r#type).await
+        } else {
+            let mut output = Vec::<ScheduleSearchResult>::new();
+            let mut groups = self
+                .0
+                .get_results_from_remote(&query, &ScheduleType::Group)
+                .await?;
+            let mut persons = self
+                .0
+                .get_results_from_remote(&query, &ScheduleType::Person)
+                .await?;
+            output.append(&mut groups);
+            output.append(&mut persons);
+            Ok(output)
+        };
+
+        if let Ok(results) = &output {
+            self.0
+                .insert_results_to_cache(query, r#type, results.clone())
+                .await;
+        }
+        output
     }
 }

@@ -3,14 +3,11 @@ use chrono::{Days, NaiveDate};
 use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
 use common_persistent_cache::PersistentCache;
-use domain_schedule_models::dto::{
-    mpei::MpeiClasses,
-    v1::{Schedule, ScheduleType},
-};
+use domain_schedule_models::dto::v1::{Schedule, ScheduleType};
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 use tokio::sync::Mutex;
 
-use crate::dto::mpeix::ScheduleName;
+use crate::dto::{mpei::MpeiClasses, mpeix::ScheduleName};
 
 use super::{
     mapping::map_schedule_models,
@@ -60,7 +57,7 @@ impl ScheduleRepository {
         let mut mediator = CacheMediator::new(&self.in_memory_cache, &self.persistent_cache);
         let key = InMemoryCacheKey {
             name: name.as_string(),
-            r#type: r#type.to_mpei(),
+            r#type: r#type.to_string(),
             week_start,
         };
 
@@ -77,7 +74,7 @@ impl ScheduleRepository {
         let mut mediator = CacheMediator::new(&self.in_memory_cache, &self.persistent_cache);
         let key = InMemoryCacheKey {
             name: name.as_string(),
-            r#type: r#type.to_mpei(),
+            r#type: r#type.to_string(),
             week_start,
         };
 
@@ -98,9 +95,7 @@ impl ScheduleRepository {
         let schedule_response = self
             .client
             .get(format!(
-                "http://ts.mpei.ru/api/schedule/{0}/{1}",
-                r#type.to_mpei(),
-                schedule_id
+                "http://ts.mpei.ru/api/schedule/{type}/{schedule_id}"
             ))
             .query(&[
                 ("start", &week_start.format("%Y.%m.%d").to_string()),

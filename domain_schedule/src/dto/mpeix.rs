@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use anyhow::bail;
 use common_errors::errors::CommonError;
 use domain_schedule_models::dto::v1::ScheduleType;
@@ -47,7 +49,7 @@ impl ScheduleName {
                 ));
             }
             ScheduleType::Room => bail!(CommonError::internal(
-                "Room name validation not implemented"
+                "Room name validation is not implemented yet"
             )),
         }
     }
@@ -63,9 +65,9 @@ impl AsRef<str> for ScheduleName {
     }
 }
 
-impl ToString for ScheduleName {
-    fn to_string(&self) -> String {
-        self.0.to_owned()
+impl Display for ScheduleName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -76,5 +78,37 @@ fn capitalize_first_char(s: &str) -> String {
     match c.next() {
         None => String::new(),
         Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+    }
+}
+
+/// Type for schedule search query representation.
+/// Contains only valid queries.
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct ScheduleSearchQuery(String);
+
+impl ScheduleSearchQuery {
+    /// Create valid search query from string.
+    pub fn new(query: String) -> anyhow::Result<Self> {
+        if query.len() < 3 {
+            bail!(CommonError::user(
+                "The search query must be 3 characters or more"
+            ));
+        }
+        if query.len() > 50 {
+            bail!(CommonError::user("Too long search query"));
+        }
+        let query = SPACES_PATTERN.replace_all(query.trim(), " ");
+        if query.len() < 3 {
+            bail!(CommonError::user(
+                "The search query without trailing and leading spaces must be 3 characters or more"
+            ));
+        }
+        Ok(Self(query.to_string()))
+    }
+}
+
+impl Display for ScheduleSearchQuery {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
