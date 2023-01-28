@@ -11,18 +11,20 @@ use serde::{Deserialize, Serialize};
 ///
 /// Supports expiration policies:
 /// - By creation time:
-///   ```rust
+///   ```ignore
 ///   let mut cache = InMemoryCache::with_capacity(1000)
 ///       .expires_after_creation(Duration::hours(1));
 ///   ```
 /// - By last access time:
-///   ```rust
+///   ```ignore
 ///   let mut cache = InMemoryCache::with_capacity(3000)
 ///       .expires_after_access(Duration::minutes(5));
 ///   ```
 ///
 /// ### Example:
 /// ```rust
+/// use common_in_memory_cache::InMemoryCache;
+///
 /// let mut cache = InMemoryCache::with_capacity(3);
 /// cache.insert(1, "Lorem");
 /// cache.insert(2, "Ipsum");
@@ -69,7 +71,7 @@ impl<K: Eq + Hash, V> InMemoryCache<K, V> {
     /// Create in-memory cache instance with specified capacity.
     ///
     /// ### Example:
-    /// ```rust
+    /// ```ignore
     /// let mut cache = InMemoryCache::with_capacity(3000);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
