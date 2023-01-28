@@ -10,14 +10,18 @@ common_in_memory_cache = { path = "../common_in_memory_cache" }
 common_persistent_cache = { path = "../common_persistent_cache" }
 domain_schedule_models = { path = "../domain_schedule_models" }
 
-serde = { version = "1.0", features = ["derive"] }
-chrono = { version = "0.4", features = ["serde"] }
 anyhow = { version = "1.0" }
-reqwest = { version = "0.11", features = ["gzip", "deflate", "json"] }
-tokio = { version = "1.23" }
+chrono = { version = "0.4", features = ["serde"] }
+deadpool-postgres = { version = "0.10", features = ["serde"] }
+env_logger = "0.10"
+envmnt = "0.10.4"
+lazy_static = { version = "1.4" }
+log = "0.4"
 num-traits = { version = "0.2.15" }
 regex = { version = "1.7" }
-lazy_static = { version = "1.4" }
-env_logger = "0.10"
-log = "0.4"
-envmnt = "0.10.4"
+reqwest = { version = "0.11", features = ["gzip", "deflate", "json"] }
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.23" }
+tokio-pg-mapper = "0.2"
+tokio-pg-mapper-derive = "0.2"
+tokio-postgres = "0.7"
