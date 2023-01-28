@@ -61,7 +61,10 @@ impl ScheduleRepository {
             week_start,
         };
 
-        mediator.get(&key, ignore_expiration).await
+        mediator
+            .get(&key, ignore_expiration)
+            .await
+            .with_context(|| "Error while getting schedule from cache via CacheMediator")
     }
 
     pub async fn insert_schedule_to_cache(
@@ -78,7 +81,10 @@ impl ScheduleRepository {
             week_start,
         };
 
-        mediator.insert(key, schedule).await
+        mediator
+            .insert(key, schedule)
+            .await
+            .with_context(|| "Error while inserting schedule to cache via CacheMediator")
     }
 
     pub async fn get_schedule_from_remote(
@@ -111,5 +117,6 @@ impl ScheduleRepository {
             .with_context(|| "Error while deserializing response from MPEI backend")?;
 
         map_schedule_models(name, week_start, schedule_id, r#type, schedule_response)
+            .with_context(|| "Error while mapping response from MPEI backend")
     }
 }

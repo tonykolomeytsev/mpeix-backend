@@ -6,8 +6,9 @@ use actix_web::{
     web::{Path, Query},
     App, HttpResponse, HttpServer, Responder,
 };
-use domain_schedule::parse_schedule_type;
-use domain_schedule_models::dto::v1::{self, ScheduleSearchResult};
+use anyhow::bail;
+use common_errors::errors::CommonError;
+use domain_schedule_models::dto::v1::{self, ScheduleSearchResult, ScheduleType};
 use feature_schedule::v1::FeatureSchedule;
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -67,6 +68,20 @@ async fn search_schedule_v1(
     Ok(Json(
         state.0.search_schedule(query.query.clone(), r#type).await?,
     ))
+}
+
+/// Because we cannot implement trait `actix_web::FromRequest` for `ScheduleType`.
+/// They belongs to different crates and no one belongs this crate.
+/// I do not want to add `actix-web` dependency to `domain_schedule_models` crate.
+pub fn parse_schedule_type(r#type: &str) -> anyhow::Result<ScheduleType> {
+    match r#type {
+        "group" => Ok(ScheduleType::Group),
+        "person" => Ok(ScheduleType::Person),
+        "room" => Ok(ScheduleType::Room),
+        _ => bail!(CommonError::user(format!(
+            "Unsupported schedule type: {type}"
+        ))),
+    }
 }
 
 fn get_addr() -> (String, u16) {

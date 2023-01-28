@@ -14,7 +14,7 @@ use crate::dto::{mpei::MpeiSearchResult, mpeix::ScheduleName as ValidScheduleNam
 
 const MPEI_API_SEARCH_ENDPOINT: &str = "http://ts.mpei.ru/api/search";
 const MPEI_QUERY_TERM: &str = "term";
-const MPEI_QUERY_TYPE: &str = "name";
+const MPEI_QUERY_TYPE: &str = "type";
 
 lazy_static! {
     static ref SPACES_PATTERN: Regex = Regex::new(r"\s{2,}").unwrap();
