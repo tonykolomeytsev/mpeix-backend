@@ -14,7 +14,6 @@ pub(crate) fn map_search_models(
     mpei_results: Vec<MpeiSearchResult>,
 ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
     let mut output = Vec::with_capacity(mpei_results.len());
-    dbg!(&mpei_results);
     for res in mpei_results {
         output.push(ScheduleSearchResult {
             name: SPACES_PATTERN.replace_all(&res.label, " ").to_string(),
