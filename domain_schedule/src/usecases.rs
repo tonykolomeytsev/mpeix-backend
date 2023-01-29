@@ -178,7 +178,7 @@ impl SearchScheduleUseCase {
 }
 
 /// Create databases if needed and run migrations.
-/// This use case hould be used only right after server start.
+/// This use case must be started **STRICTLY** before the server starts.
 pub struct InitDomainScheduleUseCase(pub(crate) Arc<ScheduleSearchRepository>);
 
 impl InitDomainScheduleUseCase {
