@@ -151,6 +151,7 @@ impl SearchScheduleUseCase {
             info!("Got schedule search result from cache");
             return Ok(cached_value);
         }
+
         let output = if let Some(r#type) = &r#type {
             self.0.get_results_from_remote(&query, r#type).await
         } else {
@@ -158,15 +159,21 @@ impl SearchScheduleUseCase {
             let mut groups = self
                 .0
                 .get_results_from_remote(&query, &ScheduleType::Group)
-                .await?;
+                .await;
             let mut persons = self
                 .0
                 .get_results_from_remote(&query, &ScheduleType::Person)
-                .await?;
-            output.append(&mut groups);
-            output.append(&mut persons);
+                .await;
+            if let Ok(groups) = &mut groups {
+                output.append(groups);
+            }
+            if let Ok(persons) = &mut persons {
+                output.append(persons);
+            }
             Ok(output)
         };
+
+        let _ = self.0.get_results_from_db(&query, r#type.to_owned()).await;
 
         if let Ok(results) = &output {
             self.0
