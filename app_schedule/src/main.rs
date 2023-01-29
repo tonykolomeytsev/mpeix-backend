@@ -105,13 +105,18 @@ struct AppSchedule(FeatureSchedule);
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", envmnt::get_or("RUST_LOG", "info"));
     env_logger::init();
-    let app_state = Data::new(AppSchedule::default());
+    let app = Data::new(AppSchedule::default());
+
+    app.0
+        .init_domain_schedule()
+        .await
+        .expect("Error during initialization");
 
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())
             .wrap(middleware::Compress::default())
-            .app_data(app_state.clone())
+            .app_data(app.clone())
             .service(are_you_alive)
             .service(get_id_v1)
             .service(get_schedule_v1)

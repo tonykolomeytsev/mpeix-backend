@@ -92,12 +92,7 @@ impl GetScheduleUseCase {
 
         let remote = self
             .1
-            .get_schedule_from_remote(
-                schedule_id,
-                name.to_owned(),
-                r#type.to_owned(),
-                week_start,
-            )
+            .get_schedule_from_remote(schedule_id, name.to_owned(), r#type.to_owned(), week_start)
             .await;
 
         // if we cannot get value from remote and didn't disable expiration policy at the beginning,
@@ -139,7 +134,7 @@ impl GetScheduleUseCase {
 ///
 /// Due to the fact that a database is connected to this use case,
 /// users can do search even when the MPEI website is unavailable.
-pub struct SearchScheduleUseCase(pub(crate) ScheduleSearchRepository);
+pub struct SearchScheduleUseCase(pub(crate) Arc<ScheduleSearchRepository>);
 
 impl SearchScheduleUseCase {
     pub async fn search(
@@ -179,5 +174,15 @@ impl SearchScheduleUseCase {
                 .await;
         }
         output
+    }
+}
+
+/// Create databases if needed and run migrations.
+/// This use case hould be used only right after server start.
+pub struct InitDomainScheduleUseCase(pub(crate) Arc<ScheduleSearchRepository>);
+
+impl InitDomainScheduleUseCase {
+    pub async fn init(&self) -> anyhow::Result<()> {
+        self.0.init_schedule_search_results_db().await
     }
 }

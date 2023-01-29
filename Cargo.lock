@@ -264,6 +264,7 @@ dependencies = [
  "feature_schedule",
  "log",
  "serde",
+ "tokio",
 ]
 
 [[package]]
