@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
+common_database = { path = "../common_database" }
 common_errors = { path = "../common_errors" }
 common_in_memory_cache = { path = "../common_in_memory_cache" }
 common_persistent_cache = { path = "../common_persistent_cache" }
@@ -24,4 +25,3 @@ serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.23" }
 tokio-pg-mapper = "0.2"
 tokio-pg-mapper-derive = "0.2"
-tokio-postgres = "0.7"

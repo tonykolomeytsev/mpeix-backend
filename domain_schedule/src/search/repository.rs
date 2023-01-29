@@ -1,25 +1,19 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Context};
-use common_errors::errors::CommonError;
+use anyhow::Context;
 use common_in_memory_cache::InMemoryCache;
 use deadpool_postgres::Pool;
 use domain_schedule_models::dto::v1::{ScheduleSearchResult, ScheduleType};
 use log::info;
-use reqwest::{redirect::Policy, Client, ClientBuilder};
 use tokio::sync::Mutex;
 
-use crate::dto::{mpei::MpeiSearchResult, mpeix::ScheduleSearchQuery};
+use crate::{dto::mpeix::ScheduleSearchQuery, mpei_api::MpeiApi};
 
 use super::mapping::map_search_models;
 
-const MPEI_API_SEARCH_ENDPOINT: &str = "http://ts.mpei.ru/api/search";
-const MPEI_QUERY_TERM: &str = "term";
-const MPEI_QUERY_TYPE: &str = "type";
-
 pub struct ScheduleSearchRepository {
-    client: Client,
-    pool: Arc<Pool>,
+    api: MpeiApi,
+    db_pool: Arc<Pool>,
     in_memory_cache: Mutex<InMemoryCache<TypedSearchQuery, Vec<ScheduleSearchResult>>>,
 }
 
@@ -29,20 +23,13 @@ pub struct ScheduleSearchRepository {
 struct TypedSearchQuery(ScheduleSearchQuery, Option<ScheduleType>);
 
 impl ScheduleSearchRepository {
-    pub fn new(pool: Arc<Pool>) -> Self {
+    pub fn new(db_pool: Arc<Pool>) -> Self {
         let cache_capacity = envmnt::get_usize("SCHEDULE_SEARCH_CACHE_CAPACITY", 3000);
         let cache_lifetife = envmnt::get_i64("SCHEDULE_SEARCH_CACHE_LIFETIME_MINUTES", 5);
 
         Self {
-            client: ClientBuilder::new()
-                .gzip(true)
-                .deflate(true)
-                .redirect(Policy::none())
-                .timeout(std::time::Duration::from_secs(15))
-                .connect_timeout(std::time::Duration::from_secs(3))
-                .build()
-                .expect("Something went wrong when building HttClient"),
-            pool,
+            api: MpeiApi::default(),
+            db_pool,
             in_memory_cache: Mutex::new(
                 InMemoryCache::with_capacity(cache_capacity)
                     .expires_after_creation(chrono::Duration::hours(cache_lifetife)),
@@ -81,28 +68,12 @@ impl ScheduleSearchRepository {
         query: &ScheduleSearchQuery,
         r#type: &ScheduleType,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
-        let search_results = self
-            .client
-            .get(MPEI_API_SEARCH_ENDPOINT)
-            .query(&[
-                (MPEI_QUERY_TERM, query.to_string()),
-                (MPEI_QUERY_TYPE, r#type.to_string()),
-            ])
-            .send()
-            .await
-            .map_err(|e| anyhow!(CommonError::gateway(e)))
-            .with_context(|| "Error while executing a request to MPEI backend")?
-            .json::<Vec<MpeiSearchResult>>()
-            .await
-            .map_err(|e| anyhow!(CommonError::internal(e)))
-            .with_context(|| "Error while deserializing response from MPEI backend")?;
-
-        map_search_models(search_results)
+        map_search_models(self.api.search(query.as_ref(), r#type).await?)
             .with_context(|| "Error while mapping response from MPEI backend")
     }
 
     pub async fn init_schedule_search_results_db(&self) -> anyhow::Result<()> {
-        let client = self.pool.get().await?;
+        let client = self.db_pool.get().await?;
         let stmt = include_str!("../../sql/create_schedule_search_results.pgsql");
         client
             .query(stmt, &[])

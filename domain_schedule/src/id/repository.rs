@@ -1,27 +1,25 @@
 use std::collections::VecDeque;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::bail;
 use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
 use domain_schedule_models::dto::v1::ScheduleType;
 use lazy_static::lazy_static;
 use log::info;
 use regex::Regex;
-use reqwest::{redirect::Policy, Client, ClientBuilder};
 use tokio::sync::Mutex;
 
-use crate::dto::{mpei::MpeiSearchResult, mpeix::ScheduleName as ValidScheduleName};
-
-const MPEI_API_SEARCH_ENDPOINT: &str = "http://ts.mpei.ru/api/search";
-const MPEI_QUERY_TERM: &str = "term";
-const MPEI_QUERY_TYPE: &str = "type";
+use crate::{
+    dto::{mpei::MpeiSearchResult, mpeix::ScheduleName as ValidScheduleName},
+    mpei_api::MpeiApi,
+};
 
 lazy_static! {
     static ref SPACES_PATTERN: Regex = Regex::new(r"\s{2,}").unwrap();
 }
 
 pub struct ScheduleIdRepository {
-    client: Client,
+    api: MpeiApi,
     cache: Mutex<InMemoryCache<ScheduleName, ScheduleId>>,
 }
 
@@ -44,14 +42,7 @@ impl Default for ScheduleIdRepository {
         let cache_lifetife = envmnt::get_i64("SCHEDULE_ID_CACHE_LIFETIME_HOURS", 12);
 
         Self {
-            client: ClientBuilder::new()
-                .gzip(true)
-                .deflate(true)
-                .redirect(Policy::none())
-                .timeout(std::time::Duration::from_secs(15))
-                .connect_timeout(std::time::Duration::from_secs(3))
-                .build()
-                .expect("Something went wrong when building HttClient"),
+            api: MpeiApi::default(),
             cache: Mutex::new(
                 InMemoryCache::with_capacity(cache_capacity)
                     .max_hits(cache_max_hits)
@@ -102,20 +93,9 @@ impl ScheduleIdRepository {
         r#type: ScheduleType,
     ) -> anyhow::Result<Option<MpeiSearchResult>> {
         let mut search_results = self
-            .client
-            .get(MPEI_API_SEARCH_ENDPOINT)
-            .query(&[
-                (MPEI_QUERY_TERM, name.to_string()),
-                (MPEI_QUERY_TYPE, r#type.to_string()),
-            ])
-            .send()
-            .await
-            .map_err(|e| anyhow!(CommonError::gateway(e)))
-            .with_context(|| "Error while executing a request to MPEI backend")?
-            .json::<VecDeque<MpeiSearchResult>>()
-            .await
-            .map_err(|e| anyhow!(CommonError::internal(e)))
-            .with_context(|| "Error while deserializing response from MPEI backend")?;
+            .api
+            .search::<VecDeque<MpeiSearchResult>>(name.as_ref(), &r#type)
+            .await?;
 
         Ok(search_results.pop_front())
     }

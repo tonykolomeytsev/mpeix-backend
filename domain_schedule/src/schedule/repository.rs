@@ -1,13 +1,11 @@
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use chrono::{Days, NaiveDate};
-use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
 use common_persistent_cache::PersistentCache;
 use domain_schedule_models::dto::v1::{Schedule, ScheduleType};
-use reqwest::{redirect::Policy, Client, ClientBuilder};
 use tokio::sync::Mutex;
 
-use crate::dto::{mpei::MpeiClasses, mpeix::ScheduleName};
+use crate::{dto::mpeix::ScheduleName, mpei_api::MpeiApi};
 
 use super::{
     mapping::map_schedule_models,
@@ -15,7 +13,7 @@ use super::{
 };
 
 pub struct ScheduleRepository {
-    client: Client,
+    api: MpeiApi,
     in_memory_cache: Mutex<InMemoryCache<InMemoryCacheKey, Schedule>>,
     persistent_cache: Mutex<PersistentCache>,
 }
@@ -28,14 +26,7 @@ impl Default for ScheduleRepository {
         let cache_dir = envmnt::get_or("SCHEDULE_CACHE_DIR", "./cache");
 
         Self {
-            client: ClientBuilder::new()
-                .gzip(true)
-                .deflate(true)
-                .redirect(Policy::none())
-                .timeout(std::time::Duration::from_secs(15))
-                .connect_timeout(std::time::Duration::from_secs(3))
-                .build()
-                .expect("Something went wrong when building HttClient"),
+            api: MpeiApi::default(),
             in_memory_cache: Mutex::new(
                 InMemoryCache::with_capacity(cache_capacity)
                     .max_hits(cache_max_hits)
@@ -99,22 +90,9 @@ impl ScheduleRepository {
             .expect("Week end date always reachable");
 
         let schedule_response = self
-            .client
-            .get(format!(
-                "http://ts.mpei.ru/api/schedule/{type}/{schedule_id}"
-            ))
-            .query(&[
-                ("start", &week_start.format("%Y.%m.%d").to_string()),
-                ("finish", &week_end.format("%Y.%m.%d").to_string()),
-            ])
-            .send()
-            .await
-            .map_err(|e| anyhow!(CommonError::gateway(e)))
-            .with_context(|| "Error while executing a request to MPEI backend")?
-            .json::<Vec<MpeiClasses>>()
-            .await
-            .map_err(|e| anyhow!(CommonError::internal(e)))
-            .with_context(|| "Error while deserializing response from MPEI backend")?;
+            .api
+            .get_schedule(r#type.to_owned(), schedule_id, &week_start, &week_end)
+            .await?;
 
         map_schedule_models(name, week_start, schedule_id, r#type, schedule_response)
             .with_context(|| "Error while mapping response from MPEI backend")
