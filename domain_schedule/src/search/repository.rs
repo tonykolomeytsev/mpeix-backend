@@ -1,7 +1,11 @@
+use std::sync::Arc;
+
 use anyhow::{anyhow, Context};
 use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
+use deadpool_postgres::Pool;
 use domain_schedule_models::dto::v1::{ScheduleSearchResult, ScheduleType};
+use log::info;
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 use tokio::sync::Mutex;
 
@@ -15,6 +19,7 @@ const MPEI_QUERY_TYPE: &str = "type";
 
 pub struct ScheduleSearchRepository {
     client: Client,
+    pool: Arc<Pool>,
     in_memory_cache: Mutex<InMemoryCache<TypedSearchQuery, Vec<ScheduleSearchResult>>>,
 }
 
@@ -23,8 +28,8 @@ pub struct ScheduleSearchRepository {
 #[derive(Hash, PartialEq, Eq)]
 struct TypedSearchQuery(ScheduleSearchQuery, Option<ScheduleType>);
 
-impl Default for ScheduleSearchRepository {
-    fn default() -> Self {
+impl ScheduleSearchRepository {
+    pub fn new(pool: Arc<Pool>) -> Self {
         let cache_capacity = envmnt::get_usize("SCHEDULE_SEARCH_CACHE_CAPACITY", 3000);
         let cache_lifetife = envmnt::get_i64("SCHEDULE_SEARCH_CACHE_LIFETIME_MINUTES", 5);
 
@@ -37,6 +42,7 @@ impl Default for ScheduleSearchRepository {
                 .connect_timeout(std::time::Duration::from_secs(3))
                 .build()
                 .expect("Something went wrong when building HttClient"),
+            pool,
             in_memory_cache: Mutex::new(
                 InMemoryCache::with_capacity(cache_capacity)
                     .expires_after_creation(chrono::Duration::hours(cache_lifetife)),
@@ -93,5 +99,16 @@ impl ScheduleSearchRepository {
 
         map_search_models(search_results)
             .with_context(|| "Error while mapping response from MPEI backend")
+    }
+
+    pub async fn init_schedule_search_results_db(&self) -> anyhow::Result<()> {
+        let client = self.pool.get().await?;
+        let stmt = include_str!("../../sql/create_schedule_search_results.pgsql");
+        client
+            .query(stmt, &[])
+            .await
+            .with_context(|| "Error during table 'schedule_search_results' creation")?;
+        info!("Table 'schedule_search_results' initialization passed successfully");
+        Ok(())
     }
 }

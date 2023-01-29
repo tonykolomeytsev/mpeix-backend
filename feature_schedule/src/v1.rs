@@ -1,6 +1,8 @@
 use domain_schedule::{
     di::DomainScheduleModule,
-    usecases::{GetScheduleIdUseCase, GetScheduleUseCase, SearchScheduleUseCase},
+    usecases::{
+        GetScheduleIdUseCase, GetScheduleUseCase, InitDomainScheduleUseCase, SearchScheduleUseCase,
+    },
 };
 use domain_schedule_models::dto::v1::{Schedule, ScheduleSearchResult, ScheduleType};
 
@@ -8,6 +10,7 @@ pub struct FeatureSchedule(
     GetScheduleIdUseCase,
     GetScheduleUseCase,
     SearchScheduleUseCase,
+    InitDomainScheduleUseCase,
 );
 
 impl Default for FeatureSchedule {
@@ -17,6 +20,7 @@ impl Default for FeatureSchedule {
             domain_schedule_module.get_schedule_id_use_case,
             domain_schedule_module.get_schedule_use_case,
             domain_schedule_module.search_schedule_use_case,
+            domain_schedule_module.init_domain_schedule_use_case,
         )
     }
 }
@@ -41,5 +45,9 @@ impl FeatureSchedule {
         r#type: Option<ScheduleType>,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
         self.2.search(query, r#type).await
+    }
+
+    pub async fn init_domain_schedule(&self) -> anyhow::Result<()> {
+        self.3.init().await
     }
 }
