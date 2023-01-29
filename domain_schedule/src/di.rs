@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use common_database::create_db_pool;
+
 use crate::{
     id::repository::ScheduleIdRepository,
     schedule::repository::ScheduleRepository,
@@ -18,22 +20,10 @@ pub struct DomainScheduleModule {
 
 impl Default for DomainScheduleModule {
     fn default() -> Self {
-        let mut config = deadpool_postgres::Config::new();
-        config.dbname = Some("mpeix".to_string());
-        config.host = Some("127.0.0.1".to_string());
-        config.port = Some(5432);
-        config.user = Some("postgres".to_string());
-        config.password = Some("1234".to_string());
-
-        let pool = Arc::new(
-            config
-                .create_pool(None, tokio_postgres::NoTls)
-                .expect("Error during Postgres pool creation"),
-        );
-
+        let db_pool = Arc::new(create_db_pool().expect("Error while creating db pool"));
         let schedule_id_repository = Arc::new(ScheduleIdRepository::default());
         let schedule_repository = Arc::new(ScheduleRepository::default());
-        let schedule_search_repository = Arc::new(ScheduleSearchRepository::new(pool));
+        let schedule_search_repository = Arc::new(ScheduleSearchRepository::new(db_pool));
 
         Self {
             get_schedule_id_use_case: GetScheduleIdUseCase(schedule_id_repository.clone()),

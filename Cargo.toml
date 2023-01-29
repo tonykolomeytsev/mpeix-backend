@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "app_schedule",
+  "common_database",
   "common_errors",
   "common_in_memory_cache",
   "common_persistent_cache",

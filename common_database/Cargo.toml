@@ -1,0 +1,11 @@
+[package]
+name = "common_database"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
+
+[dependencies]
+envmnt = "0.10.4"
+tokio-postgres = "0.7"
+deadpool-postgres = { version = "0.10", features = ["serde"] }
+anyhow = { version = "1.0" }
