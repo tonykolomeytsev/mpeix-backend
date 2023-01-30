@@ -20,6 +20,11 @@ use serde::{Deserialize, Serialize};
 ///   let mut cache = InMemoryCache::with_capacity(3000)
 ///       .expires_after_access(Duration::minutes(5));
 ///   ```
+/// - By number of hits (number of accesses):
+///   ```ignore
+///   let mut cache = InMemoryCache::with_capacity(500)
+///       .max_hits(10);
+///   ```
 ///
 /// ### Example:
 /// ```rust
