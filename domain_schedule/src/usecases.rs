@@ -129,11 +129,18 @@ impl GetScheduleUseCase {
 /// Get [Vec] of [ScheduleSearchResult].
 ///
 /// This use-case is similar to [GetScheduleIdUseCase], but differs from it in that
-/// it does not return the ID of the first search result, but returns all search results,
-/// plus searches against previously saved results in the database.
+/// it does not return the ID of the first search result, but returns all search results.
 ///
 /// Due to the fact that a database is connected to this use case,
 /// users can do search even when the MPEI website is unavailable.
+///
+/// Algorithm of the use case:
+/// Look for in-memory cached result for given type and query, and return cached result if exists.
+/// In this case no requests are made to the database or the MPEI backend. If cache do not have
+/// necessary value, we made request to the MPEI backend and put results of the request to
+/// the database (add new entries, update old entries). Even if the request fails, we do search
+/// in the database and return best mathes.
+///
 pub struct SearchScheduleUseCase(pub(crate) Arc<ScheduleSearchRepository>);
 
 impl SearchScheduleUseCase {
