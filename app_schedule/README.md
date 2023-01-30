@@ -8,7 +8,7 @@ Microservice responsible for working with the schedules of groups, teachers and 
   - `PORT` — app port. Default is `8080`.
 - Database <sup>`common_database`</sup>:
   - `POSTGRES_PASSWORD`<sup>**required**</sup> — password for PostgreSQL database.
-  - `POSTGRES_USER` - postgres user. Default is `"postgres"`.
+  - `POSTGRES_USER` - postgres user. Default is `postgres`.
   - `POSTGRES_DB` - database name. Default is the same as user name.
   - `POSTGRES_HOST` - database hostname. Default is `postgres`.
   - `POSTGRES_PORT` - database port. Default is `5432`.

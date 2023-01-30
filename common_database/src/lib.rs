@@ -1,6 +1,16 @@
 use anyhow::{ensure, Context};
 use deadpool_postgres::{Config, Pool};
 
+/// Create Database Pool
+///
+/// This function internally reads the following environment variables:
+/// - `POSTGRES_PASSWORD` (required)
+/// - `POSTGRES_USER` (default is `postgres`)
+/// - `POSTGRES_DB` (default is the same as `POSTGRES_USER`)
+/// - `POSTGRES_HOST` (default is `postgres`)
+/// - `POSTGRES_PORT` (default is `5432`)
+///
+/// You sholud create pool once and use it as a singleton in your application.
 pub fn create_db_pool() -> anyhow::Result<Pool> {
     ensure!(
         envmnt::exists("POSTGRES_PASSWORD"),

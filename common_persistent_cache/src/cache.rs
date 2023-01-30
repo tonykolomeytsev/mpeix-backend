@@ -14,11 +14,18 @@ use tokio::{
 /// Persistent cache implementation based on storing records in files.
 /// This implementation also uses tokio runtime (with "fs" feature)
 /// to prevent reading files from blocking other tasks.
+///
+/// Basically, [PersistentCache] is just wrapper around [tokio::fs::File] and its functions.
+/// You can use compound keys (separated by /) to store values. For example,
+/// if you call `cache.insert("key/subkey/abc", my_value)`, then the `key/subkey`
+/// directories will be created on the disk, in the `cache_dir` folder. And the `abc`
+/// file will be created here too, in which the serialized `my_value` will be written .
 pub struct PersistentCache {
     cache_dir: PathBuf,
 }
 
 /// The error type for persistent cache `insert`/`get` operations
+#[derive(Debug)]
 pub enum Error {
     IOError(std::io::Error),
     DeserializationError(serde_json::Error),

@@ -111,7 +111,7 @@ impl Display for ScheduleSearchQuery {
 mod tests {
     use domain_schedule_models::dto::v1::ScheduleType;
 
-    use super::ScheduleName;
+    use super::{ScheduleName, ScheduleSearchQuery};
 
     #[test]
     fn test_valid_group_names() {
@@ -131,5 +131,22 @@ mod tests {
         )
         .is_ok());
         assert!(ScheduleName::new("Иванко Влада".to_string(), ScheduleType::Person).is_ok());
+    }
+
+    #[test]
+    fn test_valid_search_query() {
+        assert!(ScheduleSearchQuery::new("abcdef".to_string()).is_ok());
+        assert!(ScheduleSearchQuery::new("12345".to_string()).is_ok());
+        assert!(ScheduleSearchQuery::new("Куликова".to_string()).is_ok());
+    }
+
+    #[test]
+    fn test_invalid_search_query() {
+        assert!(ScheduleSearchQuery::new("Ку".to_string()).is_err());
+        assert!(ScheduleSearchQuery::new("  Ку  ".to_string()).is_err());
+        assert!(ScheduleSearchQuery::new(
+            "123456789_123456789_123456789_123456789_123456789_1".to_string()
+        )
+        .is_err());
     }
 }
