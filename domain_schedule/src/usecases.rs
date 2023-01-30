@@ -152,7 +152,7 @@ impl SearchScheduleUseCase {
             return Ok(cached_value);
         }
 
-        let output = if let Some(r#type) = &r#type {
+        let remote_results = if let Some(r#type) = &r#type {
             self.0.get_results_from_remote(&query, r#type).await
         } else {
             let mut output = Vec::<ScheduleSearchResult>::new();
@@ -172,15 +172,29 @@ impl SearchScheduleUseCase {
             }
             Ok(output)
         };
-
-        let _ = self.0.get_results_from_db(&query, r#type.to_owned()).await;
-
-        if let Ok(results) = &output {
-            self.0
-                .insert_results_to_cache(query, r#type, results.clone())
-                .await;
+        if let Ok(results) = remote_results {
+            if !results.is_empty() {
+                self.0.insert_results_to_db(results).await?;
+            }
         }
-        output
+
+        let mut db_results = self
+            .0
+            .get_results_from_db(&query, r#type.to_owned())
+            .await?;
+
+        let max_idx = db_results.len();
+        db_results.sort_by(|a, b| {
+            let idx_a = a.name.find(query.as_ref()).or_else(|| Some(max_idx));
+            let idx_b = b.name.find(query.as_ref()).or_else(|| Some(max_idx));
+            idx_a.cmp(&idx_b)
+        });
+
+        self.0
+            .insert_results_to_cache(query, r#type, db_results.clone())
+            .await;
+
+        Ok(db_results)
     }
 }
 

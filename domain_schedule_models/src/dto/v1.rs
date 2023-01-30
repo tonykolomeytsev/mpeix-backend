@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 pub struct Schedule {
     pub id: String,
     pub name: String,
-    #[serde(alias = "type")]
     pub r#type: ScheduleType,
     pub weeks: Vec<Week>,
 }
