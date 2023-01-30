@@ -11,7 +11,7 @@ pub fn create_db_pool() -> anyhow::Result<Pool> {
     let postgres_user = envmnt::get_or("POSTGRES_USER", "postgres");
     let postgres_db = envmnt::get_or("POSTGRES_DB", &postgres_user);
     let postgres_host = envmnt::get_or("POSTGRES_HOST", "postgres");
-    let postgres_port = envmnt::get_u16("POSTGRES_HOST", 5432);
+    let postgres_port = envmnt::get_u16("POSTGRES_PORT", 5432);
 
     let mut config = Config::new();
     config.dbname = Some(postgres_db);
