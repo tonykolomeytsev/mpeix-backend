@@ -23,6 +23,4 @@ regex = { version = "1.7" }
 reqwest = { version = "0.11", features = ["gzip", "deflate", "json"] }
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.23" }
-tokio-pg-mapper = "0.2"
-tokio-pg-mapper-derive = "0.2"
 tokio-postgres = "0.7"

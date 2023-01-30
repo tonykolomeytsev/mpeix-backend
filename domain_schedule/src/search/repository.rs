@@ -5,10 +5,8 @@ use common_in_memory_cache::InMemoryCache;
 use deadpool_postgres::Pool;
 use domain_schedule_models::dto::v1::{ScheduleSearchResult, ScheduleType};
 use log::info;
-use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
-use tokio_pg_mapper::FromTokioPostgresRow;
-use tokio_pg_mapper_derive::PostgresMapper;
+use tokio_postgres::Row;
 
 use crate::{dto::mpeix::ScheduleSearchQuery, mpei_api::MpeiApi};
 
@@ -24,15 +22,6 @@ pub struct ScheduleSearchRepository {
 /// Key for in-memory cache
 #[derive(Hash, PartialEq, Eq)]
 struct TypedSearchQuery(ScheduleSearchQuery, Option<ScheduleType>);
-
-#[derive(Deserialize, PostgresMapper, Serialize)]
-#[pg_mapper(table = "users")] // singular 'user' is a keyword..
-struct ScheduleSearchResultDb {
-    pub name: String,
-    pub description: String,
-    pub id: String,
-    pub r#type: String,
-}
 
 impl ScheduleSearchRepository {
     pub fn new(db_pool: Arc<Pool>) -> Self {
@@ -100,7 +89,6 @@ impl ScheduleSearchRepository {
         query: &ScheduleSearchQuery,
         r#type: Option<ScheduleType>,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
-        let client = self.db_pool.get().await?;
         let stmt = if let Some(r#type) = r#type {
             include_str!("../../sql/select_all_schedule_search_results_typed.pgsql")
                 .replace("$2", &r#type.to_string())
@@ -109,31 +97,59 @@ impl ScheduleSearchRepository {
         }
         .replace("$1", query.as_ref());
 
+        let client = self.db_pool.get().await?;
         let results = client
             .query(&stmt, &[])
-            .await?
+            .await
+            .with_context(|| "Error while getting schedule search results from db")?
             .iter()
-            .map(|row| ScheduleSearchResultDb::from_row_ref(row).unwrap())
-            .map(map_db_model)
+            .map(map_from_db_model)
             .collect::<anyhow::Result<Vec<ScheduleSearchResult>>>()
-            .with_context(|| "Error while getting schedule search results from db")?;
+            .with_context(|| "Error while mapping schedule search results from db")?;
         Ok(results)
+    }
+
+    pub async fn insert_results_to_db(
+        &self,
+        results: Vec<ScheduleSearchResult>,
+    ) -> anyhow::Result<()> {
+        let values = results
+            .into_iter()
+            .map(|it| {
+                format!(
+                    "('{}', '{}', '{}', '{}')",
+                    it.id,
+                    it.name,
+                    it.description,
+                    it.r#type.to_string()
+                )
+            })
+            .collect::<Vec<String>>()
+            .join(",\n");
+
+        let stmt = include_str!("../../sql/update_schedule_search_results.pgsql")
+            .replace("$values", &values);
+
+        let client = self.db_pool.get().await?;
+        client
+            .query(&stmt, &[])
+            .await
+            .with_context(|| "Error while inserting schedule search results into db")?;
+        Ok(())
     }
 }
 
-fn map_db_model(value: ScheduleSearchResultDb) -> anyhow::Result<ScheduleSearchResult> {
+fn map_from_db_model(row: &Row) -> anyhow::Result<ScheduleSearchResult> {
+    let db_type = row.get("type");
     Ok(ScheduleSearchResult {
-        name: value.name,
-        description: value.description,
-        id: value.id,
-        r#type: match value.r#type.as_str() {
+        name: row.get("name"),
+        description: row.get("description"),
+        id: row.get("remote_id"),
+        r#type: match db_type {
             "group" => ScheduleType::Group,
             "person" => ScheduleType::Person,
             "room" => ScheduleType::Room,
-            _ => bail!(
-                "Database contains invalid schedule type value: '{}'",
-                value.r#type
-            ),
+            _ => bail!("Database contains invalid schedule type value: '{db_type}'"),
         },
     })
 }

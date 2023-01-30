@@ -8,9 +8,10 @@ use regex::Regex;
 
 lazy_static! {
     static ref VALID_GROUP_NAME_PATTERN: Regex = Regex::new(r#"[а-яА-Я0-9-]{5,20}"#).unwrap();
-    static ref SHORTENED_GROUP_NAME_PATTERN: Regex = Regex::new(r#".*-\\d[^0-9]*-.*"#).unwrap();
-    static ref VALID_PERSON_NAME_PATTERN: Regex = Regex::new(r#"([а-яА-Я]+\\s?){1,3}"#).unwrap();
-    static ref SPACES_PATTERN: Regex = Regex::new(r#"\\s+"#).unwrap();
+    static ref SHORTENED_GROUP_NAME_PATTERN: Regex = Regex::new(r#".*-\d[^0-9]*-.*"#).unwrap();
+    static ref VALID_PERSON_NAME_PATTERN: Regex =
+        Regex::new(r#"([а-яА-Я]+(\s|[-])?){1,5}"#).unwrap();
+    static ref SPACES_PATTERN: Regex = Regex::new(r#"\s+"#).unwrap();
 }
 
 /// Type for schedule owner's name representation.
@@ -40,13 +41,7 @@ impl ScheduleName {
                 if !VALID_PERSON_NAME_PATTERN.is_match(&name) {
                     bail!(CommonError::user("Invalid person name"));
                 }
-                return Ok(Self(
-                    SPACES_PATTERN
-                        .split(&name.to_lowercase())
-                        .map(capitalize_first_char)
-                        .collect::<Vec<String>>()
-                        .join(" "),
-                ));
+                return Ok(Self(name));
             }
             ScheduleType::Room => bail!(CommonError::internal(
                 "Room name validation is not implemented yet"
@@ -71,16 +66,6 @@ impl Display for ScheduleName {
     }
 }
 
-/// Solution taken from:
-/// https://stackoverflow.com/questions/38406793/why-is-capitalizing-the-first-letter-of-a-string-so-convoluted-in-rust
-fn capitalize_first_char(s: &str) -> String {
-    let mut c = s.chars();
-    match c.next() {
-        None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-    }
-}
-
 /// Type for schedule search query representation.
 /// Contains only valid queries.
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -89,16 +74,19 @@ pub struct ScheduleSearchQuery(String);
 impl ScheduleSearchQuery {
     /// Create valid search query from string.
     pub fn new(query: String) -> anyhow::Result<Self> {
-        if query.len() < 3 {
+        let length = query.chars().count();
+        if length < 3 {
             bail!(CommonError::user(
                 "The search query must be 3 characters or more"
             ));
         }
-        if query.len() > 50 {
+        if length > 50 {
             bail!(CommonError::user("Too long search query"));
         }
         let query = SPACES_PATTERN.replace_all(query.trim(), " ");
-        if query.len() < 3 {
+
+        let length = query.chars().count();
+        if length < 3 {
             bail!(CommonError::user(
                 "The search query without trailing and leading spaces must be 3 characters or more"
             ));
@@ -116,5 +104,32 @@ impl AsRef<str> for ScheduleSearchQuery {
 impl Display for ScheduleSearchQuery {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use domain_schedule_models::dto::v1::ScheduleType;
+
+    use super::ScheduleName;
+
+    #[test]
+    fn test_valid_group_names() {
+        assert!(ScheduleName::new("С-12-16".to_string(), ScheduleType::Group).is_ok());
+        assert!(ScheduleName::new("Сэ-12-21".to_string(), ScheduleType::Group).is_ok());
+        assert!(ScheduleName::new("А-08М-22".to_string(), ScheduleType::Group).is_ok());
+    }
+
+    #[test]
+    fn test_valid_person_names() {
+        assert!(
+            ScheduleName::new("Адамов Борис Игоревич".to_string(), ScheduleType::Person).is_ok()
+        );
+        assert!(ScheduleName::new(
+            "Кули-Заде Турал Аладдинович".to_string(),
+            ScheduleType::Person
+        )
+        .is_ok());
+        assert!(ScheduleName::new("Иванко Влада".to_string(), ScheduleType::Person).is_ok());
     }
 }
