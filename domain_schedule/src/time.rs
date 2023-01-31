@@ -1,4 +1,5 @@
 use chrono::{DateTime, Datelike, Days, Local, Month, NaiveDate, TimeZone, Weekday};
+use domain_schedule_shift::ScheduleShift;
 use num_traits::FromPrimitive;
 use std::cmp::Ordering;
 
@@ -33,7 +34,7 @@ pub trait NaiveDateExt {
     /// always the first Monday of February. The maximum number of weeks in a
     /// semester is 18. Summer time is from July to August. For this date range,
     /// and for school weeks greater than 18, -1 will be returned.
-    fn week_of_semester(self) -> Option<WeekOfSemester>
+    fn week_of_semester(self, schedule_shift: Option<&ScheduleShift>) -> Option<WeekOfSemester>
     where
         Self: Sized;
 
@@ -50,7 +51,7 @@ impl NaiveDateExt for NaiveDate {
         self.iso_week().week() as u8
     }
 
-    fn week_of_semester(self) -> Option<WeekOfSemester>
+    fn week_of_semester(self, schedule_shift: Option<&ScheduleShift>) -> Option<WeekOfSemester>
     where
         Self: Sized,
     {
