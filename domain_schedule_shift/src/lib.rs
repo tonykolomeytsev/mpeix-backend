@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, path::Path, str::FromStr};
 
 use chrono::NaiveDate;
 use tokio::{fs::File, io::AsyncReadExt};
@@ -8,15 +8,15 @@ use toml::Table;
 pub struct ScheduleShift(HashMap<(Year, ShiftedSemester), ShiftRule>);
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct Year(u16);
+pub struct Year(i32);
 
 impl Year {
-    pub fn new(year: u16) -> Year {
+    pub fn new(year: i32) -> Year {
         Self(year)
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum ShiftedSemester {
     Spring,
     Fall,
@@ -25,9 +25,9 @@ pub enum ShiftedSemester {
 #[derive(Debug, PartialEq, Eq)]
 pub struct ShiftRule {
     /// Points to first study day of semester
-    first_day: NaiveDate,
+    pub first_day: NaiveDate,
     /// Number of the academic week with the first study day
-    week_number: Option<i8>,
+    pub week_number: Option<i8>,
 }
 
 const SEMESTERS: &[&str] = &["spring", "fall"];
@@ -37,15 +37,23 @@ impl ScheduleShift {
         let mut file = File::create(path).await?;
         let mut serialized_value = String::with_capacity(4096);
         file.read_to_string(&mut serialized_value).await?;
-        ScheduleShift::from_str(serialized_value).await
+        ScheduleShift::from_str(&serialized_value)
     }
 
-    pub async fn from_str<S: AsRef<str>>(string: S) -> anyhow::Result<Self> {
-        let shifts_table = string.as_ref().parse::<Table>()?;
+    pub fn get(&self, year: Year, semester: ShiftedSemester) -> Option<&ShiftRule> {
+        self.0.get(&(year, semester))
+    }
+}
+
+impl FromStr for ScheduleShift {
+    type Err = anyhow::Error;
+
+    fn from_str(string: &str) -> anyhow::Result<Self> {
+        let shifts_table = string.parse::<Table>()?;
 
         let mut rules_map = HashMap::new();
         for (year, semester_rule) in shifts_table {
-            let year = Year::new(year.parse::<u16>()?);
+            let year = Year::new(year.parse()?);
             for semester in SEMESTERS {
                 if let Some(rule) = semester_rule.get(semester) {
                     let semester = ShiftedSemester::Spring;
@@ -71,30 +79,20 @@ impl ScheduleShift {
         }
         Ok(Self(rules_map))
     }
-
-    pub fn get(&self, year: Year, semester: ShiftedSemester) -> Option<&ShiftRule> {
-        self.0.get(&(year, semester))
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, str::FromStr};
 
     use chrono::NaiveDate;
 
     use crate::{ScheduleShift, ShiftRule, ShiftedSemester, Year};
 
-    macro_rules! await_blocking {
-        { $e:expr } => {
-            tokio_test::block_on($e)
-        };
-    }
-
     #[test]
     fn from_str_valid_test() {
-        let toml_content = include_str!("../res/schedule_shift_example.toml");
-        let shift = await_blocking!(ScheduleShift::from_str(toml_content));
+        let toml_content = include_str!("../res/default_schedule_shift.toml");
+        let shift = ScheduleShift::from_str(toml_content);
         assert!(shift.is_ok());
         assert_eq!(
             ScheduleShift(HashMap::from([(

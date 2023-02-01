@@ -118,10 +118,7 @@ impl ScheduleSearchRepository {
             .map(|it| {
                 format!(
                     "('{}', '{}', '{}', '{}')",
-                    it.id,
-                    it.name,
-                    it.description,
-                    it.r#type.to_string()
+                    it.id, it.name, it.description, it.r#type,
                 )
             })
             .collect::<Vec<String>>()

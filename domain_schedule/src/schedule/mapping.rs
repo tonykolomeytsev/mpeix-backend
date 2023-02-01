@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::bail;
 use chrono::{Datelike, NaiveDate, NaiveTime};
-use common_errors::errors::CommonError;
 use domain_schedule_models::dto::v1::{
     Classes, ClassesTime, ClassesType, Day, Schedule, ScheduleType, Week,
 };
@@ -18,7 +16,8 @@ pub(crate) fn map_schedule_models(
     schedule_id: i64,
     r#type: ScheduleType,
     mpei_classes: Vec<MpeiClasses>,
-) -> anyhow::Result<Schedule> {
+    week_of_semester: WeekOfSemester,
+) -> Schedule {
     let mut map_of_days = HashMap::<NaiveDate, Vec<Classes>>::new();
     for ref cls in mpei_classes {
         let time = ClassesTime {
@@ -55,23 +54,20 @@ pub(crate) fn map_schedule_models(
         });
     }
     days.sort_by(|a, b| a.date.cmp(&b.date));
-    Ok(Schedule {
+    Schedule {
         id: schedule_id.to_string(),
         name: name.as_string(),
         r#type,
         weeks: vec![Week {
-            week_of_semester: match week_start.week_of_semester() {
-                Some(WeekOfSemester::Studying(num)) => num as i8,
-                Some(WeekOfSemester::NonStudying) => -1,
-                None => bail!(CommonError::internal(format!(
-                    "Cannot calculate week of semester for offset {week_start}",
-                ))),
+            week_of_semester: match week_of_semester {
+                WeekOfSemester::Studying(num) => num as i8,
+                WeekOfSemester::NonStudying => -1,
             },
             week_of_year: week_start.week_of_year(),
             first_day_of_week: week_start.to_owned(),
             days,
         }],
-    })
+    }
 }
 
 fn get_classes_type(raw_type: &str) -> ClassesType {

@@ -11,6 +11,7 @@ use crate::{
     dto::mpeix::{ScheduleName, ScheduleSearchQuery},
     id::repository::ScheduleIdRepository,
     schedule::repository::ScheduleRepository,
+    schedule_shift::repository::ScheduleShiftRepository,
     search::repository::ScheduleSearchRepository,
     time::{DateTimeExt, NaiveDateExt},
 };
@@ -47,11 +48,13 @@ lazy_static! {
 /// This UseCase is maximally cache-friendly.
 /// It returns even expired cache entries in cases when remote is unavailable.
 ///
-/// This UseCase uses injected singleton instances of [ScheduleIdRepository] and [ScheduleRepository].
+/// This UseCase uses injected singleton instances of [ScheduleIdRepository],
+/// [ScheduleRepository] and [ScheduleShiftRepository].
 /// Check [crate::di] module for details.
 pub struct GetScheduleUseCase(
     pub(crate) Arc<ScheduleIdRepository>,
     pub(crate) Arc<ScheduleRepository>,
+    pub(crate) Arc<ScheduleShiftRepository>,
 );
 
 impl GetScheduleUseCase {
@@ -72,6 +75,7 @@ impl GetScheduleUseCase {
             .map(|dt| dt.date_naive())
             .map(|dt| dt.week(Weekday::Mon).first_day())
             .ok_or_else(|| anyhow!(CommonError::user("Invalid week offset")))?;
+        let week_of_semester = self.2.get_week_of_semester(&week_start).await?;
         let ignore_expiration = week_start.is_past_week();
 
         if let Some(schedule) = self
@@ -92,7 +96,13 @@ impl GetScheduleUseCase {
 
         let remote = self
             .1
-            .get_schedule_from_remote(schedule_id, name.to_owned(), r#type.to_owned(), week_start)
+            .get_schedule_from_remote(
+                schedule_id,
+                name.to_owned(),
+                r#type.to_owned(),
+                week_start,
+                week_of_semester,
+            )
             .await;
 
         // if we cannot get value from remote and didn't disable expiration policy at the beginning,
@@ -192,8 +202,8 @@ impl SearchScheduleUseCase {
 
         let max_idx = db_results.len();
         db_results.sort_by(|a, b| {
-            let idx_a = a.name.find(query.as_ref()).or_else(|| Some(max_idx));
-            let idx_b = b.name.find(query.as_ref()).or_else(|| Some(max_idx));
+            let idx_a = a.name.find(query.as_ref()).or(Some(max_idx));
+            let idx_b = b.name.find(query.as_ref()).or(Some(max_idx));
             idx_a.cmp(&idx_b)
         });
 
