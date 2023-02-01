@@ -5,7 +5,7 @@ use common_persistent_cache::PersistentCache;
 use domain_schedule_models::dto::v1::{Schedule, ScheduleType};
 use tokio::sync::Mutex;
 
-use crate::{dto::mpeix::ScheduleName, mpei_api::MpeiApi};
+use crate::{dto::mpeix::ScheduleName, mpei_api::MpeiApi, time::WeekOfSemester};
 
 use super::{
     mapping::map_schedule_models,
@@ -84,6 +84,7 @@ impl ScheduleRepository {
         name: ScheduleName,
         r#type: ScheduleType,
         week_start: NaiveDate,
+        week_of_semester: WeekOfSemester,
     ) -> anyhow::Result<Schedule> {
         let week_end = week_start
             .checked_add_days(Days::new(6))
@@ -94,7 +95,13 @@ impl ScheduleRepository {
             .get_schedule(r#type.to_owned(), schedule_id, &week_start, &week_end)
             .await?;
 
-        map_schedule_models(name, week_start, schedule_id, r#type, schedule_response)
-            .with_context(|| "Error while mapping response from MPEI backend")
+        Ok(map_schedule_models(
+            name,
+            week_start,
+            schedule_id,
+            r#type,
+            schedule_response,
+            week_of_semester,
+        ))
     }
 }

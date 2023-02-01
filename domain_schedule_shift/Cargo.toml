@@ -9,6 +9,3 @@ toml = { version = "0.7" }
 chrono = { version = "0.4" }
 anyhow = { version = "1.0" }
 tokio = { version = "1.23", features = ["fs", "io-util", "macros"] }
-
-[dev-dependencies]
-tokio-test = "0.4"

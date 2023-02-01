@@ -41,7 +41,7 @@ impl ScheduleName {
                 if !VALID_PERSON_NAME_PATTERN.is_match(&name) {
                     bail!(CommonError::user("Invalid person name"));
                 }
-                return Ok(Self(name));
+                Ok(Self(name))
             }
             ScheduleType::Room => bail!(CommonError::internal(
                 "Room name validation is not implemented yet"
