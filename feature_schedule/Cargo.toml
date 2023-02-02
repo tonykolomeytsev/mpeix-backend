@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
+domain_mobile = { path = "../domain_mobile" }
 domain_schedule = { path = "../domain_schedule" }
 domain_schedule_models = { path = "../domain_schedule_models" }
 
