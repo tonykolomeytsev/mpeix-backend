@@ -5,9 +5,7 @@ use domain_schedule::{
         GetScheduleIdUseCase, GetScheduleUseCase, InitDomainScheduleUseCase, SearchScheduleUseCase,
     },
 };
-use domain_schedule_models::dto::v1::{
-    Classes, ClassesType, Schedule, ScheduleSearchResult, ScheduleType,
-};
+use domain_schedule_models::dto::v1::{ClassesType, Schedule, ScheduleSearchResult, ScheduleType};
 
 pub struct FeatureSchedule(
     GetScheduleIdUseCase,

@@ -80,6 +80,10 @@ fn get_classes_type(raw_type: &str) -> ClassesType {
         ClassesType::Practice
     } else if raw_type.contains("курс") || raw_type.contains("кп") {
         ClassesType::Course
+    } else if raw_type.contains("экз") {
+        ClassesType::Exam
+    } else if raw_type.contains("консул") {
+        ClassesType::Consultation
     } else {
         ClassesType::Undefined
     }
