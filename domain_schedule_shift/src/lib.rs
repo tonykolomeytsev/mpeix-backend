@@ -1,6 +1,7 @@
-use std::{collections::HashMap, path::Path, str::FromStr};
+use std::{collections::HashMap, fmt::Display, path::Path, str::FromStr};
 
-use chrono::NaiveDate;
+use anyhow::{bail, ensure};
+use chrono::{Datelike, NaiveDate};
 use tokio::{fs::File, io::AsyncReadExt};
 use toml::Table;
 
@@ -30,7 +31,7 @@ pub struct ShiftRule {
     pub week_number: Option<i8>,
 }
 
-const SEMESTERS: &[&str] = &["spring", "fall"];
+const SEMESTERS: &[ShiftedSemester] = &[ShiftedSemester::Spring, ShiftedSemester::Fall];
 
 impl ScheduleShift {
     pub async fn from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
@@ -55,8 +56,7 @@ impl FromStr for ScheduleShift {
         for (year, semester_rule) in shifts_table {
             let year = Year::new(year.parse()?);
             for semester in SEMESTERS {
-                if let Some(rule) = semester_rule.get(semester) {
-                    let semester = ShiftedSemester::Spring;
+                if let Some(rule) = semester_rule.get(&semester.to_string()) {
                     let first_day = rule
                         .get("first-day")
                         .and_then(|it| it.as_str())
@@ -65,19 +65,44 @@ impl FromStr for ScheduleShift {
                         .get("week-number")
                         .and_then(|it| it.as_integer())
                         .map(|it| it as i8);
+
                     if let Some(first_day) = first_day {
+                        ensure!(
+                            first_day.year() == year.0,
+                            format!(
+                                "Shift rule for {year} {semester} semester has field 'first-day' with wrong year specified: '{first_day}'"
+                            )
+                        );
+
                         rules_map.insert(
-                            (year.clone(), semester),
+                            (year.clone(), semester.clone()),
                             ShiftRule {
                                 first_day,
                                 week_number,
                             },
                         );
+                    } else {
+                        bail!("Invalid shift rule for {year} {semester} semester: the 'first-day' field is required")
                     }
                 }
             }
         }
         Ok(Self(rules_map))
+    }
+}
+
+impl Display for ShiftedSemester {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Spring => write!(f, "spring"),
+            Self::Fall => write!(f, "fall"),
+        }
+    }
+}
+
+impl Display for Year {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -104,5 +129,25 @@ mod tests {
             )])),
             shift.unwrap(),
         );
+    }
+
+    #[test]
+    fn from_str_invalid_year_test() {
+        let toml_content = r#"
+        [2022]
+        fall = { first-day = "2021-09-16" }
+        "#;
+        let shift = ScheduleShift::from_str(toml_content);
+        assert!(shift.is_err());
+    }
+
+    #[test]
+    fn from_str_invalid_first_day_test() {
+        let toml_content = r#"
+        [2022]
+        fall = { week-number = 0 }
+        "#;
+        let shift = ScheduleShift::from_str(toml_content);
+        assert!(shift.is_err());
     }
 }
