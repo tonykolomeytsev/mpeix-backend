@@ -1,3 +1,5 @@
+use std::{path::PathBuf, str::FromStr};
+
 use anyhow::anyhow;
 use chrono::{Duration, NaiveDate};
 use common_in_memory_cache::InMemoryCache;
@@ -8,7 +10,7 @@ use crate::time::{NaiveDateExt, WeekOfSemester};
 
 pub struct ScheduleShiftRepository {
     cache: Mutex<InMemoryCache<(), ScheduleShift>>,
-    config_path: String,
+    config_path: PathBuf,
 }
 
 impl Default for ScheduleShiftRepository {
@@ -18,7 +20,7 @@ impl Default for ScheduleShiftRepository {
             cache: Mutex::new(
                 InMemoryCache::with_capacity(1).expires_after_creation(Duration::minutes(1)),
             ),
-            config_path,
+            config_path: config_path.into(),
         }
     }
 }
@@ -30,7 +32,16 @@ impl ScheduleShiftRepository {
     ) -> anyhow::Result<WeekOfSemester> {
         let mut cache = self.cache.lock().await;
         if cache.get(&()).is_none() {
-            cache.insert((), ScheduleShift::from_file(&self.config_path).await?);
+            if self.config_path.exists() {
+                cache.insert((), ScheduleShift::from_file(&self.config_path).await?);
+            } else {
+                cache.insert(
+                    (),
+                    ScheduleShift::from_str(include_str!(
+                        "../../../domain_schedule_shift/res/default_schedule_shift.toml"
+                    ))?,
+                );
+            }
         }
 
         week_start
