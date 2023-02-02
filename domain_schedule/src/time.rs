@@ -1,6 +1,5 @@
 use chrono::{DateTime, Datelike, Days, Local, Month, NaiveDate, TimeZone, Weekday};
 use domain_schedule_shift::{ScheduleShift, ShiftRule, ShiftedSemester, Year};
-use num_traits::FromPrimitive;
 use std::cmp::Ordering;
 
 pub trait DateTimeExt {
@@ -40,7 +39,7 @@ pub trait NaiveDateExt {
     /// The maximum number of weeks in a
     /// semester is 18. Summer time is from July to August. For this date range,
     /// and for school weeks greater than 18, -1 will be returned.
-    fn week_of_semester(self, schedule_shift: Option<&ScheduleShift>) -> Option<WeekOfSemester>
+    fn week_of_semester(self, shifts: Option<&ScheduleShift>) -> Option<WeekOfSemester>
     where
         Self: Sized;
 
@@ -55,67 +54,26 @@ impl NaiveDateExt for NaiveDate {
     }
 
     fn week_of_semester(self, shifts: Option<&ScheduleShift>) -> Option<WeekOfSemester> {
-        // simply determine the current semester
-        let semester = match Month::from_u32(self.month()) {
-            Some(Month::July | Month::January) => return Some(WeekOfSemester::NonStudying),
-            Some(Month::February | Month::March | Month::April | Month::May | Month::June) => {
-                ShiftedSemester::Spring
-            }
-            _ => ShiftedSemester::Fall,
-        };
-
-        // look for 'shift' rule for this semester
-        // in case the first study day is determined by non-standard rules
-        let shift_rule_for_semester =
-            shifts.and_then(|it| it.get(Year::new(self.year()), semester.clone()));
-
-        let (first_study_day, week_number) = if let Some(ShiftRule {
-            first_day,
-            week_number,
-        }) = shift_rule_for_semester
-        {
-            // default number for first study week is 1, but we can provide any
-            (*first_day, week_number.unwrap_or(1))
-        } else {
-            // default first day for spring
-            let first_day = match semester {
-                // first of September if it is not Sunday, either 2nd of September
-                ShiftedSemester::Fall => {
-                    let first_of_september = NaiveDate::from_ymd_opt(
-                        self.year(),
-                        Month::September.number_from_month(),
-                        1,
-                    )?;
-                    if matches!(first_of_september.weekday(), Weekday::Sun) {
-                        // return 2nd of September (Monday)
-                        NaiveDate::from_ymd_opt(
-                            self.year(),
-                            Month::September.number_from_month(),
-                            2,
-                        )?
-                    } else {
-                        first_of_september
-                    }
+        if let (1, 1..=7) = (self.month(), self.day()) {
+            // January weekend
+            return Some(WeekOfSemester::NonStudying);
+        }
+        vec![ShiftedSemester::Spring, ShiftedSemester::Fall]
+            .into_iter()
+            .filter_map(|semester| get_first_day_and_week_number(&self, shifts, semester))
+            .filter_map(|(first_day, week_number)| {
+                let has_zero_week = week_number == 0;
+                let result =
+                    self.week_of_year() as i8 - first_day.week_of_year() as i8 + week_number;
+                match (result, has_zero_week) {
+                    (0..=17, true) => Some(result as u8),
+                    (1..=17, false) => Some(result as u8),
+                    _ => None,
                 }
-                // first monday of February
-                ShiftedSemester::Spring => NaiveDate::from_weekday_of_month_opt(
-                    self.year(),
-                    self.month(),
-                    Weekday::Mon,
-                    1,
-                )?,
-            };
-            (first_day, 1)
-        };
-        let reference_week_of_year = first_study_day.week_of_year();
-        let has_zero_week = week_number == 0;
-        let result = self.week_of_year() as i8 - reference_week_of_year as i8 + week_number;
-
-        Some(match (result, has_zero_week) {
-            (0..=17, true) => WeekOfSemester::Studying(result as u8),
-            (1..=17, false) => WeekOfSemester::Studying(result as u8),
-            _ => WeekOfSemester::NonStudying,
-        })
+            })
+            .min()
+            .map(WeekOfSemester::Studying)
+            .or(Some(WeekOfSemester::NonStudying))
     }
 
     fn is_past_week(&self) -> bool {
@@ -125,11 +83,53 @@ impl NaiveDateExt for NaiveDate {
     }
 }
 
+fn get_first_day_and_week_number(
+    now: &NaiveDate,
+    shifts: Option<&ScheduleShift>,
+    semester: ShiftedSemester,
+) -> Option<(NaiveDate, i8)> {
+    // look for 'shift' rule for this semester
+    // in case the first study day is determined by non-standard rules
+    let shift_rule_for_semester =
+        shifts.and_then(|it| it.get(Year::new(now.year()), semester.clone()));
+
+    if let Some(ShiftRule {
+        first_day,
+        week_number,
+    }) = shift_rule_for_semester
+    {
+        // default number for first study week is 1, but we can provide any
+        Some((*first_day, week_number.unwrap_or(1)))
+    } else {
+        let first_day = match semester {
+            // first of September if it is not Sunday, either 2nd of September
+            ShiftedSemester::Fall => {
+                let first_of_september =
+                    NaiveDate::from_ymd_opt(now.year(), Month::September.number_from_month(), 1)?;
+                if matches!(first_of_september.weekday(), Weekday::Sun) {
+                    // return 2nd of September (Monday)
+                    NaiveDate::from_ymd_opt(now.year(), Month::September.number_from_month(), 2)?
+                } else {
+                    first_of_september
+                }
+            }
+            // first monday of February
+            ShiftedSemester::Spring => NaiveDate::from_weekday_of_month_opt(
+                now.year(),
+                Month::February.number_from_month(),
+                Weekday::Mon,
+                1,
+            )?,
+        };
+        Some((first_day, 1))
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use std::{fmt::Display, str::FromStr};
 
-    use chrono::{Month, NaiveDate};
+    use chrono::{Days, Month, NaiveDate};
     use domain_schedule_shift::ScheduleShift;
     use lazy_static::lazy_static;
 
@@ -225,31 +225,15 @@ mod tests {
     );
 
     lazy_static! {
-        static ref SPRING_2021_SHIFT: ScheduleShift = ScheduleShift::from_str(
+        static ref TEST_SHIFTS: ScheduleShift = ScheduleShift::from_str(
             r#"
             [2021]
             spring = { first-day = "2021-02-15", week-number = 0 }
-            "#
-        )
-        .unwrap();
-        static ref FALL_2021_SHIFT_SECOND_WEEK: ScheduleShift = ScheduleShift::from_str(
-            r#"
-            [2021]
             fall = { first-day = "2021-09-06", week-number = 2 }
-            "#
-        )
-        .unwrap();
-        static ref SPRING_2022_SHIFT_MID_WEEK: ScheduleShift = ScheduleShift::from_str(
-            r#"
+
             [2022]
-            spring = { first-day = "2021-02-16", week-number = 1 }
-            "#
-        )
-        .unwrap();
-        static ref FALL_2022_SHIFT: ScheduleShift = ScheduleShift::from_str(
-            r#"
-            [2022]
-            fall = { first-day = "2021-02-16", week-number = 1 }
+            spring = { first-day = "2022-02-16" }
+            fall = { first-day = "2022-09-16" }
             "#
         )
         .unwrap();
@@ -258,49 +242,86 @@ mod tests {
     test_week_of_semester!(
         february_1st_2021_with_shift,
         date = (2021, Month::February, 1),
-        shift = Some(&SPRING_2021_SHIFT),
+        shift = Some(&TEST_SHIFTS),
         result = WeekOfSemester::NonStudying
     );
 
     test_week_of_semester!(
         february_8th_2021_with_shift,
         date = (2021, Month::February, 8),
-        shift = Some(&SPRING_2021_SHIFT),
+        shift = Some(&TEST_SHIFTS),
         result = WeekOfSemester::NonStudying
     );
 
     test_week_of_semester!(
         february_15th_2021_with_shift,
         date = (2021, Month::February, 15),
-        shift = Some(&SPRING_2021_SHIFT),
+        shift = Some(&TEST_SHIFTS),
         result = WeekOfSemester::Studying(0)
     );
 
     test_week_of_semester!(
         september_1st_2021_with_shift,
         date = (2021, Month::September, 1),
-        shift = Some(&FALL_2021_SHIFT_SECOND_WEEK),
+        shift = Some(&TEST_SHIFTS),
         result = WeekOfSemester::Studying(1)
     );
 
     test_week_of_semester!(
         september_6th_2021_with_shift,
         date = (2021, Month::September, 6),
-        shift = Some(&FALL_2021_SHIFT_SECOND_WEEK),
+        shift = Some(&TEST_SHIFTS),
         result = WeekOfSemester::Studying(2)
     );
 
     test_week_of_semester!(
         february_14th_2022_with_shift,
         date = (2022, Month::February, 14),
-        shift = Some(&SPRING_2022_SHIFT_MID_WEEK),
+        shift = Some(&TEST_SHIFTS),
         result = WeekOfSemester::Studying(1)
     );
 
     test_week_of_semester!(
         february_16th_2022_with_shift,
         date = (2022, Month::February, 16),
-        shift = Some(&SPRING_2022_SHIFT_MID_WEEK),
+        shift = Some(&TEST_SHIFTS),
         result = WeekOfSemester::Studying(1)
     );
+
+    #[test]
+    fn test_all_days_from_2019_to_2025() {
+        let mut date =
+            NaiveDate::from_ymd_opt(2019, Month::January.number_from_month(), 1).unwrap();
+        let end_date =
+            NaiveDate::from_ymd_opt(2025, Month::January.number_from_month(), 2).unwrap();
+        let mut state = WeekOfSemester::NonStudying;
+
+        while date != end_date {
+            let new_state = date.week_of_semester(Some(&TEST_SHIFTS));
+            assert!(new_state.is_some());
+            let new_state = new_state.unwrap();
+
+            match (&state, &new_state) {
+                (WeekOfSemester::NonStudying, WeekOfSemester::Studying(i)) => {
+                    print!("{date}: {i} -> ");
+                }
+                (WeekOfSemester::Studying(i), WeekOfSemester::NonStudying) => {
+                    println!("{i}: {date}");
+                }
+                _ => (),
+            }
+            state = new_state;
+
+            date = date.checked_add_days(Days::new(1)).unwrap();
+        }
+    }
+
+    impl Display for WeekOfSemester {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Self::NonStudying => write!(f, "not-studying"),
+                Self::Studying(i) => write!(f, "studying({i})"),
+            }
+        }
+    }
 }
