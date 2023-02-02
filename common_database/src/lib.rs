@@ -30,7 +30,7 @@ pub fn create_db_pool() -> anyhow::Result<Pool> {
     config.user = Some(postgres_user);
     config.password = Some(postgres_password);
 
-    Ok(config
+    config
         .create_pool(None, tokio_postgres::NoTls)
-        .with_context(|| "Error during Postgres Pool creation")?)
+        .with_context(|| "Error during Postgres Pool creation")
 }
