@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, ensure};
+use anyhow::{anyhow, ensure, Context};
 use chrono::{Local, Weekday};
 use common_errors::errors::CommonError;
 use domain_schedule_models::dto::v1::{Schedule, ScheduleSearchResult, ScheduleType};
@@ -13,7 +13,7 @@ use crate::{
     schedule::repository::ScheduleRepository,
     schedule_shift::repository::ScheduleShiftRepository,
     search::repository::ScheduleSearchRepository,
-    time::{DateTimeExt, NaiveDateExt},
+    time::{DateTimeExt, NaiveDateExt, WeekOfSemester},
 };
 
 /// Get numeric `ID` of schedule by its `name` and `type`.
@@ -78,7 +78,7 @@ impl GetScheduleUseCase {
         let week_of_semester = self.2.get_week_of_semester(&week_start).await?;
         let ignore_expiration = week_start.is_past_week();
 
-        if let Some(schedule) = self
+        if let Some(mut schedule) = self
             .1
             .get_schedule_from_cache(
                 name.to_owned(),
@@ -89,6 +89,16 @@ impl GetScheduleUseCase {
             .await?
         {
             info!("Got schedule from cache");
+            {
+                // fix schedule week_of_semester according to new schedule shift rules
+                self.fix_schedule_shift_if_needed(
+                    &mut schedule,
+                    &week_of_semester,
+                    name.to_owned(),
+                )
+                .await
+                .with_context(|| "Error while fixing schedule shift")?;
+            }
             return Ok(schedule);
         }
 
@@ -101,19 +111,29 @@ impl GetScheduleUseCase {
                 name.to_owned(),
                 r#type.to_owned(),
                 week_start,
-                week_of_semester,
+                week_of_semester.to_owned(),
             )
             .await;
 
         // if we cannot get value from remote and didn't disable expiration policy at the beginning,
         // try to disable expiration policy and look for cached value again
         if remote.is_err() && !ignore_expiration {
-            if let Some(schedule) = self
+            if let Some(mut schedule) = self
                 .1
                 .get_schedule_from_cache(name.to_owned(), r#type.to_owned(), week_start, true)
                 .await?
             {
                 info!("Got expired schedule from cache (remote unavailable)");
+                {
+                    // fix schedule week_of_semester according to new schedule shift rules
+                    self.fix_schedule_shift_if_needed(
+                        &mut schedule,
+                        &week_of_semester,
+                        name.to_owned(),
+                    )
+                    .await
+                    .with_context(|| "Error while fixing schedule shift")?;
+                }
                 return Ok(schedule);
             }
         }
@@ -134,6 +154,37 @@ impl GetScheduleUseCase {
         // if we have not even expired cached value, return error about remote request
         remote
     }
+
+    async fn fix_schedule_shift_if_needed(
+        &self,
+        schedule: &mut Schedule,
+        week_of_semester: &WeekOfSemester,
+        name: ScheduleName,
+    ) -> anyhow::Result<()> {
+        let mut week = schedule
+            .weeks
+            .first_mut()
+            .ok_or_else(|| anyhow!("Encountered invalid schedule with empty weeks field"))?;
+
+        let true_week_of_semester = match week_of_semester {
+            WeekOfSemester::Studying(week_of_semester) => *week_of_semester as i8,
+            WeekOfSemester::NonStudying => -1,
+        };
+
+        if true_week_of_semester != week.week_of_semester {
+            week.week_of_semester = true_week_of_semester;
+            self.1
+                .insert_schedule_to_cache(
+                    name,
+                    schedule.r#type.clone(),
+                    week.first_day_of_week,
+                    schedule.clone(),
+                )
+                .await?;
+            info!("Schedule 'week_of_semester' field was fixed to {true_week_of_semester}");
+        }
+        Ok(())
+    }
 }
 
 /// Get [Vec] of [ScheduleSearchResult].
@@ -150,7 +201,6 @@ impl GetScheduleUseCase {
 /// necessary value, we made request to the MPEI backend and put results of the request to
 /// the database (add new entries, update old entries). Even if the request fails, we do search
 /// in the database and return best mathes.
-///
 pub struct SearchScheduleUseCase(pub(crate) Arc<ScheduleSearchRepository>);
 
 impl SearchScheduleUseCase {

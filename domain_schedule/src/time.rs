@@ -18,7 +18,7 @@ impl<Tz: TimeZone> DateTimeExt for DateTime<Tz> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum WeekOfSemester {
     Studying(u8),
     NonStudying,

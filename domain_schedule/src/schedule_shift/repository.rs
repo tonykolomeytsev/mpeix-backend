@@ -1,6 +1,6 @@
 use std::{path::PathBuf, str::FromStr};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use chrono::{Duration, NaiveDate};
 use common_in_memory_cache::InMemoryCache;
 use domain_schedule_shift::ScheduleShift;
@@ -33,7 +33,12 @@ impl ScheduleShiftRepository {
         let mut cache = self.cache.lock().await;
         if cache.get(&()).is_none() {
             if self.config_path.exists() {
-                cache.insert((), ScheduleShift::from_file(&self.config_path).await?);
+                cache.insert(
+                    (),
+                    ScheduleShift::from_file(&self.config_path)
+                        .await
+                        .with_context(|| "Cannot access shift config file")?,
+                );
             } else {
                 cache.insert(
                     (),
