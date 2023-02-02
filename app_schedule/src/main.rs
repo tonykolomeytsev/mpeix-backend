@@ -4,10 +4,11 @@ use actix_web::{
     get, middleware,
     web::{Data, Json},
     web::{Path, Query},
-    App, HttpResponse, HttpServer, Responder,
+    App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use anyhow::bail;
 use common_errors::errors::CommonError;
+use domain_mobile::AppVersion;
 use domain_schedule_models::dto::v1::{self, ScheduleSearchResult, ScheduleType};
 use feature_schedule::v1::FeatureSchedule;
 use log::info;
@@ -43,10 +44,17 @@ async fn get_id_v1(
 async fn get_schedule_v1(
     path: Path<(String, String, i32)>,
     state: Data<AppSchedule>,
+    req: HttpRequest,
 ) -> Result<Json<v1::Schedule>, AppScheduleError> {
     let (r#type, name, offset) = path.into_inner();
     let r#type = parse_schedule_type(&r#type)?;
-    Ok(Json(state.0.get_schedule(name, r#type, offset).await?))
+    let app_version = get_app_version(&req);
+    Ok(Json(
+        state
+            .0
+            .get_schedule(name, r#type, offset, app_version)
+            .await?,
+    ))
 }
 
 #[derive(Deserialize)]
@@ -73,7 +81,7 @@ async fn search_schedule_v1(
 /// Because we cannot implement trait `actix_web::FromRequest` for `ScheduleType`.
 /// They belongs to different crates and no one belongs this crate.
 /// I do not want to add `actix-web` dependency to `domain_schedule_models` crate.
-pub fn parse_schedule_type(r#type: &str) -> anyhow::Result<ScheduleType> {
+fn parse_schedule_type(r#type: &str) -> anyhow::Result<ScheduleType> {
     match r#type {
         "group" => Ok(ScheduleType::Group),
         "person" => Ok(ScheduleType::Person),
@@ -82,6 +90,13 @@ pub fn parse_schedule_type(r#type: &str) -> anyhow::Result<ScheduleType> {
             "Unsupported schedule type: {type}"
         ))),
     }
+}
+
+fn get_app_version(req: &HttpRequest) -> Option<AppVersion> {
+    req.headers()
+        .get("X-App-Version")
+        .and_then(|it| it.to_str().ok())
+        .and_then(|it| it.parse::<AppVersion>().ok())
 }
 
 fn get_addr() -> (String, u16) {

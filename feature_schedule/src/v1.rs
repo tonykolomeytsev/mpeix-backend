@@ -1,10 +1,13 @@
+use domain_mobile::AppVersion;
 use domain_schedule::{
     di::DomainScheduleModule,
     usecases::{
         GetScheduleIdUseCase, GetScheduleUseCase, InitDomainScheduleUseCase, SearchScheduleUseCase,
     },
 };
-use domain_schedule_models::dto::v1::{Schedule, ScheduleSearchResult, ScheduleType};
+use domain_schedule_models::dto::v1::{
+    Classes, ClassesType, Schedule, ScheduleSearchResult, ScheduleType,
+};
 
 pub struct FeatureSchedule(
     GetScheduleIdUseCase,
@@ -35,8 +38,29 @@ impl FeatureSchedule {
         name: String,
         r#type: ScheduleType,
         offset: i32,
+        app_version: Option<AppVersion>,
     ) -> anyhow::Result<Schedule> {
-        self.1.get_schedule(name, r#type, offset).await
+        let mut schedule = self.1.get_schedule(name, r#type, offset).await?;
+
+        // for backward compatibility with old mpeix apps
+        if let Some(mpeix_version) = app_version {
+            // if it is 1.X.X version ...
+            if mpeix_version.major < 2 {
+                // replace all rich classes types to Undefined,
+                // to prevent crashes on mobile
+                schedule
+                    .weeks
+                    .iter_mut()
+                    .flat_map(|week| week.days.iter_mut())
+                    .flat_map(|day| day.classes.iter_mut())
+                    .filter(|class| {
+                        matches!(class.r#type, ClassesType::Exam | ClassesType::Consultation)
+                    })
+                    .for_each(|class| class.r#type = ClassesType::Undefined);
+            }
+        }
+
+        Ok(schedule)
     }
 
     pub async fn search_schedule(
