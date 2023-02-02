@@ -25,7 +25,7 @@ Microservice responsible for working with the schedules of groups, teachers and 
   - `SCHEDULE_SEARCH_CACHE_CAPACITY` — in-memory LRU cache capacity. Default is `3000` items.
   - `SCHEDULE_SEARCH_CACHE_LIFETIME_MINUTES` — cache expiration policy by creation date. Default is `5` minutes.
 - Schedule shift rules:
-  - `SCHEDULE_SHIFT_CONFIG_PATH` — path to config with "schedule shift rules". 
+  - `SCHEDULE_SHIFT_CONFIG_PATH` <sup>`domain_schedule`</sup> — path to config with "schedule shift rules". 
     By default, the built-in default config will be used, which can be found here: [default_schedule_shift.toml](https://github.com/tonykolomeytsev/mpeix-backend/blob/master/domain_schedule_shift/res/default_schedule_shift.toml)
 - Logging <sup>`app_schedule`</sup>:
   - `RUST_LOG` logging verbosity. Default is `info`. See all available values in [env_logger documentation](https://docs.rs/env_logger/latest/env_logger/).
