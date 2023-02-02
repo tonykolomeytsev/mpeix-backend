@@ -35,7 +35,7 @@ const SEMESTERS: &[ShiftedSemester] = &[ShiftedSemester::Spring, ShiftedSemester
 
 impl ScheduleShift {
     pub async fn from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
-        let mut file = File::create(path).await?;
+        let mut file = File::open(path).await?;
         let mut serialized_value = String::with_capacity(4096);
         file.read_to_string(&mut serialized_value).await?;
         ScheduleShift::from_str(&serialized_value)
