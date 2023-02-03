@@ -3,12 +3,14 @@ name = "app_schedule"
 version = "0.1.0"
 edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
+readme = "README.md"
+license = "MIT"
 
 [dependencies]
-common_errors = { path = "../common_errors" }
-domain_mobile = { path = "../domain_mobile" }
-domain_schedule_models = { path = "../domain_schedule_models" }
-feature_schedule = { path = "../feature_schedule" }
+common_errors.workspace = true
+domain_mobile.workspace = true
+domain_schedule_models.workspace = true
+feature_schedule.workspace = true
 
 serde = { version = "1.0", features = ["derive"] }
 actix-web = { version = "4" }

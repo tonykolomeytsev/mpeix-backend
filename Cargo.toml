@@ -1,21 +1,24 @@
 [workspace]
-members = [
-  "crates/app_schedule",
-  "crates/common_database",
-  "crates/common_errors",
-  "crates/common_in_memory_cache",
-  "crates/common_persistent_cache",
-  "crates/domain_bot",
-  "crates/domain_mobile",
-  "crates/domain_schedule",
-  "crates/domain_schedule_models",
-  "crates/domain_schedule_shift",
-  "crates/domain_telegram_bot",
-  "crates/domain_vk_bot",
-  "crates/feature_schedule",
-  "crates/feature_telegram_bot",
-  "crates/feature_vk_bot",
-]
+members = ["app_schedule"]
+
+[workspace.dependencies]
+# common crates
+common_database = { path = "crates/common_database" }
+common_errors = { path = "crates/common_errors" }
+common_in_memory_cache = { path = "crates/common_in_memory_cache" }
+common_persistent_cache = { path = "crates/common_persistent_cache" }
+# domain crates
+domain_bot = { path = "crates/domain_bot" }
+domain_mobile = { path = "crates/domain_mobile" }
+domain_schedule = { path = "crates/domain_schedule" }
+domain_schedule_models = { path = "crates/domain_schedule_models" }
+domain_schedule_shift = { path = "crates/domain_schedule_shift" }
+domain_telegram_bot = { path = "crates/domain_telegram_bot" }
+domain_vk_bot = { path = "crates/domain_vk_bot" }
+# feature crates
+feature_schedule = { path = "crates/feature_schedule" }
+feature_telegram_bot = { path = "crates/feature_telegram_bot" }
+feature_vk_bot = { path = "crates/feature_vk_bot" }
 
 [profile.release]
 opt-level = 3
