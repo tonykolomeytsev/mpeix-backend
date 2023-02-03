@@ -5,12 +5,12 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
-common_database = { path = "../common_database" }
-common_errors = { path = "../common_errors" }
-common_in_memory_cache = { path = "../common_in_memory_cache" }
-common_persistent_cache = { path = "../common_persistent_cache" }
-domain_schedule_models = { path = "../domain_schedule_models" }
-domain_schedule_shift = { path = "../domain_schedule_shift" }
+common_database.workspace = true
+common_errors.workspace = true
+common_in_memory_cache.workspace = true
+common_persistent_cache.workspace = true
+domain_schedule_models.workspace = true
+domain_schedule_shift.workspace = true
 
 anyhow = { version = "1.0" }
 chrono = { version = "0.4", features = ["serde"] }
