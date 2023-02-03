@@ -3,3 +3,6 @@ name = "feature_telegram_bot"
 version = "0.1.0"
 edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
+
+[dependencies]
+domain_telegram_bot.workspace = true

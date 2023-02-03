@@ -263,6 +263,8 @@ dependencies = [
  "env_logger",
  "envmnt",
  "feature_schedule",
+ "feature_telegram_bot",
+ "feature_vk_bot",
  "log",
  "serde",
  "tokio",
@@ -660,6 +662,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "domain_telegram_bot"
+version = "0.1.0"
+
+[[package]]
+name = "domain_vk_bot"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "dunce"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -743,6 +756,20 @@ dependencies = [
  "domain_schedule_models",
  "serde",
  "tokio",
+]
+
+[[package]]
+name = "feature_telegram_bot"
+version = "0.1.0"
+dependencies = [
+ "domain_telegram_bot",
+]
+
+[[package]]
+name = "feature_vk_bot"
+version = "0.1.0"
+dependencies = [
+ "domain_vk_bot",
 ]
 
 [[package]]

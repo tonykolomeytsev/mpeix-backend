@@ -11,6 +11,8 @@ common_errors.workspace = true
 domain_mobile.workspace = true
 domain_schedule_models.workspace = true
 feature_schedule.workspace = true
+feature_telegram_bot.workspace = true
+feature_vk_bot.workspace = true
 
 serde = { version = "1.0", features = ["derive"] }
 actix-web = { version = "4" }
