@@ -613,6 +613,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "domain_bot"
+version = "0.1.0"
+
+[[package]]
 name = "domain_mobile"
 version = "0.1.0"
 
@@ -658,6 +662,14 @@ dependencies = [
  "tokio",
  "toml",
 ]
+
+[[package]]
+name = "domain_telegram_bot"
+version = "0.1.0"
+
+[[package]]
+name = "domain_vk_bot"
+version = "0.1.0"
 
 [[package]]
 name = "dunce"
@@ -744,6 +756,14 @@ dependencies = [
  "serde",
  "tokio",
 ]
+
+[[package]]
+name = "feature_telegram_bot"
+version = "0.1.0"
+
+[[package]]
+name = "feature_vk_bot"
+version = "0.1.0"
 
 [[package]]
 name = "flate2"
