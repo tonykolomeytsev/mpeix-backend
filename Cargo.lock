@@ -664,6 +664,9 @@ dependencies = [
 [[package]]
 name = "domain_telegram_bot"
 version = "0.1.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "domain_vk_bot"

@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+/// https://dev.vk.com/api/callback/getting-started
 #[derive(Debug, Deserialize)]
 pub struct VkCallbackRequest {
     #[serde(default)]
@@ -20,7 +21,7 @@ pub enum VkCallbackType {
 
 impl Default for VkCallbackType {
     fn default() -> Self {
-        VkCallbackType::Unknown
+        Self::Unknown
     }
 }
 
@@ -87,6 +88,6 @@ pub enum ButtonActionType {
 
 impl Default for ButtonActionType {
     fn default() -> Self {
-        ButtonActionType::Unknown
+        Self::Unknown
     }
 }
