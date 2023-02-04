@@ -1,2 +1,5 @@
 [2021]
 spring = { first-day = "2021-02-15", week-number = 0 }
+
+[2023]
+spring = { first-day = "2023-02-08", week-number = 0 }
