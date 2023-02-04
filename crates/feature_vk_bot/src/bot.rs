@@ -1,41 +1,51 @@
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use anyhow::{anyhow, ensure};
 use common_errors::errors::CommonError;
 use domain_bot::usecases::ReplyUseCase;
 use domain_vk_bot::{VkCallbackRequest, VkCallbackType};
 
-macro_rules! key_struct {
-    ($name:tt, $key:expr) => {
-        pub(crate) struct $name(String);
-        impl Default for $name {
-            fn default() -> Self {
-                Self(envmnt::get_or($key, ""))
-            }
-        }
-    };
-}
-
 pub struct FeatureVkBot {
-    pub(crate) confirmation_key: ConfirmationKey,
-    pub(crate) secret: Secret,
+    pub(crate) config: Config,
     pub(crate) reply_use_case: Arc<ReplyUseCase>,
 }
 
-key_struct!(ConfirmationKey, "VK_BOT_CONFIRMATION_KEY");
-key_struct!(Secret, "VK_BOT_SECRET");
+pub(crate) struct Config {
+    confirmation_code: String,
+    access_token: String,
+    secret: Option<String>,
+    group_id: Option<i64>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        let confirmation_code = env::var("VK_BOT_CONFIRMATION_CODE")
+            .expect("Environment variable VK_BOT_CONFIRMATION_CODE not provided");
+        let access_token = env::var("VK_BOT_ACCESS_TOKEN")
+            .expect("Environment variable VK_BOT_CONFIRMATION_CODE not provided");
+        let secret = env::var("VK_BOT_SECRET").ok();
+        let group_id = env::var("VK_BOT_GROUP_ID")
+            .ok()
+            .and_then(|it| it.parse::<i64>().ok());
+
+        Self {
+            confirmation_code,
+            access_token,
+            secret,
+            group_id,
+        }
+    }
+}
 
 impl FeatureVkBot {
     pub async fn reply(&self, callback: VkCallbackRequest) -> anyhow::Result<Option<String>> {
-        if let Some(secret) = callback.secret {
-            ensure!(
-                secret == self.secret.0,
-                CommonError::user("Invalid secret key!")
-            );
-        }
+        ensure!(
+            callback.secret == self.config.secret,
+            CommonError::user("Invalid secret key!")
+        );
 
         match callback.r#type {
-            VkCallbackType::Confirmation => Ok(Some(self.confirmation_key.0.to_owned())),
+            VkCallbackType::Confirmation => Ok(Some(self.config.confirmation_code.to_owned())),
             VkCallbackType::Unknown => {
                 Err(anyhow!(CommonError::internal("Unsupported callback type")))
             }

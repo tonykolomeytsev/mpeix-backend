@@ -44,25 +44,25 @@ impl AppComponent {
         let search_schedule_use_case = Arc::new(SearchScheduleUseCase::new(
             schedule_search_repository.clone(),
         ));
-        let init_domain_schedule_use_case = Arc::new(InitDomainScheduleUseCase::new(
-            schedule_search_repository.clone(),
-        ));
         let reply_use_case = Arc::new(ReplyUseCase::new(
             peer_repository.clone(),
             schedule_repository,
-            schedule_search_repository,
+            schedule_search_repository.clone(),
         ));
+        let init_domain_schedule_use_case =
+            InitDomainScheduleUseCase::new(schedule_search_repository);
+        let init_domain_bot_use_case = InitDomainBotUseCase::new(peer_repository);
 
-        AppSchedule(
-            FeatureSchedule::new(
+        AppSchedule {
+            feature_schedule: FeatureSchedule::new(
                 get_schedule_id_use_case,
                 get_schedule_use_case,
                 search_schedule_use_case,
-                init_domain_schedule_use_case,
             ),
-            FeatureTelegramBot::new(reply_use_case.clone()),
-            FeatureVkBot::new(reply_use_case),
-            InitDomainBotUseCase::new(peer_repository),
-        )
+            feature_telegram_bot: FeatureTelegramBot::new(reply_use_case.clone()),
+            feature_vk_bot: FeatureVkBot::new(reply_use_case),
+            init_domain_schedule_use_case,
+            init_domain_bot_use_case,
+        }
     }
 }

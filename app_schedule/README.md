@@ -29,3 +29,8 @@ Microservice responsible for working with the schedules of groups, teachers and 
     By default, the built-in default config will be used, which can be found here: [default_schedule_shift.toml](https://github.com/tonykolomeytsev/mpeix-backend/blob/master/domain_schedule_shift/res/default_schedule_shift.toml)
 - Logging <sup>`app_schedule`</sup>:
   - `RUST_LOG` logging verbosity. Default is `info`. See all available values in [env_logger documentation](https://docs.rs/env_logger/latest/env_logger/).
+- VK Schedule Bot <sup>`feature_vk_bot`</sup>:
+  - `VK_BOT_CONFIRMATION_CODE`<sup>**required**</sup> — confirmation code provided by VK for group/community Callback API.
+  - `VK_BOT_ACCESS_TOKEN`<sup>**required**</sup> — VK App access token.
+  - `VK_BOT_SECRET` - Optional VK secret for Callback API.
+  - `VK_BOT_GROUP_ID` - Allowed VK group/community id. If not specified, requests from any groups will be accepted by this service.
