@@ -1,16 +1,13 @@
 use std::sync::Arc;
 
 use domain_mobile::AppVersion;
-use domain_schedule::usecases::{
-    GetScheduleIdUseCase, GetScheduleUseCase, InitDomainScheduleUseCase, SearchScheduleUseCase,
-};
+use domain_schedule::usecases::{GetScheduleIdUseCase, GetScheduleUseCase, SearchScheduleUseCase};
 use domain_schedule_models::dto::v1::{ClassesType, Schedule, ScheduleSearchResult, ScheduleType};
 
 pub struct FeatureSchedule(
     pub(crate) Arc<GetScheduleIdUseCase>,
     pub(crate) Arc<GetScheduleUseCase>,
     pub(crate) Arc<SearchScheduleUseCase>,
-    pub(crate) Arc<InitDomainScheduleUseCase>,
 );
 
 impl FeatureSchedule {
@@ -54,9 +51,5 @@ impl FeatureSchedule {
         r#type: Option<ScheduleType>,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
         self.2.search(query, r#type).await
-    }
-
-    pub async fn init_domain_schedule(&self) -> anyhow::Result<()> {
-        self.3.init().await
     }
 }

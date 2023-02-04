@@ -2,13 +2,12 @@ use std::sync::Arc;
 
 use domain_bot::usecases::ReplyUseCase;
 
-use crate::{ConfirmationKey, FeatureVkBot, Secret};
+use crate::{Config, FeatureVkBot};
 
 impl FeatureVkBot {
     pub fn new(reply_use_case: Arc<ReplyUseCase>) -> Self {
         Self {
-            confirmation_key: ConfirmationKey::default(),
-            secret: Secret::default(),
+            config: Config::default(),
             reply_use_case,
         }
     }
