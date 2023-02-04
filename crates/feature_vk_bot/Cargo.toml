@@ -5,7 +5,9 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
+common_errors.workspace = true
 domain_bot.workspace = true
 domain_vk_bot.workspace = true
 
 anyhow = "1.0"
+envmnt = "0.10.4"

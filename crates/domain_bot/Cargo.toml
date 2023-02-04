@@ -5,6 +5,8 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
+domain_schedule.workspace = true
+
 anyhow = { version = "1.0" }
 deadpool-postgres = { version = "0.10", features = ["serde"] }
 env_logger = "0.10"

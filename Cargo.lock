@@ -623,6 +623,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "deadpool-postgres",
+ "domain_schedule",
  "env_logger",
  "log",
  "serde",
@@ -790,8 +791,10 @@ name = "feature_vk_bot"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "common_errors",
  "domain_bot",
  "domain_vk_bot",
+ "envmnt",
 ]
 
 [[package]]
