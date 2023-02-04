@@ -28,7 +28,12 @@ impl PeerRepository {
         client
             .query(stmt, &[])
             .await
-            .with_context(|| "Error during tables 'peer' and 'peer_by_platform' creation")?;
+            .with_context(|| "Error during tables 'peer' creation")?;
+        let stmt = include_str!("../../sql/create_peer_by_platform.pgsql");
+        client
+            .query(stmt, &[])
+            .await
+            .with_context(|| "Error during tables 'peer_by_platform' creation")?;
         info!("Tables 'peer' and 'peer_by_platform' initialization passed successfully");
         Ok(())
     }

@@ -5,4 +5,7 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
+domain_bot.workspace = true
 domain_vk_bot.workspace = true
+
+anyhow = "1.0"
