@@ -1,3 +1,4 @@
+mod di;
 mod errors;
 
 use actix_web::{
@@ -8,9 +9,13 @@ use actix_web::{
 };
 use anyhow::bail;
 use common_errors::errors::CommonError;
+use di::AppComponent;
+use domain_bot::usecases::InitDomainBotUseCase;
 use domain_mobile::AppVersion;
 use domain_schedule_models::dto::v1::{self, ScheduleSearchResult, ScheduleType};
 use feature_schedule::v1::FeatureSchedule;
+use feature_telegram_bot::FeatureTelegramBot;
+use feature_vk_bot::FeatureVkBot;
 use log::info;
 use serde::{Deserialize, Serialize};
 
@@ -113,19 +118,24 @@ fn get_addr() -> (String, u16) {
     (host, port)
 }
 
-#[derive(Default)]
-struct AppSchedule(FeatureSchedule);
+pub struct AppSchedule(
+    FeatureSchedule,
+    FeatureTelegramBot,
+    FeatureVkBot,
+    InitDomainBotUseCase,
+);
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", envmnt::get_or("RUST_LOG", "info"));
     env_logger::init();
-    let app = Data::new(AppSchedule::default());
+    let app = Data::new(AppComponent::create_app());
 
     app.0
         .init_domain_schedule()
         .await
         .expect("Error during initialization");
+    app.3.init().await.expect("Error during initialization");
 
     HttpServer::new(move || {
         App::new()

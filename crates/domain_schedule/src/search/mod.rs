@@ -1,2 +1,2 @@
 pub(crate) mod mapping;
-pub(crate) mod repository;
+pub mod repository;

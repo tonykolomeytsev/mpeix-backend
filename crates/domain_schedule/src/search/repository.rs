@@ -37,9 +37,7 @@ impl ScheduleSearchRepository {
             ),
         }
     }
-}
 
-impl ScheduleSearchRepository {
     pub async fn get_results_from_cache(
         &self,
         query: ScheduleSearchQuery,

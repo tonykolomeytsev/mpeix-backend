@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
+anyhow = { version = "1.0" }
+deadpool-postgres = { version = "0.10", features = ["serde"] }
 envmnt = "0.10.4"
 tokio-postgres = "0.7"
-deadpool-postgres = { version = "0.10", features = ["serde"] }
-anyhow = { version = "1.0" }

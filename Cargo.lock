@@ -256,9 +256,12 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "anyhow",
+ "common_database",
  "common_errors",
  "derive_more",
+ "domain_bot",
  "domain_mobile",
+ "domain_schedule",
  "domain_schedule_models",
  "env_logger",
  "envmnt",
@@ -615,6 +618,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "domain_bot"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "deadpool-postgres",
+ "env_logger",
+ "log",
+ "serde",
+ "tokio",
+ "tokio-postgres",
+]
+
+[[package]]
 name = "domain_mobile"
 version = "0.1.0"
 
@@ -624,7 +640,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
- "common_database",
  "common_errors",
  "common_in_memory_cache",
  "common_persistent_cache",
@@ -765,6 +780,8 @@ dependencies = [
 name = "feature_telegram_bot"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "domain_bot",
  "domain_telegram_bot",
 ]
 
@@ -772,6 +789,8 @@ dependencies = [
 name = "feature_vk_bot"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "domain_bot",
  "domain_vk_bot",
 ]
 

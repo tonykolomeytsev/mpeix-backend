@@ -1,30 +1,17 @@
+use std::sync::Arc;
+
 use domain_mobile::AppVersion;
-use domain_schedule::{
-    di::DomainScheduleModule,
-    usecases::{
-        GetScheduleIdUseCase, GetScheduleUseCase, InitDomainScheduleUseCase, SearchScheduleUseCase,
-    },
+use domain_schedule::usecases::{
+    GetScheduleIdUseCase, GetScheduleUseCase, InitDomainScheduleUseCase, SearchScheduleUseCase,
 };
 use domain_schedule_models::dto::v1::{ClassesType, Schedule, ScheduleSearchResult, ScheduleType};
 
 pub struct FeatureSchedule(
-    GetScheduleIdUseCase,
-    GetScheduleUseCase,
-    SearchScheduleUseCase,
-    InitDomainScheduleUseCase,
+    pub(crate) Arc<GetScheduleIdUseCase>,
+    pub(crate) Arc<GetScheduleUseCase>,
+    pub(crate) Arc<SearchScheduleUseCase>,
+    pub(crate) Arc<InitDomainScheduleUseCase>,
 );
-
-impl Default for FeatureSchedule {
-    fn default() -> Self {
-        let domain_schedule_module = DomainScheduleModule::default();
-        Self(
-            domain_schedule_module.get_schedule_id_use_case,
-            domain_schedule_module.get_schedule_use_case,
-            domain_schedule_module.search_schedule_use_case,
-            domain_schedule_module.init_domain_schedule_use_case,
-        )
-    }
-}
 
 impl FeatureSchedule {
     pub async fn get_id(&self, name: String, r#type: ScheduleType) -> anyhow::Result<i64> {

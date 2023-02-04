@@ -5,7 +5,6 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
-common_database.workspace = true
 common_errors.workspace = true
 common_in_memory_cache.workspace = true
 common_persistent_cache.workspace = true
