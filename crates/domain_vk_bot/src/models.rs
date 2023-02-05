@@ -33,11 +33,11 @@ pub struct NewMessageObject {
 
 #[derive(Debug, Deserialize)]
 pub struct Message {
-    pub id: i32,
+    pub id: i64,
     pub date: u64,
-    pub peer_id: i32,
-    pub chat_id: i32,
-    pub from_id: i32,
+    pub peer_id: i64,
+    pub chat_id: i64,
+    pub from_id: i64,
     pub text: Option<String>,
     pub payload: Option<String>,
 }

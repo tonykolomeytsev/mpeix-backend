@@ -38,7 +38,7 @@ impl AppComponent {
             Arc::new(GetScheduleIdUseCase::new(schedule_id_repository.clone()));
         let get_schedule_use_case = Arc::new(GetScheduleUseCase::new(
             schedule_id_repository,
-            schedule_repository.clone(),
+            schedule_repository,
             schedule_shift_repository,
         ));
         let search_schedule_use_case = Arc::new(SearchScheduleUseCase::new(
@@ -46,8 +46,8 @@ impl AppComponent {
         ));
         let reply_use_case = Arc::new(ReplyUseCase::new(
             peer_repository.clone(),
-            schedule_repository,
-            schedule_search_repository.clone(),
+            get_schedule_use_case.clone(),
+            search_schedule_use_case.clone(),
         ));
         let init_domain_schedule_use_case =
             InitDomainScheduleUseCase::new(schedule_search_repository);

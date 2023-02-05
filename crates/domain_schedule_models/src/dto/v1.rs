@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use chrono::{NaiveDate, NaiveTime};
 use serde::{Deserialize, Serialize};
@@ -20,6 +20,8 @@ pub enum ScheduleType {
     Room,
 }
 
+pub struct ParseScheduleTypeError(String);
+
 impl Display for ScheduleType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
@@ -27,6 +29,25 @@ impl Display for ScheduleType {
             Self::Person => write!(f, "person"),
             Self::Room => write!(f, "room"),
         }
+    }
+}
+
+impl FromStr for ScheduleType {
+    type Err = ParseScheduleTypeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "group" => Ok(Self::Group),
+            "person" => Ok(Self::Person),
+            "room" => Ok(Self::Room),
+            _ => Err(ParseScheduleTypeError(s.to_owned())),
+        }
+    }
+}
+
+impl Display for ParseScheduleTypeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Unknown schedule type: {}", self.0)
     }
 }
 

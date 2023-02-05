@@ -3,8 +3,6 @@ use actix_web::{
     web::{Data, Json, Path, Query},
     HttpRequest, HttpResponse, Responder,
 };
-use anyhow::bail;
-use common_errors::errors::CommonError;
 use domain_mobile::AppVersion;
 use domain_schedule_models::dto::v1::{Schedule, ScheduleSearchResult, ScheduleType};
 use domain_telegram_bot::Update;
@@ -31,7 +29,7 @@ async fn get_id_v1(
     state: Data<AppSchedule>,
 ) -> Result<Json<GetIdResponse>, AppScheduleError> {
     let (r#type, name) = path.into_inner();
-    let r#type = parse_schedule_type(&r#type)?;
+    let r#type = r#type.parse::<ScheduleType>()?;
     Ok(Json(GetIdResponse {
         id: state.feature_schedule.get_id(name, r#type).await?,
     }))
@@ -44,7 +42,7 @@ async fn get_schedule_v1(
     req: HttpRequest,
 ) -> Result<Json<Schedule>, AppScheduleError> {
     let (r#type, name, offset) = path.into_inner();
-    let r#type = parse_schedule_type(&r#type)?;
+    let r#type = r#type.parse::<ScheduleType>()?;
     let app_version = get_app_version(&req);
     Ok(Json(
         state
@@ -67,7 +65,7 @@ async fn search_schedule_v1(
     state: Data<AppSchedule>,
 ) -> Result<Json<Vec<ScheduleSearchResult>>, AppScheduleError> {
     let r#type = match &query.r#type {
-        Some(r#type) => Some(parse_schedule_type(r#type)?),
+        Some(r#type) => Some(r#type.parse::<ScheduleType>()?),
         None => None,
     };
     Ok(Json(
@@ -102,20 +100,6 @@ async fn telegram_webhook_v1(
         .reply(payload.into_inner(), secret)
         .await
         .map(|_| ("ok".to_string(), StatusCode::OK))?)
-}
-
-/// Because we cannot implement trait `actix_web::FromRequest` for `ScheduleType`.
-/// They belongs to different crates and no one belongs this crate.
-/// I do not want to add `actix-web` dependency to `domain_schedule_models` crate.
-fn parse_schedule_type(r#type: &str) -> anyhow::Result<ScheduleType> {
-    match r#type {
-        "group" => Ok(ScheduleType::Group),
-        "person" => Ok(ScheduleType::Person),
-        "room" => Ok(ScheduleType::Room),
-        _ => bail!(CommonError::user(format!(
-            "Unsupported schedule type: {type}"
-        ))),
-    }
 }
 
 fn get_app_version(req: &HttpRequest) -> Option<AppVersion> {
