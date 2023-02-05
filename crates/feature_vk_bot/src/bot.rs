@@ -1,8 +1,8 @@
 use std::{env, sync::Arc};
 
-use anyhow::{anyhow, ensure};
+use anyhow::{anyhow, bail, ensure};
 use common_errors::errors::CommonError;
-use domain_bot::usecases::ReplyUseCase;
+use domain_bot::{peer::repository::PlatformId, usecases::ReplyUseCase};
 use domain_vk_bot::{VkCallbackRequest, VkCallbackType};
 
 pub struct FeatureVkBot {
@@ -46,12 +46,20 @@ impl FeatureVkBot {
 
         match callback.r#type {
             VkCallbackType::Confirmation => Ok(Some(self.config.confirmation_code.to_owned())),
+            VkCallbackType::NewMessage => {
+                if let Some(message) = callback.object {
+                    self.reply_use_case
+                        .reply(PlatformId::Vk(message.message.peer_id), action???)
+                        .await?;
+                    Ok(None)
+                } else {
+                    bail!(CommonError::internal(
+                        "Callback with type 'message' has no field 'object'"
+                    ))
+                }
+            }
             VkCallbackType::Unknown => {
                 Err(anyhow!(CommonError::internal("Unsupported callback type")))
-            }
-            VkCallbackType::NewMessage => {
-                let _ = self.reply_use_case;
-                todo!()
             }
         }
     }

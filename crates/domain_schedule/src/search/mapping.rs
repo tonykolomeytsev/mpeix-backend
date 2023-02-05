@@ -1,4 +1,3 @@
-use anyhow::bail;
 use common_errors::errors::CommonError;
 use domain_schedule_models::dto::v1::{ScheduleSearchResult, ScheduleType};
 use lazy_static::lazy_static;
@@ -19,22 +18,11 @@ pub(crate) fn map_search_models(
             name: SPACES_PATTERN.replace_all(&res.label, " ").to_string(),
             description: res.description.trim().to_owned(),
             id: res.id.to_string(),
-            r#type: parse_schedule_type(&res.r#type)?,
+            r#type: res
+                .r#type
+                .parse::<ScheduleType>()
+                .map_err(CommonError::internal)?,
         })
     }
     Ok(output)
-}
-
-/// Because we cannot implement trait `actix_web::FromRequest` for `ScheduleType`.
-/// They belongs to different crates and no one belongs this crate.
-/// I do not want to add `actix-web` dependency to `domain_schedule_models` crate.
-fn parse_schedule_type(r#type: &str) -> anyhow::Result<ScheduleType> {
-    match r#type {
-        "group" => Ok(ScheduleType::Group),
-        "person" => Ok(ScheduleType::Person),
-        "room" => Ok(ScheduleType::Room),
-        _ => bail!(CommonError::internal(format!(
-            "Unsupported schedule type: {type}"
-        ))),
-    }
 }

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Context};
 use deadpool_postgres::Pool;
+use domain_schedule_models::dto::v1::ScheduleType;
 use log::info;
 use tokio_postgres::Row;
 
@@ -78,6 +79,10 @@ fn map_from_db_model(row: Row) -> Option<Peer> {
     Some(Peer {
         id: row.try_get("id").ok()?,
         selected_schedule: row.try_get("selected_schedule").ok()?,
+        selected_schedule_type: row
+            .try_get::<_, String>("selected_schedule_type")
+            .ok()
+            .and_then(|v| v.parse::<ScheduleType>().ok())?,
         selecting_schedule: row.try_get("selecting_schedule").ok()?,
     })
 }

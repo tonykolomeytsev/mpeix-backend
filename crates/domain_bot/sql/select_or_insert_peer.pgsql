@@ -1,6 +1,6 @@
 WITH new_peer AS (
-    INSERT INTO peer(selected_schedule, selecting_schedule)
-    SELECT NULL, FALSE
+    INSERT INTO peer(selected_schedule, selected_schedule_type, selecting_schedule)
+    SELECT '', '', FALSE
     WHERE NOT EXISTS (
         SELECT native_id FROM peer_by_platform 
         WHERE {platform}_id={id}

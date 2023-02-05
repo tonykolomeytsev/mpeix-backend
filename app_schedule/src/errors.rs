@@ -2,7 +2,9 @@ use actix_web::{
     http::{header::ContentType, StatusCode},
     HttpResponse,
 };
+use anyhow::anyhow;
 use common_errors::errors::CommonError;
+use domain_schedule_models::dto::v1::ParseScheduleTypeError;
 
 #[derive(Debug, derive_more::Display)]
 #[display(fmt = "{_0}")]
@@ -11,6 +13,12 @@ pub struct AppScheduleError(anyhow::Error);
 impl From<anyhow::Error> for AppScheduleError {
     fn from(value: anyhow::Error) -> Self {
         Self(value)
+    }
+}
+
+impl From<ParseScheduleTypeError> for AppScheduleError {
+    fn from(value: ParseScheduleTypeError) -> Self {
+        Self(anyhow!(CommonError::user(value)))
     }
 }
 
