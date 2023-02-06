@@ -82,7 +82,7 @@ fn map_from_db_model(row: Row) -> Option<Peer> {
         selected_schedule_type: row
             .try_get::<_, String>("selected_schedule_type")
             .ok()
-            .and_then(|v| v.parse::<ScheduleType>().ok())?,
+            .map(|v| v.parse::<ScheduleType>().unwrap_or(ScheduleType::Group))?,
         selecting_schedule: row.try_get("selecting_schedule").ok()?,
     })
 }
