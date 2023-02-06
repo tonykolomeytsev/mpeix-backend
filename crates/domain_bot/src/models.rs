@@ -37,9 +37,10 @@ pub enum Reply {
     StartGreetings,
     AlreadyStarted { schedule_name: String },
     Week(Schedule),
-    Day(Day),
+    Day(Option<Day>),
     ScheduleChangedSuccessfully(String),
     ScheduleSearchResults(Vec<String>),
     CannotFindSchedule,
     ReadyToChangeSchedule,
+    ShowHelp,
 }
