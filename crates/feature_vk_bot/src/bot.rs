@@ -3,7 +3,7 @@ use std::{env, sync::Arc};
 use anyhow::{anyhow, bail, ensure};
 use common_errors::errors::CommonError;
 use domain_bot::{peer::repository::PlatformId, usecases::ReplyUseCase};
-use domain_vk_bot::{VkCallbackRequest, VkCallbackType};
+use domain_vk_bot::{NewMessageObject, VkCallbackRequest, VkCallbackType};
 
 pub struct FeatureVkBot {
     pub(crate) config: Config,
@@ -47,9 +47,19 @@ impl FeatureVkBot {
         match callback.r#type {
             VkCallbackType::Confirmation => Ok(Some(self.config.confirmation_code.to_owned())),
             VkCallbackType::NewMessage => {
-                if let Some(message) = callback.object {
+                if let Some(NewMessageObject {
+                    message,
+                    client_info: _,
+                }) = callback.object
+                {
+                    ensure!(
+                        message.text.is_some(),
+                        CommonError::user(
+                            "Callback with type 'message' has null field 'object.message.text'"
+                        )
+                    );
                     self.reply_use_case
-                        .reply(PlatformId::Vk(message.message.peer_id), action???)
+                        .reply(PlatformId::Vk(message.peer_id), &message.text.unwrap())
                         .await?;
                     Ok(None)
                 } else {
