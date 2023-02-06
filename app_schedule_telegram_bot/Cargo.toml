@@ -7,10 +7,14 @@ readme = "README.md"
 
 [dependencies]
 common_actix = { workspace = true }
+common_database = { workspace = true }
 common_errors = { workspace = true }
+domain_bot = { workspace = true }
 domain_schedule_models = { workspace = true }
 domain_telegram_bot = { workspace = true }
 feature_telegram_bot = { workspace = true }
 
 actix-web = { workspace = true }
 anyhow = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }

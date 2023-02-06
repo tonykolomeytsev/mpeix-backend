@@ -17,14 +17,14 @@ impl ReplyUseCase {
     pub fn new(
         text_to_action_use_case: Arc<TextToActionUseCase>,
         peer_repository: Arc<PeerRepository>,
-        get_schedule_use_case: Arc<ScheduleRepository>,
-        search_schedule_use_case: Arc<ScheduleSearchRepository>,
+        schedule_repository: Arc<ScheduleRepository>,
+        schedule_search_repository: Arc<ScheduleSearchRepository>,
     ) -> Self {
         Self(
             text_to_action_use_case,
             peer_repository,
-            get_schedule_use_case,
-            search_schedule_use_case,
+            schedule_repository,
+            schedule_search_repository,
         )
     }
 }

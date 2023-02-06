@@ -7,7 +7,6 @@ use common_actix::{define_app_error, get_address};
 use di::AppComponent;
 use domain_schedule::usecases::InitDomainScheduleUseCase;
 use feature_schedule::v1::FeatureSchedule;
-use routing::*;
 
 pub struct AppSchedule {
     feature_schedule: FeatureSchedule,
@@ -30,10 +29,10 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .wrap(middleware::Compress::default())
             .app_data(app.clone())
-            .service(are_you_alive)
-            .service(get_id_v1)
-            .service(get_schedule_v1)
-            .service(search_schedule_v1)
+            .service(routing::health)
+            .service(routing::get_id_v1)
+            .service(routing::get_schedule_v1)
+            .service(routing::search_schedule_v1)
     })
     .bind(get_address())?
     .run()
@@ -44,6 +43,5 @@ async fn init_app_components(app: &AppSchedule) -> anyhow::Result<()> {
     app.init_domain_schedule_use_case
         .init()
         .await
-        .with_context(|| "domain_schedule init error")?;
-    Ok(())
+        .with_context(|| "domain_schedule init error")
 }
