@@ -24,6 +24,7 @@ feature_vk_bot = { path = "crates/feature_vk_bot" }
 # main external dependencies
 actix-web = "4"
 anyhow = "1.0"
+chrono = "0.4"
 env_logger = "0.10"
 log = "0.4"
 reqwest = "0.11"

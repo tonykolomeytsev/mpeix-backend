@@ -12,7 +12,7 @@ domain_schedule_models = { workspace = true }
 domain_schedule_shift = { workspace = true }
 
 anyhow = { workspace = true }
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { workspace = true, features = ["serde"] }
 deadpool-postgres = { version = "0.10", features = ["serde"] }
 env_logger = { workspace = true }
 envmnt = "0.10.4"

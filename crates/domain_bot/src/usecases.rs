@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, collections::HashMap, sync::Arc};
 
 use anyhow::{anyhow, Context};
-use chrono::{Datelike, Local};
+use chrono::{Datelike, Days, Local};
 use common_errors::errors::CommonError;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -137,6 +137,7 @@ pub struct ReplyUseCase(
     pub(crate) Arc<PeerRepository>,
     pub(crate) Arc<ScheduleRepository>,
     pub(crate) Arc<ScheduleSearchRepository>,
+    pub(crate) Arc<GetUpcomingEventsUseCase>,
 );
 
 impl ReplyUseCase {
@@ -144,60 +145,12 @@ impl ReplyUseCase {
         let action = self.0.text_to_action(text)?;
         let peer = self.1.get_peer_by_platform_id(platform_id).await?;
         match action {
-            UserAction::Start => {
-                if peer.is_not_started() {
-                    self.1
-                        .save_peer(Peer {
-                            selecting_schedule: true,
-                            ..peer
-                        })
-                        .await?;
-                    Ok(Reply::StartGreetings)
-                } else {
-                    Ok(Reply::AlreadyStarted {
-                        schedule_name: peer.selected_schedule,
-                    })
-                }
-            }
-            UserAction::WeekWithOffset(offset) => {
-                let schedule = self
-                    .2
-                    .get_schedule(
-                        &peer.selected_schedule,
-                        &peer.selected_schedule_type,
-                        offset,
-                    )
-                    .await?;
-                Ok(Reply::Week(schedule))
-            }
+            UserAction::Start => self.handle_start(peer).await,
+            UserAction::WeekWithOffset(offset) => self.handle_week_with_offset(peer, offset).await,
+            UserAction::DayWithOffset(offset) => self.handle_day_with_offset(peer, offset).await,
             UserAction::Unknown(q) => {
                 if peer.selecting_schedule || peer.is_not_started() {
-                    let search_results = self
-                        .3
-                        .search_schedule(&q, None)
-                        .await
-                        .with_context(|| "Error while processing schedule change")?;
-                    if let Some(candidate) =
-                        search_results.iter().find(|it| it.name.to_lowercase() == q)
-                    {
-                        self.1
-                            .save_peer(Peer {
-                                selected_schedule: candidate.name.to_owned(),
-                                selected_schedule_type: candidate.r#type.to_owned(),
-                                selecting_schedule: false,
-                                ..peer
-                            })
-                            .await?;
-                        Ok(Reply::ScheduleChangedSuccessfully(
-                            candidate.name.to_owned(),
-                        ))
-                    } else if !search_results.is_empty() {
-                        Ok(Reply::ScheduleSearchResults(
-                            search_results.into_iter().map(|it| it.name).collect(),
-                        ))
-                    } else {
-                        Ok(Reply::CannotFindSchedule)
-                    }
+                    self.handle_schedule_search(peer, &q).await
                 } else {
                     Err(anyhow!(CommonError::user(format!(
                         "Unknown command: {text}"
@@ -213,7 +166,98 @@ impl ReplyUseCase {
                     .await?;
                 Ok(Reply::ReadyToChangeSchedule)
             }
-            _ => todo!(),
+            UserAction::Help => Ok(Reply::ShowHelp),
+            UserAction::UpcomingEvents => self.4.handle_upcoming_events().await,
         }
+    }
+
+    async fn handle_start(&self, peer: Peer) -> anyhow::Result<Reply> {
+        if peer.is_not_started() {
+            self.1
+                .save_peer(Peer {
+                    selecting_schedule: true,
+                    ..peer
+                })
+                .await?;
+            Ok(Reply::StartGreetings)
+        } else {
+            Ok(Reply::AlreadyStarted {
+                schedule_name: peer.selected_schedule,
+            })
+        }
+    }
+
+    async fn handle_week_with_offset(&self, peer: Peer, offset: i8) -> anyhow::Result<Reply> {
+        let schedule = self
+            .2
+            .get_schedule(
+                &peer.selected_schedule,
+                &peer.selected_schedule_type,
+                offset,
+            )
+            .await?;
+        Ok(Reply::Week(schedule))
+    }
+
+    async fn handle_day_with_offset(&self, peer: Peer, offset: i8) -> anyhow::Result<Reply> {
+        let current_date = Local::now().date_naive();
+        let selected_date = match offset.cmp(&0) {
+            Ordering::Equal => Some(current_date),
+            Ordering::Greater => current_date.checked_add_days(Days::new(offset as u64)),
+            Ordering::Less => current_date.checked_sub_days(Days::new(-offset as u64)),
+        }
+        .ok_or_else(|| anyhow!(CommonError::user("Invalid day offset")))?;
+        let week_offset =
+            selected_date.iso_week().week() as i8 - current_date.iso_week().week() as i8;
+        let schedule = self
+            .2
+            .get_schedule(
+                &peer.selected_schedule,
+                &peer.selected_schedule_type,
+                week_offset,
+            )
+            .await?;
+        let day = schedule
+            .weeks
+            .iter()
+            .flat_map(|week| &week.days)
+            .find(|day| day.date == selected_date)
+            .map(Clone::clone);
+        Ok(Reply::Day(day))
+    }
+
+    async fn handle_schedule_search(&self, peer: Peer, q: &str) -> anyhow::Result<Reply> {
+        let search_results = self
+            .3
+            .search_schedule(q, None)
+            .await
+            .with_context(|| "Error while processing schedule change")?;
+        if let Some(candidate) = search_results.iter().find(|it| it.name.to_lowercase() == q) {
+            self.1
+                .save_peer(Peer {
+                    selected_schedule: candidate.name.to_owned(),
+                    selected_schedule_type: candidate.r#type.to_owned(),
+                    selecting_schedule: false,
+                    ..peer
+                })
+                .await?;
+            Ok(Reply::ScheduleChangedSuccessfully(
+                candidate.name.to_owned(),
+            ))
+        } else if !search_results.is_empty() {
+            Ok(Reply::ScheduleSearchResults(
+                search_results.into_iter().map(|it| it.name).collect(),
+            ))
+        } else {
+            Ok(Reply::CannotFindSchedule)
+        }
+    }
+}
+
+pub struct GetUpcomingEventsUseCase(pub(crate) Arc<ScheduleRepository>);
+
+impl GetUpcomingEventsUseCase {
+    pub async fn handle_upcoming_events(&self) -> anyhow::Result<Reply> {
+        todo!()
     }
 }
