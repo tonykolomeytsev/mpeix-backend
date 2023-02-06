@@ -1,0 +1,54 @@
+use std::env;
+
+use anyhow::{anyhow, Context};
+use common_errors::errors::CommonError;
+use reqwest::{redirect::Policy, Client, ClientBuilder};
+
+pub struct TelegramApi {
+    access_token: String,
+    webhook_url: String,
+    client: Client,
+}
+
+impl Default for TelegramApi {
+    fn default() -> Self {
+        Self {
+            access_token: env::var("TELEGRAM_BOT_ACCESS_TOKEN")
+                .expect("Environment variable TELEGRAM_BOT_ACCESS_TOKEN not provided"),
+            webhook_url: env::var("TELEGRAM_BOT_WEBHOOK_URL")
+                .expect("Environment variable TELEGRAM_BOT_WEBHOOK_URL not provided"),
+            client: ClientBuilder::new()
+                .gzip(true)
+                .deflate(true)
+                .redirect(Policy::none())
+                .timeout(std::time::Duration::from_secs(15))
+                .connect_timeout(std::time::Duration::from_secs(3))
+                .build()
+                .expect("Something went wrong when building HttClient"),
+        }
+    }
+}
+
+impl TelegramApi {
+    pub async fn set_webhook(&self) -> anyhow::Result<()> {
+        let access_token = &self.access_token;
+        let response = self
+            .client
+            .get(format!(
+                "https://api.telegram.org/bot{access_token}/setWebhook"
+            ))
+            .query(&[("url", &self.webhook_url)])
+            .send()
+            .await
+            .map_err(|e| anyhow!(CommonError::gateway(e)))
+            .with_context(|| "Error while executing a request to telegram backend")?;
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            Err(anyhow!(CommonError::gateway(format!(
+                "Telegram backend response status: {}",
+                response.status()
+            ))))
+        }
+    }
+}

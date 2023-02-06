@@ -44,6 +44,9 @@ impl FeatureVkBot {
             CommonError::user("Invalid secret key!")
         );
 
+        let _ = self.config.access_token;
+        let _ = self.config.group_id;
+
         match callback.r#type {
             VkCallbackType::Confirmation => Ok(Some(self.config.confirmation_code.to_owned())),
             VkCallbackType::NewMessage => {

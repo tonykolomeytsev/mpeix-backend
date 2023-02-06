@@ -16,5 +16,6 @@ Microservice responsible for working with the schedules via Telegram Bot [**@mpe
 - VK Schedule Bot <sup>`feature_vk_bot`</sup>:
   - `TELEGRAM_BOT_ACCESS_TOKEN`<sup>**required**</sup> — Telegram Bot access token.
   - `TELEGRAM_BOT_SECRET`<sup>**required**</sup> — Telegram secret part of endpoint for Webhook API.
+  - `TELEGRAM_BOT_WEBHOOK_URL`<sup>**required**</sup> — This microservice endpoint url for Webhook API.
 - Inter Microservice Interaction <sup>`domain_bot`</sup>:
   - `APP_SCHEDULE_BASE_URL`<sup>**required**</sup> — Base url to reach `app_schedule` microservice.

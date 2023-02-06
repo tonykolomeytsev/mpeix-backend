@@ -7,6 +7,7 @@ use domain_bot::{
     search::repository::ScheduleSearchRepository,
     usecases::{GetUpcomingEventsUseCase, InitDomainBotUseCase, ReplyUseCase, TextToActionUseCase},
 };
+use domain_telegram_bot::usecases::SetWebhookUseCase;
 use feature_telegram_bot::FeatureTelegramBot;
 
 use crate::AppTelegramBot;
@@ -28,9 +29,10 @@ pub fn create_app() -> AppTelegramBot {
         schedule_search_repository,
         get_upcoming_events_use_case,
     ));
+    let set_webhook_use_case = Arc::new(SetWebhookUseCase::default());
 
     AppTelegramBot {
-        feature_telegram_bot: FeatureTelegramBot::new(reply_use_case),
+        feature_telegram_bot: FeatureTelegramBot::new(reply_use_case, set_webhook_use_case),
         init_domain_bot_use_case: InitDomainBotUseCase::new(peer_repository),
     }
 }
