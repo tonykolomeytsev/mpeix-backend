@@ -36,4 +36,6 @@ pub enum Reply {
     AlreadyStarted { schedule_name: String },
     Week(Schedule),
     Day(Day),
+    ScheduleChangedSuccessfully,
+    ScheduleSearchResults(Vec<String>),
 }
