@@ -3,13 +3,14 @@ use std::{cmp::Ordering, collections::HashMap, sync::Arc};
 use anyhow::anyhow;
 use chrono::{Datelike, Local};
 use common_errors::errors::CommonError;
-use domain_schedule::usecases::{GetScheduleUseCase, SearchScheduleUseCase};
 use lazy_static::lazy_static;
 use regex::Regex;
 
 use crate::{
     models::{Peer, Reply, UserAction},
     peer::repository::{PeerRepository, PlatformId},
+    schedule::repository::ScheduleRepository,
+    search::repository::ScheduleSearchRepository,
 };
 
 /// Create databases if needed and run migrations.
@@ -136,8 +137,8 @@ fn create_multipattern<F: FnOnce(&str, &str) -> String>(
 pub struct ReplyUseCase(
     pub(crate) Arc<TextToActionUseCase>,
     pub(crate) Arc<PeerRepository>,
-    pub(crate) Arc<GetScheduleUseCase>,
-    pub(crate) Arc<SearchScheduleUseCase>,
+    pub(crate) Arc<ScheduleRepository>,
+    pub(crate) Arc<ScheduleSearchRepository>,
 );
 
 impl ReplyUseCase {
@@ -164,9 +165,9 @@ impl ReplyUseCase {
                 let schedule = self
                     .2
                     .get_schedule(
-                        peer.selected_schedule,
-                        peer.selected_schedule_type,
-                        offset as i32,
+                        &peer.selected_schedule,
+                        &peer.selected_schedule_type,
+                        offset,
                     )
                     .await?;
                 Ok(Reply::Week(schedule))

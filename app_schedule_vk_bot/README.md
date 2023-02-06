@@ -18,3 +18,5 @@ Microservice responsible for working with the schedules via VK Bot [**@mpeixbot*
   - `VK_BOT_ACCESS_TOKEN`<sup>**required**</sup> — VK App access token.
   - `VK_BOT_SECRET` - Optional VK secret for Callback API.
   - `VK_BOT_GROUP_ID` - Allowed VK group/community id. If not specified, requests from any groups will be accepted by this service.
+- Inter Microservice Interaction <sup>`domain_bot`</sup>:
+  - `SCHEDULE_APP_HOSTNAME`<sup>**required**</sup> — Base hostname to reach `app_schedule` microservice.
