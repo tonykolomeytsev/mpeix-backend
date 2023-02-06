@@ -5,4 +5,8 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
+common_errors = { workspace = true }
+
+anyhow = { workspace = true }
+reqwest = { workspace = true, features = ["gzip", "deflate", "json"] }
 serde = { version = "1.0", features = ["derive"] }
