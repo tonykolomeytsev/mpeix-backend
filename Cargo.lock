@@ -276,6 +276,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "app_schedule_telegram_bot"
+version = "0.1.0"
+
+[[package]]
+name = "app_schedule_vk_bot"
+version = "0.1.0"
+
+[[package]]
 name = "async-compression"
 version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
