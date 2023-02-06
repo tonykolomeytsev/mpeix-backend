@@ -25,8 +25,13 @@ macro_rules! define_app_error {
         use common_errors::errors::CommonError;
         use std::fmt::{Debug, Display};
 
-        #[derive(Debug)]
         pub struct $name(anyhow::Error);
+
+        impl Debug for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{:?}", self.0)
+            }
+        }
 
         impl Display for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -42,9 +47,10 @@ macro_rules! define_app_error {
 
         impl actix_web::ResponseError for $name {
             fn error_response(&self) -> HttpResponse<actix_web::body::BoxBody> {
-                HttpResponse::build(self.status_code())
+                let status_code = self.status_code();
+                HttpResponse::build(status_code)
                     .insert_header(ContentType::plaintext())
-                    .body(format!("{:?}", self.0))
+                    .body(format!("Error code: {}", status_code))
             }
 
             fn status_code(&self) -> StatusCode {

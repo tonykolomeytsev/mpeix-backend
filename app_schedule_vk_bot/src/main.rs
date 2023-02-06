@@ -19,10 +19,8 @@ define_app_error!(AppVkBotError);
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var(
-        "RUST_LOG",
-        env::var("RUST_LOG").unwrap_or("info".to_owned()),
-    );
+    env::set_var("RUST_LOG", "debug");
+    env::set_var("RUST_BACKTRACE", "1");
     env_logger::init();
     let app = Data::new(create_app());
 
