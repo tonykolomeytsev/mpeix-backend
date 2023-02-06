@@ -3,7 +3,7 @@
 Microservice responsible for working with the schedules via Telegram Bot [**@mpeixbot**](https://mpeixbot.t.me).
 
 ### Environment variables:
-- App <sup>`app_schedule`</sup>:
+- App <sup>`app_schedule_telegram_bot`</sup>:
   - `HOST` — app host name. In release mode default is `0.0.0.0`, in debug mode default is `127.0.0.1`.
   - `PORT` — app port. Default is `8080`.
   - `RUST_LOG` logging verbosity. Default is `info`. See all available values in [env_logger documentation](https://docs.rs/env_logger/latest/env_logger/).
