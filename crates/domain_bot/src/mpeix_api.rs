@@ -6,15 +6,15 @@ use domain_schedule_models::dto::v1::{Schedule, ScheduleSearchResult, ScheduleTy
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 
 pub struct MpeixApi {
-    hostname: String,
+    base_url: String,
     client: Client,
 }
 
 impl Default for MpeixApi {
     fn default() -> Self {
         Self {
-            hostname: env::var("SCHEDULE_APP_HOSTNAME")
-                .expect("Environment variable SCHEDULE_APP_HOSTNAME not provided"),
+            base_url: env::var("APP_SCHEDULE_BASE_URL")
+                .expect("Environment variable APP_SCHEDULE_BASE_URL not provided"),
             client: ClientBuilder::new()
                 .gzip(true)
                 .deflate(true)
@@ -34,7 +34,7 @@ impl MpeixApi {
         r#type: &ScheduleType,
         offset: i32,
     ) -> anyhow::Result<Schedule> {
-        let base_url = &self.hostname;
+        let base_url = &self.base_url;
         self.client
             .get(format!("{base_url}/v1/{type}/{name}/schedule/{offset}"))
             .send()
@@ -52,7 +52,7 @@ impl MpeixApi {
         query: &str,
         r#type: &ScheduleType,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
-        let base_url = &self.hostname;
+        let base_url = &self.base_url;
         self.client
             .get(format!("{base_url}/v1/search"))
             .query(&[("type", r#type.to_string()), ("q", query.to_owned())])
