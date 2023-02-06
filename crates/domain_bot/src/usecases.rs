@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::HashMap, sync::Arc};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use chrono::{Datelike, Local};
 use common_errors::errors::CommonError;
 use lazy_static::lazy_static;
@@ -115,9 +115,7 @@ impl TextToActionUseCase {
                         .expect("Fatal error: text present in pattern but absent in map");
                     Ok(UserAction::DayWithOffset(*requested_day_offset))
                 } else {
-                    Err(anyhow!(CommonError::user(format!(
-                        "Unknown command: {text}"
-                    ))))
+                    Ok(UserAction::Unknown(cleared_text.to_owned()))
                 }
             }
         }
@@ -171,6 +169,49 @@ impl ReplyUseCase {
                     )
                     .await?;
                 Ok(Reply::Week(schedule))
+            }
+            UserAction::Unknown(q) => {
+                if peer.selecting_schedule || peer.is_not_started() {
+                    let search_results = self
+                        .3
+                        .search_schedule(&q, None)
+                        .await
+                        .with_context(|| "Error while processing schedule change")?;
+                    if let Some(candidate) =
+                        search_results.iter().find(|it| it.name.to_lowercase() == q)
+                    {
+                        self.1
+                            .save_peer(Peer {
+                                selected_schedule: candidate.name.to_owned(),
+                                selected_schedule_type: candidate.r#type.to_owned(),
+                                selecting_schedule: false,
+                                ..peer
+                            })
+                            .await?;
+                        Ok(Reply::ScheduleChangedSuccessfully(
+                            candidate.name.to_owned(),
+                        ))
+                    } else if !search_results.is_empty() {
+                        Ok(Reply::ScheduleSearchResults(
+                            search_results.into_iter().map(|it| it.name).collect(),
+                        ))
+                    } else {
+                        Ok(Reply::CannotFindSchedule)
+                    }
+                } else {
+                    Err(anyhow!(CommonError::user(format!(
+                        "Unknown command: {text}"
+                    ))))
+                }
+            }
+            UserAction::ChangeScheduleIntent => {
+                self.1
+                    .save_peer(Peer {
+                        selecting_schedule: true,
+                        ..peer
+                    })
+                    .await?;
+                Ok(Reply::ReadyToChangeSchedule)
             }
             _ => todo!(),
         }

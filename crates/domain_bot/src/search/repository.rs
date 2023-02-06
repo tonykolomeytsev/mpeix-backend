@@ -9,7 +9,7 @@ impl ScheduleSearchRepository {
     pub async fn search_schedule(
         &self,
         query: &str,
-        r#type: &ScheduleType,
+        r#type: Option<&ScheduleType>,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
         self.0.search_schedule(query, r#type).await
     }
