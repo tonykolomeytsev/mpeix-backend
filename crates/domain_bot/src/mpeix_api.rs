@@ -50,12 +50,19 @@ impl MpeixApi {
     pub async fn search_schedule(
         &self,
         query: &str,
-        r#type: &ScheduleType,
+        r#type: Option<&ScheduleType>,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
         let base_url = &self.base_url;
-        self.client
+        let mut request = self
+            .client
             .get(format!("{base_url}/v1/search"))
-            .query(&[("type", r#type.to_string()), ("q", query.to_owned())])
+            .query(&[("q", query)]);
+
+        if let Some(r#type) = r#type {
+            request = request.query(&[("type", &r#type.to_string())]);
+        }
+
+        request
             .send()
             .await
             .map_err(|e| anyhow!(CommonError::gateway(e)))

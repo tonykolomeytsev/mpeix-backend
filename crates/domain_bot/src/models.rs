@@ -28,6 +28,8 @@ pub enum UserAction {
     UpcomingEvents,
     /// User requested help
     Help,
+    /// Maybe user types new chedule to change... who knows?
+    Unknown(String),
 }
 
 /// Rendered reply to answer
@@ -36,6 +38,8 @@ pub enum Reply {
     AlreadyStarted { schedule_name: String },
     Week(Schedule),
     Day(Day),
-    ScheduleChangedSuccessfully,
+    ScheduleChangedSuccessfully(String),
     ScheduleSearchResults(Vec<String>),
+    CannotFindSchedule,
+    ReadyToChangeSchedule,
 }
