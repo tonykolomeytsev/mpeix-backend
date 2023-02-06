@@ -278,10 +278,14 @@ dependencies = [
  "actix-web",
  "anyhow",
  "common_actix",
+ "common_database",
  "common_errors",
+ "domain_bot",
  "domain_schedule_models",
  "domain_telegram_bot",
+ "env_logger",
  "feature_telegram_bot",
+ "log",
 ]
 
 [[package]]
@@ -291,10 +295,14 @@ dependencies = [
  "actix-web",
  "anyhow",
  "common_actix",
+ "common_database",
  "common_errors",
+ "domain_bot",
  "domain_schedule_models",
  "domain_vk_bot",
+ "env_logger",
  "feature_vk_bot",
+ "log",
 ]
 
 [[package]]
