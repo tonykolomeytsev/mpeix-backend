@@ -1,9 +1,9 @@
-# mpeix-backend/app_schedule
+# mpeix-backend/app_schedule_vk_bot
 
 Microservice responsible for working with the schedules via VK Bot [**@mpeixbot**](https://vk.com/mpeixbot).
 
 ### Environment variables:
-- App <sup>`app_schedule`</sup>:
+- App <sup>`app_schedule_vk_bot`</sup>:
   - `HOST` — app host name. In release mode default is `0.0.0.0`, in debug mode default is `127.0.0.1`.
   - `PORT` — app port. Default is `8080`.
   - `RUST_LOG` logging verbosity. Default is `info`. See all available values in [env_logger documentation](https://docs.rs/env_logger/latest/env_logger/).
