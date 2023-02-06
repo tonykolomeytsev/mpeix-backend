@@ -1,25 +1,20 @@
 mod di;
-mod errors;
 mod routing;
 
 use actix_web::{middleware, web::Data, App, HttpServer};
 use anyhow::Context;
+use common_actix::{define_app_error, get_address};
 use di::AppComponent;
-use domain_bot::usecases::InitDomainBotUseCase;
 use domain_schedule::usecases::InitDomainScheduleUseCase;
 use feature_schedule::v1::FeatureSchedule;
-use feature_telegram_bot::FeatureTelegramBot;
-use feature_vk_bot::FeatureVkBot;
-use log::info;
 use routing::*;
 
 pub struct AppSchedule {
     feature_schedule: FeatureSchedule,
-    feature_telegram_bot: FeatureTelegramBot,
-    feature_vk_bot: FeatureVkBot,
     init_domain_schedule_use_case: InitDomainScheduleUseCase,
-    init_domain_bot_use_case: InitDomainBotUseCase,
 }
+
+define_app_error!(AppScheduleError);
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -40,7 +35,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_schedule_v1)
             .service(search_schedule_v1)
     })
-    .bind(get_addr())?
+    .bind(get_address())?
     .run()
     .await
 }
@@ -50,23 +45,5 @@ async fn init_app_components(app: &AppSchedule) -> anyhow::Result<()> {
         .init()
         .await
         .with_context(|| "domain_schedule init error")?;
-    app.init_domain_bot_use_case
-        .init()
-        .await
-        .with_context(|| "domain_bot init error")?;
     Ok(())
-}
-
-fn get_addr() -> (String, u16) {
-    let host = envmnt::get_or(
-        "HOST",
-        if cfg!(debug_assertions) {
-            "127.0.0.1"
-        } else {
-            "0.0.0.0"
-        },
-    );
-    let port = envmnt::get_u16("PORT", 8080);
-    info!("Starting server on {}:{}", host, port);
-    (host, port)
 }

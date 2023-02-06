@@ -256,20 +256,16 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "anyhow",
+ "common_actix",
  "common_database",
  "common_errors",
  "derive_more",
- "domain_bot",
  "domain_mobile",
  "domain_schedule",
  "domain_schedule_models",
- "domain_telegram_bot",
- "domain_vk_bot",
  "env_logger",
  "envmnt",
  "feature_schedule",
- "feature_telegram_bot",
- "feature_vk_bot",
  "log",
  "serde",
  "tokio",
@@ -278,10 +274,28 @@ dependencies = [
 [[package]]
 name = "app_schedule_telegram_bot"
 version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "common_actix",
+ "common_errors",
+ "domain_schedule_models",
+ "domain_telegram_bot",
+ "feature_telegram_bot",
+]
 
 [[package]]
 name = "app_schedule_vk_bot"
 version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "common_actix",
+ "common_errors",
+ "domain_schedule_models",
+ "domain_vk_bot",
+ "feature_vk_bot",
+]
 
 [[package]]
 name = "async-compression"
@@ -427,6 +441,17 @@ checksum = "3538270d33cc669650c4b093848450d380def10c331d38c768e34cac80576e6e"
 dependencies = [
  "termcolor",
  "unicode-width",
+]
+
+[[package]]
+name = "common_actix"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "env_logger",
+ "envmnt",
+ "log",
 ]
 
 [[package]]

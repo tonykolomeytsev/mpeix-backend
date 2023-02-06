@@ -6,23 +6,19 @@ authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 readme = "README.md"
 
 [dependencies]
-common_database.workspace = true
-common_errors.workspace = true
-domain_bot.workspace = true
-domain_mobile.workspace = true
-domain_schedule.workspace = true
-domain_schedule_models.workspace = true
-domain_telegram_bot.workspace = true
-domain_vk_bot.workspace = true
-feature_schedule.workspace = true
-feature_telegram_bot.workspace = true
-feature_vk_bot.workspace = true
+common_actix = { workspace = true }
+common_database = { workspace = true }
+common_errors = { workspace = true }
+domain_mobile = { workspace = true }
+domain_schedule = { workspace = true }
+domain_schedule_models = { workspace = true }
+feature_schedule = { workspace = true }
 
-serde = { version = "1.0", features = ["derive"] }
-actix-web = { version = "4" }
-anyhow = { version = "1.0" }
+actix-web = { workspace = true }
+anyhow = { workspace = true }
 derive_more = { version = "0.99.17" }
-env_logger = "0.10"
-log = "0.4"
+env_logger = { workspace = true }
 envmnt = "0.10.4"
-tokio = { version = "1.23" }
+log = { workspace = true }
+serde = { version = "1.0", features = ["derive"] }
+tokio = { workspace = true }

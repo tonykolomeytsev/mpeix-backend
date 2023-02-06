@@ -6,6 +6,7 @@ Microservice responsible for working with the schedules of groups, teachers and 
 - App <sup>`app_schedule`</sup>:
   - `HOST` — app host name. In release mode default is `0.0.0.0`, in debug mode default is `127.0.0.1`.
   - `PORT` — app port. Default is `8080`.
+  - `RUST_LOG` logging verbosity. Default is `info`. See all available values in [env_logger documentation](https://docs.rs/env_logger/latest/env_logger/).
 - Database <sup>`common_database`</sup>:
   - `POSTGRES_PASSWORD`<sup>**required**</sup> — password for PostgreSQL database.
   - `POSTGRES_USER` - postgres user. Default is `postgres`.
@@ -27,10 +28,3 @@ Microservice responsible for working with the schedules of groups, teachers and 
 - Schedule shift rules:
   - `SCHEDULE_SHIFT_CONFIG_PATH` <sup>`domain_schedule`</sup> — path to config with "schedule shift rules". 
     By default, the built-in default config will be used, which can be found here: [default_schedule_shift.toml](https://github.com/tonykolomeytsev/mpeix-backend/blob/master/domain_schedule_shift/res/default_schedule_shift.toml)
-- Logging <sup>`app_schedule`</sup>:
-  - `RUST_LOG` logging verbosity. Default is `info`. See all available values in [env_logger documentation](https://docs.rs/env_logger/latest/env_logger/).
-- VK Schedule Bot <sup>`feature_vk_bot`</sup>:
-  - `VK_BOT_CONFIRMATION_CODE`<sup>**required**</sup> — confirmation code provided by VK for group/community Callback API.
-  - `VK_BOT_ACCESS_TOKEN`<sup>**required**</sup> — VK App access token.
-  - `VK_BOT_SECRET` - Optional VK secret for Callback API.
-  - `VK_BOT_GROUP_ID` - Allowed VK group/community id. If not specified, requests from any groups will be accepted by this service.
