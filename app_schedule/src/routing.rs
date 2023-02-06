@@ -1,15 +1,16 @@
 use actix_web::{
-    http::StatusCode,
     web::{Data, Json, Path, Query},
     HttpRequest, HttpResponse, Responder,
 };
+use anyhow::anyhow;
+use common_errors::errors::CommonError;
 use domain_mobile::AppVersion;
-use domain_schedule_models::dto::v1::{Schedule, ScheduleSearchResult, ScheduleType};
-use domain_telegram_bot::Update;
-use domain_vk_bot::VkCallbackRequest;
+use domain_schedule_models::dto::v1::{
+    ParseScheduleTypeError, Schedule, ScheduleSearchResult, ScheduleType,
+};
 use serde::{Deserialize, Serialize};
 
-use crate::{errors::AppScheduleError, AppSchedule};
+use crate::{AppSchedule, AppScheduleError};
 
 /// Health check method
 /// Returns `200 OK` with text `"I'm alive"` if service is alive
@@ -76,35 +77,15 @@ async fn search_schedule_v1(
     ))
 }
 
-#[actix_web::post("/v1/vk_callback")]
-async fn vk_callback_v1(
-    payload: Json<VkCallbackRequest>,
-    state: Data<AppSchedule>,
-) -> Result<(String, StatusCode), AppScheduleError> {
-    Ok(state
-        .feature_vk_bot
-        .reply(payload.into_inner())
-        .await
-        .map(|it| (it.unwrap_or("ok".to_string()), StatusCode::OK))?)
-}
-
-#[actix_web::post("/v1/telegram_webhook_{secret}")]
-async fn telegram_webhook_v1(
-    path: Path<String>,
-    payload: Json<Update>,
-    state: Data<AppSchedule>,
-) -> Result<(String, StatusCode), AppScheduleError> {
-    let secret = path.into_inner();
-    Ok(state
-        .feature_telegram_bot
-        .reply(payload.into_inner(), secret)
-        .await
-        .map(|_| ("ok".to_string(), StatusCode::OK))?)
-}
-
 fn get_app_version(req: &HttpRequest) -> Option<AppVersion> {
     req.headers()
         .get("X-App-Version")
         .and_then(|it| it.to_str().ok())
         .and_then(|it| it.parse::<AppVersion>().ok())
+}
+
+impl From<ParseScheduleTypeError> for AppScheduleError {
+    fn from(value: ParseScheduleTypeError) -> Self {
+        Self(anyhow!(CommonError::user(value)))
+    }
 }

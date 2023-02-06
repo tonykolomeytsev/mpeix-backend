@@ -1,0 +1,12 @@
+[package]
+name = "common_actix"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
+
+[dependencies]
+actix-web = { workspace = true }
+anyhow = { workspace = true }
+envmnt = "0.10.4"
+env_logger = { workspace = true }
+log = { workspace = true }

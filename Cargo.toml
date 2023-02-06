@@ -3,6 +3,7 @@ members = ["app_schedule", "app_schedule_telegram_bot", "app_schedule_vk_bot"]
 
 [workspace.dependencies]
 # common crates
+common_actix = { path = "crates/common_actix" }
 common_database = { path = "crates/common_database" }
 common_errors = { path = "crates/common_errors" }
 common_in_memory_cache = { path = "crates/common_in_memory_cache" }
@@ -19,6 +20,13 @@ domain_vk_bot = { path = "crates/domain_vk_bot" }
 feature_schedule = { path = "crates/feature_schedule" }
 feature_telegram_bot = { path = "crates/feature_telegram_bot" }
 feature_vk_bot = { path = "crates/feature_vk_bot" }
+
+# main external dependencies
+actix-web = "4"
+anyhow = "1.0"
+tokio = "1.23"
+env_logger = "0.10"
+log = "0.4"
 
 [profile.release]
 opt-level = 3
