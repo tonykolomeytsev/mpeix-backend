@@ -24,9 +24,10 @@ feature_vk_bot = { path = "crates/feature_vk_bot" }
 # main external dependencies
 actix-web = "4"
 anyhow = "1.0"
-tokio = "1.23"
 env_logger = "0.10"
 log = "0.4"
+reqwest = "0.11"
+tokio = "1.23"
 
 [profile.release]
 opt-level = 3

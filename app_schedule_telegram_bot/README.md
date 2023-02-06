@@ -15,4 +15,6 @@ Microservice responsible for working with the schedules via Telegram Bot [**@mpe
   - `POSTGRES_PORT` - database port. Default is `5432`.
 - VK Schedule Bot <sup>`feature_vk_bot`</sup>:
   - `TELEGRAM_BOT_ACCESS_TOKEN`<sup>**required**</sup> — Telegram Bot access token.
-  - `TELEGRAM_BOT_SECRET`<sup>**required**</sup> - Telegram secret part of endpoint for Webhook API.
+  - `TELEGRAM_BOT_SECRET`<sup>**required**</sup> — Telegram secret part of endpoint for Webhook API.
+- Inter Microservice Interaction <sup>`domain_bot`</sup>:
+  - `SCHEDULE_APP_HOSTNAME`<sup>**required**</sup> — Base hostname to reach `app_schedule` microservice.
