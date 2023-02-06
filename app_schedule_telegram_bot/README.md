@@ -17,4 +17,4 @@ Microservice responsible for working with the schedules via Telegram Bot [**@mpe
   - `TELEGRAM_BOT_ACCESS_TOKEN`<sup>**required**</sup> — Telegram Bot access token.
   - `TELEGRAM_BOT_SECRET`<sup>**required**</sup> — Telegram secret part of endpoint for Webhook API.
 - Inter Microservice Interaction <sup>`domain_bot`</sup>:
-  - `SCHEDULE_APP_HOSTNAME`<sup>**required**</sup> — Base hostname to reach `app_schedule` microservice.
+  - `APP_SCHEDULE_BASE_URL`<sup>**required**</sup> — Base url to reach `app_schedule` microservice.
