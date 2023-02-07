@@ -272,7 +272,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "app_schedule_telegram_bot"
+name = "app_telegram_bot"
 version = "0.1.0"
 dependencies = [
  "actix-web",
@@ -289,7 +289,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "app_schedule_vk_bot"
+name = "app_vk_bot"
 version = "0.1.0"
 dependencies = [
  "actix-web",

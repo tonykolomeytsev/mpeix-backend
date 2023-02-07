@@ -1,4 +1,4 @@
-ARG APP_NAME="app_schedule_telegram_bot"
+ARG APP_NAME="app_vk_bot"
 
 # Build our app here
 FROM rust:1.67.0 as build
@@ -12,4 +12,4 @@ RUN cargo install --path ${APP_NAME}
 FROM gcr.io/distroless/cc-debian11
 ARG APP_NAME
 COPY --from=build /usr/local/cargo/bin/${APP_NAME} /usr/local/bin/${APP_NAME}
-CMD [ "app_schedule_telegram_bot" ]
+CMD [ "app_vk_bot" ]
