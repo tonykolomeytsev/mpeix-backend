@@ -1,5 +1,5 @@
 [workspace]
-members = ["app_schedule", "app_schedule_telegram_bot", "app_schedule_vk_bot"]
+members = ["app_schedule", "app_telegram_bot", "app_vk_bot"]
 
 [workspace.dependencies]
 # common crates
