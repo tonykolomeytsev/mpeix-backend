@@ -15,7 +15,7 @@ impl Default for VkApi {
     fn default() -> Self {
         Self {
             access_token: env::var("VK_BOT_ACCESS_TOKEN")
-                .expect("Environment variable TELEGRAM_BOT_ACCESS_TOKEN not provided"),
+                .expect("Environment variable VK_BOT_ACCESS_TOKEN not provided"),
             client: ClientBuilder::new()
                 .gzip(true)
                 .deflate(true)
