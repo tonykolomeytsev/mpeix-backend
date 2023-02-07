@@ -739,6 +739,10 @@ dependencies = [
 name = "domain_vk_bot"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "common_errors",
+ "rand",
+ "reqwest",
  "serde",
 ]
 
