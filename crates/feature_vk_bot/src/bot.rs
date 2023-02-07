@@ -3,11 +3,14 @@ use std::{env, sync::Arc};
 use anyhow::{anyhow, bail, ensure};
 use common_errors::errors::CommonError;
 use domain_bot::{peer::repository::PlatformId, usecases::ReplyUseCase};
-use domain_vk_bot::{NewMessageObject, VkCallbackRequest, VkCallbackType};
+use domain_vk_bot::{
+    usecases::ReplyToVkUseCase, NewMessageObject, VkCallbackRequest, VkCallbackType,
+};
 
 pub struct FeatureVkBot {
     pub(crate) config: Config,
     pub(crate) reply_use_case: Arc<ReplyUseCase>,
+    pub(crate) reply_to_vk_use_case: Arc<ReplyToVkUseCase>,
 }
 
 pub(crate) struct Config {

@@ -837,6 +837,7 @@ name = "feature_telegram_bot"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "common_errors",
  "domain_bot",
  "domain_telegram_bot",
 ]
