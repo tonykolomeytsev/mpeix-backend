@@ -7,6 +7,7 @@ use domain_bot::{
     search::repository::ScheduleSearchRepository,
     usecases::{GetUpcomingEventsUseCase, InitDomainBotUseCase, ReplyUseCase, TextToActionUseCase},
 };
+use domain_vk_bot::usecases::ReplyToVkUseCase;
 use feature_vk_bot::FeatureVkBot;
 
 use crate::AppVkBot;
@@ -28,9 +29,10 @@ pub fn create_app() -> AppVkBot {
         schedule_search_repository,
         get_upcoming_events_use_case,
     ));
+    let reply_to_vk_use_case = Arc::new(ReplyToVkUseCase::default());
 
     AppVkBot {
-        feature_vk_bot: FeatureVkBot::new(reply_use_case),
+        feature_vk_bot: FeatureVkBot::new(reply_use_case, reply_to_vk_use_case),
         init_domain_bot_use_case: InitDomainBotUseCase::new(peer_repository),
     }
 }
