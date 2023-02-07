@@ -12,7 +12,6 @@ pub struct FeatureVkBot {
 
 pub(crate) struct Config {
     confirmation_code: String,
-    access_token: String,
     secret: Option<String>,
     group_id: Option<i64>,
 }
@@ -21,8 +20,6 @@ impl Default for Config {
     fn default() -> Self {
         let confirmation_code = env::var("VK_BOT_CONFIRMATION_CODE")
             .expect("Environment variable VK_BOT_CONFIRMATION_CODE not provided");
-        let access_token = env::var("VK_BOT_ACCESS_TOKEN")
-            .expect("Environment variable VK_BOT_CONFIRMATION_CODE not provided");
         let secret = env::var("VK_BOT_SECRET").ok();
         let group_id = env::var("VK_BOT_GROUP_ID")
             .ok()
@@ -30,7 +27,6 @@ impl Default for Config {
 
         Self {
             confirmation_code,
-            access_token,
             secret,
             group_id,
         }
@@ -41,11 +37,16 @@ impl FeatureVkBot {
     pub async fn reply(&self, callback: VkCallbackRequest) -> anyhow::Result<Option<String>> {
         ensure!(
             callback.secret == self.config.secret,
-            CommonError::user("Invalid secret key!")
+            CommonError::user("Request has invalid secret key")
         );
-
-        let _ = self.config.access_token;
-        let _ = self.config.group_id;
+        if let Some(group_id) = self.config.group_id {
+            ensure!(
+                callback.group_id == group_id,
+                CommonError::user(
+                    "Field 'group_id' of the request does not match the one specified in the env"
+                )
+            )
+        }
 
         match callback.r#type {
             VkCallbackType::Confirmation => Ok(Some(self.config.confirmation_code.to_owned())),

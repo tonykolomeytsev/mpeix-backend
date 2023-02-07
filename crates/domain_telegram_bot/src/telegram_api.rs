@@ -42,6 +42,41 @@ impl TelegramApi {
             .await
             .map_err(|e| anyhow!(CommonError::gateway(e)))
             .with_context(|| "Error while executing a request to telegram backend")?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            Err(anyhow!(CommonError::gateway(format!(
+                "Telegram backend response status: {}",
+                response.status()
+            ))))
+        }
+    }
+
+    pub async fn send_message(
+        &self,
+        text: &str,
+        chat_id: i64,
+        additional_query: Option<&[(&str, &str)]>,
+    ) -> anyhow::Result<()> {
+        let access_token = &self.access_token;
+        let mut request = self
+            .client
+            .get(format!(
+                "https://api.telegram.org/bot{access_token}/sendMessage"
+            ))
+            .query(&[("text", text), ("chat_id", &chat_id.to_string())]);
+        if let Some(query) = additional_query {
+            for (k, v) in query {
+                request = request.query(&[(k, v)]);
+            }
+        }
+        let response = request
+            .send()
+            .await
+            .map_err(|e| anyhow!(CommonError::gateway(e)))
+            .with_context(|| "Error while executing a request to telegram backend")?;
+
         if response.status().is_success() {
             Ok(())
         } else {
