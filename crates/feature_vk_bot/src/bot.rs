@@ -2,7 +2,10 @@ use std::{env, sync::Arc};
 
 use anyhow::{anyhow, bail, ensure};
 use common_errors::errors::CommonError;
-use domain_bot::{peer::repository::PlatformId, usecases::GenerateReplyUseCase};
+use domain_bot::{
+    models::Reply, peer::repository::PlatformId, renderer::RenderTargetPlatform,
+    usecases::GenerateReplyUseCase,
+};
 use domain_vk_bot::{
     usecases::ReplyToVkUseCase, NewMessageObject, VkCallbackRequest, VkCallbackType,
 };
@@ -59,17 +62,22 @@ impl FeatureVkBot {
                     client_info: _,
                 }) = callback.object
                 {
-                    if let Some(text) = message.text {
-                        let reply = self
-                            .generate_reply_use_case
+                    let reply = if let Some(text) = message.text {
+                        self.generate_reply_use_case
                             .generate_reply(PlatformId::Vk(message.peer_id), &text)
-                            .await?;
-                        // TODO: convert Reply model to text
-                        self.reply_to_vk_use_case.reply("", message.peer_id).await?;
+                            .await
+                            .unwrap_or(Reply::InternalError)
                     } else {
-                        // TODO: handle non-text message (photo/voice/etc...)
-                        // now just ignore them
-                    }
+                        Reply::UnknownMessageType
+                    };
+
+                    let text =
+                        domain_bot::renderer::render_message(&reply, RenderTargetPlatform::Vk);
+                    // TODO: handle kayboard
+                    self.reply_to_vk_use_case
+                        .reply(&text, message.peer_id)
+                        .await?;
+
                     Ok(None)
                 } else {
                     bail!(CommonError::internal(
