@@ -5,7 +5,9 @@ use domain_bot::{
     peer::repository::PeerRepository,
     schedule::repository::ScheduleRepository,
     search::repository::ScheduleSearchRepository,
-    usecases::{GetUpcomingEventsUseCase, InitDomainBotUseCase, ReplyUseCase, TextToActionUseCase},
+    usecases::{
+        GenerateReplyUseCase, GetUpcomingEventsUseCase, InitDomainBotUseCase, TextToActionUseCase,
+    },
 };
 use domain_telegram_bot::usecases::{ReplyToTelegramUseCase, SetWebhookUseCase};
 use feature_telegram_bot::FeatureTelegramBot;
@@ -22,7 +24,7 @@ pub fn create_app() -> AppTelegramBot {
     let text_to_action_use_case = Arc::new(TextToActionUseCase::default());
     let get_upcoming_events_use_case =
         Arc::new(GetUpcomingEventsUseCase::new(schedule_repository.clone()));
-    let reply_use_case = Arc::new(ReplyUseCase::new(
+    let generate_reply_use_case = Arc::new(GenerateReplyUseCase::new(
         text_to_action_use_case,
         peer_repository.clone(),
         schedule_repository,
@@ -34,7 +36,7 @@ pub fn create_app() -> AppTelegramBot {
 
     AppTelegramBot {
         feature_telegram_bot: FeatureTelegramBot::new(
-            reply_use_case,
+            generate_reply_use_case,
             set_webhook_use_case,
             reply_to_telegram_use_case,
         ),
