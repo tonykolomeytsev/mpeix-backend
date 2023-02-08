@@ -188,7 +188,7 @@ fn render_day(
         if inside_week {
             buf.push_str("📅 ");
         }
-        buf.push_str(render_day_of_week(day.date.weekday()));
+        buf.push_str(render_day_of_week_gen(day.date.weekday()));
         buf.push_str(", ");
         buf.push_str(&day.date.day().to_string());
         buf.push(' ');
@@ -254,20 +254,6 @@ fn render_emoji_number<'a>(num: i8) -> &'a str {
         8 => "8️⃣",
         9 => "9️⃣",
         _ => "🟢",
-    }
-}
-
-#[inline]
-fn render_day_of_week<'a>(weekday: Weekday) -> &'a str {
-    match weekday.number_from_monday() {
-        1 => "понедельник",
-        2 => "вторник",
-        3 => "среда",
-        4 => "четверг",
-        5 => "пятница",
-        6 => "суббота",
-        7 => "воскресенье",
-        _ => unreachable!(),
     }
 }
 
