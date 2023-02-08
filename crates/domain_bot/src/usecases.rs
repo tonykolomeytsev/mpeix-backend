@@ -201,7 +201,15 @@ impl GenerateReplyUseCase {
                 offset,
             )
             .await?;
-        Ok(Reply::Week(schedule))
+        Ok(Reply::Week {
+            week_offset: offset,
+            week: schedule
+                .weeks
+                .first()
+                .ok_or_else(|| anyhow!(CommonError::internal("Schedule does not have week")))?
+                .clone(),
+            schedule_type: schedule.r#type,
+        })
     }
 
     async fn handle_day_with_offset(&self, peer: Peer, offset: i8) -> anyhow::Result<Reply> {
@@ -227,8 +235,18 @@ impl GenerateReplyUseCase {
             .iter()
             .flat_map(|week| &week.days)
             .find(|day| day.date == selected_date)
-            .map(Clone::clone);
-        Ok(Reply::Day(day))
+            .map(Clone::clone)
+            // mock day without classes
+            .unwrap_or_else(|| Day {
+                day_of_week: selected_date.weekday().number_from_monday() as u8,
+                date: selected_date,
+                classes: Vec::with_capacity(0),
+            });
+        Ok(Reply::Day {
+            day_offset: offset,
+            day,
+            schedule_type: schedule.r#type,
+        })
     }
 
     async fn handle_schedule_search(&self, peer: Peer, q: &str) -> anyhow::Result<Reply> {
@@ -250,11 +268,12 @@ impl GenerateReplyUseCase {
                 candidate.name.to_owned(),
             ))
         } else if !search_results.is_empty() {
-            Ok(Reply::ScheduleSearchResults(
-                search_results.into_iter().map(|it| it.name).collect(),
-            ))
+            Ok(Reply::ScheduleSearchResults {
+                schedule_name: q.to_owned(),
+                results: search_results.into_iter().map(|it| it.name).collect(),
+            })
         } else {
-            Ok(Reply::CannotFindSchedule)
+            Ok(Reply::CannotFindSchedule(q.to_owned()))
         }
     }
 }
@@ -293,7 +312,10 @@ impl GetUpcomingEventsUseCase {
         // early return if there are no actual days
         use UpcomingEventsPrediction::*;
         if days.is_empty() {
-            return Ok(Reply::UpcomingEvents(NoClassesNextWeek));
+            return Ok(Reply::UpcomingEvents {
+                prediction: NoClassesNextWeek,
+                schedule_type: peer.selected_schedule_type,
+            });
         }
         // check first near day for classes
         let actual_day = days.first().expect("Can't be empty due to early return");
@@ -313,14 +335,17 @@ impl GetUpcomingEventsUseCase {
                     .filter(|cls| cls.time.start > current_time)
                     .cloned()
                     .collect::<Vec<Classes>>();
-                Ok(Reply::UpcomingEvents(ClassesTodayStarted {
-                    in_progress: Box::new(started_classes.clone()),
-                    future_classes: if rest_of_future_classes.is_empty() {
-                        None
-                    } else {
-                        Some(rest_of_future_classes)
+                Ok(Reply::UpcomingEvents {
+                    prediction: ClassesTodayStarted {
+                        in_progress: Box::new(started_classes.clone()),
+                        future_classes: if rest_of_future_classes.is_empty() {
+                            None
+                        } else {
+                            Some(rest_of_future_classes)
+                        },
                     },
-                }))
+                    schedule_type: peer.selected_schedule_type,
+                })
             } else {
                 // we do not have classes in progress, only future classes
                 let future_classes = actual_day
@@ -337,10 +362,13 @@ impl GetUpcomingEventsUseCase {
                         .start
                         .signed_duration_since(current_time),
                 );
-                Ok(Reply::UpcomingEvents(ClassesTodayNotStarted(
-                    time_prediction,
-                    future_classes,
-                )))
+                Ok(Reply::UpcomingEvents {
+                    prediction: ClassesTodayNotStarted {
+                        time_prediction,
+                        future_classes,
+                    },
+                    schedule_type: peer.selected_schedule_type,
+                })
             }
         } else {
             // in the future days we can have only classes in future
@@ -351,20 +379,19 @@ impl GetUpcomingEventsUseCase {
                 .time
                 .start;
             let time_prediction = TimePrediction::WithinAWeek {
-                day_offset: actual_day
-                    .date
-                    .signed_duration_since(current_date)
-                    .num_days() as i8,
+                date: actual_day.date,
                 duration: actual_day
                     .date
                     .and_time(first_classes_start_time)
                     .signed_duration_since(local_datetime.naive_local()),
             };
-            Ok(Reply::UpcomingEvents(ClassesInNDays(
-                time_prediction,
-                actual_day.date,
-                actual_day.classes.to_vec(),
-            )))
+            Ok(Reply::UpcomingEvents {
+                prediction: ClassesInNDays {
+                    time_prediction,
+                    future_classes: actual_day.classes.to_vec(),
+                },
+                schedule_type: peer.selected_schedule_type,
+            })
         }
     }
 }

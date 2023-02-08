@@ -2,7 +2,10 @@ use std::{env, sync::Arc};
 
 use anyhow::{anyhow, ensure};
 use common_errors::errors::CommonError;
-use domain_bot::{peer::repository::PlatformId, usecases::GenerateReplyUseCase};
+use domain_bot::{
+    models::Reply, peer::repository::PlatformId, renderer::RenderTargetPlatform,
+    usecases::GenerateReplyUseCase,
+};
 use domain_telegram_bot::{
     usecases::{ReplyToTelegramUseCase, SetWebhookUseCase},
     Update,
@@ -39,19 +42,21 @@ impl FeatureTelegramBot {
             CommonError::user("Request has invalid secret key")
         );
         if let Some(message) = update.message {
-            if let Some(text) = message.text {
-                let reply = self
-                    .generate_reply_use_case
+            let reply = if let Some(text) = message.text {
+                self.generate_reply_use_case
                     .generate_reply(PlatformId::Telegram(message.chat.id), &text)
-                    .await?;
-                // TODO: convert Reply model to text
-                self.reply_to_telegram_use_case
-                    .reply("", message.chat.id)
-                    .await?;
+                    .await
+                    .unwrap_or(Reply::InternalError)
             } else {
-                // TODO: handle non-text message (photo/voice/etc...)
-                // now just ignore them
-            }
+                Reply::UnknownMessageType
+            };
+
+            let text = domain_bot::renderer::render_message(&reply, RenderTargetPlatform::Telegram);
+            // TODO: handle kayboard
+            self.reply_to_telegram_use_case
+                .reply(&text, message.chat.id)
+                .await?;
+
             Ok(())
         } else {
             Err(anyhow!(CommonError::user(

@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use domain_schedule_models::dto::v1::{Classes, Day, Schedule, ScheduleType};
+use domain_schedule_models::dto::v1::{Classes, Day, ScheduleType, Week};
 
 /// Representation of database row from table 'peer'
 pub struct Peer {
@@ -36,31 +36,57 @@ pub enum UserAction {
 /// Rendered reply to answer
 pub enum Reply {
     StartGreetings,
-    AlreadyStarted { schedule_name: String },
-    Week(Schedule),
-    Day(Option<Day>),
-    UpcomingEvents(UpcomingEventsPrediction),
+    AlreadyStarted {
+        schedule_name: String,
+    },
+    Week {
+        week_offset: i8,
+        week: Week,
+        schedule_type: ScheduleType,
+    },
+    Day {
+        day_offset: i8,
+        day: Day,
+        schedule_type: ScheduleType,
+    },
+    UpcomingEvents {
+        prediction: UpcomingEventsPrediction,
+        schedule_type: ScheduleType,
+    },
     ScheduleChangedSuccessfully(String),
-    ScheduleSearchResults(Vec<String>),
-    CannotFindSchedule,
+    ScheduleSearchResults {
+        schedule_name: String,
+        results: Vec<String>,
+    },
+    CannotFindSchedule(String),
     ReadyToChangeSchedule,
     ShowHelp,
+    /// Type for non-text messages
+    UnknownMessageType,
+    /// Type for default error message
+    InternalError,
 }
 
 pub enum UpcomingEventsPrediction {
     NoClassesNextWeek,
+    ClassesTodayNotStarted {
+        time_prediction: TimePrediction,
+        future_classes: Vec<Classes>,
+    },
     ClassesTodayStarted {
         in_progress: Box<Classes>,
         future_classes: Option<Vec<Classes>>,
     },
-    ClassesTodayNotStarted(TimePrediction, Vec<Classes>),
-    ClassesInNDays(TimePrediction, NaiveDate, Vec<Classes>),
+    ClassesInNDays {
+        time_prediction: TimePrediction,
+        future_classes: Vec<Classes>,
+    },
 }
 
 pub enum TimePrediction {
     WithinOneDay(chrono::Duration),
     WithinAWeek {
-        day_offset: i8,
+        date: NaiveDate,
         duration: chrono::Duration,
     },
 }
