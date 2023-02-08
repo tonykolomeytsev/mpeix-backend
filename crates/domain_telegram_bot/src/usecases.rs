@@ -13,7 +13,7 @@ impl SetWebhookUseCase {
 pub struct ReplyToTelegramUseCase(TelegramApi);
 
 impl ReplyToTelegramUseCase {
-    pub async fn reply_to_telegram(&self, text: &str, chat_id: i64) -> anyhow::Result<()> {
+    pub async fn reply(&self, text: &str, chat_id: i64) -> anyhow::Result<()> {
         // TODO: custom keyboard handling
         self.0.send_message(text, chat_id, None).await
     }

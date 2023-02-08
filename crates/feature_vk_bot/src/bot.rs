@@ -59,15 +59,17 @@ impl FeatureVkBot {
                     client_info: _,
                 }) = callback.object
                 {
-                    ensure!(
-                        message.text.is_some(),
-                        CommonError::user(
-                            "Callback with type 'message' has null field 'object.message.text'"
-                        )
-                    );
-                    self.generate_reply_use_case
-                        .reply(PlatformId::Vk(message.peer_id), &message.text.unwrap())
-                        .await?;
+                    if let Some(text) = message.text {
+                        let reply = self
+                            .generate_reply_use_case
+                            .generate_reply(PlatformId::Vk(message.peer_id), &text)
+                            .await?;
+                        // TODO: convert Reply model to text
+                        self.reply_to_vk_use_case.reply("", message.peer_id).await?;
+                    } else {
+                        // TODO: handle non-text message (photo/voice/etc...)
+                        // now just ignore them
+                    }
                     Ok(None)
                 } else {
                     bail!(CommonError::internal(

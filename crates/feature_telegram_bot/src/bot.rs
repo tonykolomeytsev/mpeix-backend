@@ -39,16 +39,19 @@ impl FeatureTelegramBot {
             CommonError::user("Request has invalid secret key")
         );
         if let Some(message) = update.message {
-            ensure!(
-                message.text.is_some(),
-                CommonError::user("Callback with type 'message' has null field 'message.text'")
-            );
-            self.generate_reply_use_case
-                .reply(
-                    PlatformId::Telegram(message.chat.id),
-                    &message.text.unwrap(),
-                )
-                .await?;
+            if let Some(text) = message.text {
+                let reply = self
+                    .generate_reply_use_case
+                    .generate_reply(PlatformId::Telegram(message.chat.id), &text)
+                    .await?;
+                // TODO: convert Reply model to text
+                self.reply_to_telegram_use_case
+                    .reply("", message.chat.id)
+                    .await?;
+            } else {
+                // TODO: handle non-text message (photo/voice/etc...)
+                // now just ignore them
+            }
             Ok(())
         } else {
             Err(anyhow!(CommonError::user(

@@ -1,4 +1,5 @@
-use domain_schedule_models::dto::v1::{Day, Schedule, ScheduleType};
+use chrono::NaiveDate;
+use domain_schedule_models::dto::v1::{Classes, Day, Schedule, ScheduleType};
 
 /// Representation of database row from table 'peer'
 pub struct Peer {
@@ -38,9 +39,28 @@ pub enum Reply {
     AlreadyStarted { schedule_name: String },
     Week(Schedule),
     Day(Option<Day>),
+    UpcomingEvents(UpcomingEventsPrediction),
     ScheduleChangedSuccessfully(String),
     ScheduleSearchResults(Vec<String>),
     CannotFindSchedule,
     ReadyToChangeSchedule,
     ShowHelp,
+}
+
+pub enum UpcomingEventsPrediction {
+    NoClassesNextWeek,
+    ClassesTodayStarted {
+        in_progress: Box<Classes>,
+        future_classes: Option<Vec<Classes>>,
+    },
+    ClassesTodayNotStarted(TimePrediction, Vec<Classes>),
+    ClassesInNDays(TimePrediction, NaiveDate, Vec<Classes>),
+}
+
+pub enum TimePrediction {
+    WithinOneDay(chrono::Duration),
+    WithinAWeek {
+        day_offset: i8,
+        duration: chrono::Duration,
+    },
 }

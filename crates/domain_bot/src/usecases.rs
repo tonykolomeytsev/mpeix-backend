@@ -3,11 +3,12 @@ use std::{cmp::Ordering, collections::HashMap, sync::Arc};
 use anyhow::{anyhow, Context};
 use chrono::{Datelike, Days, Local};
 use common_errors::errors::CommonError;
+use domain_schedule_models::dto::v1::{Classes, Day};
 use lazy_static::lazy_static;
 use regex::Regex;
 
 use crate::{
-    models::{Peer, Reply, UserAction},
+    models::{Peer, Reply, TimePrediction, UpcomingEventsPrediction, UserAction},
     peer::repository::{PeerRepository, PlatformId},
     schedule::repository::ScheduleRepository,
     search::repository::ScheduleSearchRepository,
@@ -141,7 +142,11 @@ pub struct GenerateReplyUseCase(
 );
 
 impl GenerateReplyUseCase {
-    pub async fn reply(&self, platform_id: PlatformId, text: &str) -> anyhow::Result<Reply> {
+    pub async fn generate_reply(
+        &self,
+        platform_id: PlatformId,
+        text: &str,
+    ) -> anyhow::Result<Reply> {
         let action = self.0.text_to_action(text)?;
         let peer = self.1.get_peer_by_platform_id(platform_id).await?;
         match action {
@@ -167,7 +172,7 @@ impl GenerateReplyUseCase {
                 Ok(Reply::ReadyToChangeSchedule)
             }
             UserAction::Help => Ok(Reply::ShowHelp),
-            UserAction::UpcomingEvents => self.4.handle_upcoming_events().await,
+            UserAction::UpcomingEvents => self.4.handle_upcoming_events(peer).await,
         }
     }
 
@@ -257,7 +262,109 @@ impl GenerateReplyUseCase {
 pub struct GetUpcomingEventsUseCase(pub(crate) Arc<ScheduleRepository>);
 
 impl GetUpcomingEventsUseCase {
-    pub async fn handle_upcoming_events(&self) -> anyhow::Result<Reply> {
-        todo!()
+    pub async fn handle_upcoming_events(&self, peer: Peer) -> anyhow::Result<Reply> {
+        // load all days for current and next week
+        let mut days: Vec<Day> = Vec::with_capacity(14);
+        self.0
+            .get_schedule(&peer.selected_schedule, &peer.selected_schedule_type, 0)
+            .await?
+            .weeks
+            .iter_mut()
+            .for_each(|week| days.append(&mut week.days));
+        self.0
+            .get_schedule(&peer.selected_schedule, &peer.selected_schedule_type, 1)
+            .await?
+            .weeks
+            .iter_mut()
+            .for_each(|week| days.append(&mut week.days));
+        // remove all past days, (and also current day if it has only past classes)
+        let local_datetime = Local::now();
+        let current_date = local_datetime.date_naive();
+        let current_time = local_datetime.time();
+        days.retain(|day| {
+            if day.date == current_date {
+                // keep current day only if it has classes right now or in the future
+                day.classes.iter().any(|cls| cls.time.end < current_time)
+            } else {
+                // keep all future days
+                day.date > current_date
+            }
+        });
+        // early return if there are no actual days
+        use UpcomingEventsPrediction::*;
+        if days.is_empty() {
+            return Ok(Reply::UpcomingEvents(NoClassesNextWeek));
+        }
+        // check first near day for classes
+        let actual_day = days.first().expect("Can't be empty due to early return");
+        let actual_day_is_current_day = actual_day.date == current_date;
+
+        if actual_day_is_current_day {
+            // today we can have classes in progress or only future classes
+            if let Some(started_classes) = actual_day
+                .classes
+                .iter()
+                .find(|cls| cls.time.start < current_time && cls.time.end > current_time)
+            {
+                // we have classes in progress
+                let rest_of_future_classes = actual_day
+                    .classes
+                    .iter()
+                    .filter(|cls| cls.time.start > current_time)
+                    .cloned()
+                    .collect::<Vec<Classes>>();
+                Ok(Reply::UpcomingEvents(ClassesTodayStarted {
+                    in_progress: Box::new(started_classes.clone()),
+                    future_classes: if rest_of_future_classes.is_empty() {
+                        None
+                    } else {
+                        Some(rest_of_future_classes)
+                    },
+                }))
+            } else {
+                // we do not have classes in progress, only future classes
+                let future_classes = actual_day
+                    .classes
+                    .iter()
+                    .filter(|cls| cls.time.start > current_time)
+                    .cloned()
+                    .collect::<Vec<Classes>>();
+                let time_prediction = TimePrediction::WithinOneDay(
+                    future_classes
+                        .first()
+                        .expect("Cannot be empty, because actual_day has classes anyway")
+                        .time
+                        .start
+                        .signed_duration_since(current_time),
+                );
+                Ok(Reply::UpcomingEvents(ClassesTodayNotStarted(
+                    time_prediction,
+                    future_classes,
+                )))
+            }
+        } else {
+            // in the future days we can have only classes in future
+            let first_classes_start_time = actual_day
+                .classes
+                .first()
+                .expect("Cannot be empty, because actual_day has classes anyway")
+                .time
+                .start;
+            let time_prediction = TimePrediction::WithinAWeek {
+                day_offset: actual_day
+                    .date
+                    .signed_duration_since(current_date)
+                    .num_days() as i8,
+                duration: actual_day
+                    .date
+                    .and_time(first_classes_start_time)
+                    .signed_duration_since(local_datetime.naive_local()),
+            };
+            Ok(Reply::UpcomingEvents(ClassesInNDays(
+                time_prediction,
+                actual_day.date,
+                actual_day.classes.to_vec(),
+            )))
+        }
     }
 }
