@@ -2,14 +2,14 @@ use std::{env, sync::Arc};
 
 use anyhow::{anyhow, bail, ensure};
 use common_errors::errors::CommonError;
-use domain_bot::{peer::repository::PlatformId, usecases::ReplyUseCase};
+use domain_bot::{peer::repository::PlatformId, usecases::GenerateReplyUseCase};
 use domain_vk_bot::{
     usecases::ReplyToVkUseCase, NewMessageObject, VkCallbackRequest, VkCallbackType,
 };
 
 pub struct FeatureVkBot {
     pub(crate) config: Config,
-    pub(crate) reply_use_case: Arc<ReplyUseCase>,
+    pub(crate) generate_reply_use_case: Arc<GenerateReplyUseCase>,
     pub(crate) reply_to_vk_use_case: Arc<ReplyToVkUseCase>,
 }
 
@@ -65,7 +65,7 @@ impl FeatureVkBot {
                             "Callback with type 'message' has null field 'object.message.text'"
                         )
                     );
-                    self.reply_use_case
+                    self.generate_reply_use_case
                         .reply(PlatformId::Vk(message.peer_id), &message.text.unwrap())
                         .await?;
                     Ok(None)

@@ -4,7 +4,9 @@ use crate::{
     peer::repository::PeerRepository,
     schedule::repository::ScheduleRepository,
     search::repository::ScheduleSearchRepository,
-    usecases::{GetUpcomingEventsUseCase, InitDomainBotUseCase, ReplyUseCase, TextToActionUseCase},
+    usecases::{
+        GenerateReplyUseCase, GetUpcomingEventsUseCase, InitDomainBotUseCase, TextToActionUseCase,
+    },
 };
 
 impl InitDomainBotUseCase {
@@ -19,7 +21,7 @@ impl GetUpcomingEventsUseCase {
     }
 }
 
-impl ReplyUseCase {
+impl GenerateReplyUseCase {
     pub fn new(
         text_to_action_use_case: Arc<TextToActionUseCase>,
         peer_repository: Arc<PeerRepository>,

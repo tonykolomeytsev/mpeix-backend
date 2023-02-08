@@ -132,7 +132,7 @@ fn create_multipattern<F: FnOnce(&str, &str) -> String>(
 }
 
 /// Generate response to user's message.
-pub struct ReplyUseCase(
+pub struct GenerateReplyUseCase(
     pub(crate) Arc<TextToActionUseCase>,
     pub(crate) Arc<PeerRepository>,
     pub(crate) Arc<ScheduleRepository>,
@@ -140,7 +140,7 @@ pub struct ReplyUseCase(
     pub(crate) Arc<GetUpcomingEventsUseCase>,
 );
 
-impl ReplyUseCase {
+impl GenerateReplyUseCase {
     pub async fn reply(&self, platform_id: PlatformId, text: &str) -> anyhow::Result<Reply> {
         let action = self.0.text_to_action(text)?;
         let peer = self.1.get_peer_by_platform_id(platform_id).await?;

@@ -2,7 +2,7 @@ use std::{env, sync::Arc};
 
 use anyhow::{anyhow, ensure};
 use common_errors::errors::CommonError;
-use domain_bot::{peer::repository::PlatformId, usecases::ReplyUseCase};
+use domain_bot::{peer::repository::PlatformId, usecases::GenerateReplyUseCase};
 use domain_telegram_bot::{
     usecases::{ReplyToTelegramUseCase, SetWebhookUseCase},
     Update,
@@ -10,7 +10,7 @@ use domain_telegram_bot::{
 
 pub struct FeatureTelegramBot {
     pub(crate) config: Config,
-    pub(crate) reply_use_case: Arc<ReplyUseCase>,
+    pub(crate) generate_reply_use_case: Arc<GenerateReplyUseCase>,
     pub(crate) set_webhook_use_case: Arc<SetWebhookUseCase>,
     pub(crate) reply_to_telegram_use_case: Arc<ReplyToTelegramUseCase>,
 }
@@ -43,7 +43,7 @@ impl FeatureTelegramBot {
                 message.text.is_some(),
                 CommonError::user("Callback with type 'message' has null field 'message.text'")
             );
-            self.reply_use_case
+            self.generate_reply_use_case
                 .reply(
                     PlatformId::Telegram(message.chat.id),
                     &message.text.unwrap(),
