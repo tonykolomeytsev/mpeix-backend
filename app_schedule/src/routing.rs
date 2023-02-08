@@ -14,7 +14,7 @@ use crate::{AppSchedule, AppScheduleError};
 
 /// Health check method
 /// Returns `200 OK` with text `"I'm alive"` if service is alive
-#[actix_web::get("/v1/app_schedule/health")]
+#[actix_web::get("/v1/health")]
 async fn health() -> impl Responder {
     HttpResponse::Ok().body("I'm alive :)")
 }

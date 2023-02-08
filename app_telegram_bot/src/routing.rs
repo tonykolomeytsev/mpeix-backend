@@ -1,5 +1,4 @@
 use actix_web::{
-    http::StatusCode,
     web::{Data, Json, Path},
     HttpResponse, Responder,
 };
@@ -9,7 +8,7 @@ use crate::{AppTelegramBot, AppTelegramBotError};
 
 /// Health check method
 /// Returns `200 OK` with text `"I'm alive"` if service is alive
-#[actix_web::get("/v1/app_schedule_telegram_bot/health")]
+#[actix_web::get("/v1/app_telegram_bot/health")]
 async fn health() -> impl Responder {
     HttpResponse::Ok().body("I'm alive :)")
 }
@@ -19,11 +18,11 @@ async fn telegram_webhook_v1(
     path: Path<String>,
     payload: Json<Update>,
     state: Data<AppTelegramBot>,
-) -> Result<(String, StatusCode), AppTelegramBotError> {
+) -> Result<impl Responder, AppTelegramBotError> {
     let secret = path.into_inner();
     Ok(state
         .feature_telegram_bot
         .reply(payload.into_inner(), secret)
         .await
-        .map(|_| ("ok".to_string(), StatusCode::OK))?)
+        .map(|_| HttpResponse::Ok().body("ok"))?)
 }
