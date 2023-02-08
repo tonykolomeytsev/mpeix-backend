@@ -303,7 +303,7 @@ impl GetUpcomingEventsUseCase {
         days.retain(|day| {
             if day.date == current_date {
                 // keep current day only if it has classes right now or in the future
-                day.classes.iter().any(|cls| cls.time.end < current_time)
+                day.classes.iter().any(|cls| cls.time.end > current_time)
             } else {
                 // keep all future days
                 day.date > current_date
