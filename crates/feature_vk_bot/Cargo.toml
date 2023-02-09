@@ -11,3 +11,5 @@ domain_vk_bot = { workspace = true }
 
 anyhow = { workspace = true }
 once_cell = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }

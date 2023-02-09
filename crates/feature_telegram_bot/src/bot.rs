@@ -1,6 +1,6 @@
 use std::{env, sync::Arc};
 
-use anyhow::{anyhow, ensure};
+use anyhow::{anyhow, ensure, Context};
 use common_errors::errors::CommonError;
 use domain_bot::{
     models::Reply, peer::repository::PlatformId, renderer::RenderTargetPlatform,
@@ -12,6 +12,7 @@ use domain_telegram_bot::{
     ChatType, CommonKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup,
     ReplyKeyboardMarkup, ReplyKeyboardRemove, Update,
 };
+use log::error;
 use once_cell::sync::Lazy;
 
 pub struct FeatureTelegramBot {
@@ -86,7 +87,10 @@ impl FeatureTelegramBot {
                 self.generate_reply_use_case
                     .generate_reply(PlatformId::Telegram(message.chat.id), &text)
                     .await
-                    .unwrap_or(Reply::InternalError)
+                    .unwrap_or_else(|e| {
+                        error!("{e}");
+                        Reply::InternalError
+                    })
             } else {
                 Reply::UnknownMessageType
             };
@@ -95,7 +99,8 @@ impl FeatureTelegramBot {
             let keyboard = self.render_keyboard(&reply, &message.chat.r#type);
             self.reply_to_telegram_use_case
                 .reply(&text, message.chat.id, &keyboard)
-                .await?;
+                .await
+                .with_context(|| "Error while sending reply to telegram")?;
 
             Ok(())
         } else {

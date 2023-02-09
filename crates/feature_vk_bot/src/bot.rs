@@ -1,6 +1,6 @@
 use std::{env, sync::Arc};
 
-use anyhow::{anyhow, bail, ensure};
+use anyhow::{anyhow, bail, ensure, Context};
 use common_errors::errors::CommonError;
 use domain_bot::{
     models::Reply, peer::repository::PlatformId, renderer::RenderTargetPlatform,
@@ -10,6 +10,7 @@ use domain_vk_bot::{
     usecases::ReplyToVkUseCase, ButtonActionType, Keyboard, KeyboardButton, KeyboardButtonAction,
     MessagePeerType, NewMessageObject, VkCallbackRequest, VkCallbackType,
 };
+use log::error;
 use once_cell::sync::Lazy;
 
 pub struct FeatureVkBot {
@@ -101,7 +102,10 @@ impl FeatureVkBot {
                         self.generate_reply_use_case
                             .generate_reply(PlatformId::Vk(message.peer_id), text)
                             .await
-                            .unwrap_or(Reply::InternalError)
+                            .unwrap_or_else(|e| {
+                                error!("{e}");
+                                Reply::InternalError
+                            })
                     } else {
                         Reply::UnknownMessageType
                     };
@@ -111,7 +115,8 @@ impl FeatureVkBot {
                     let keyboard = self.render_keyboard(&reply, &message.peer_type());
                     self.reply_to_vk_use_case
                         .reply(&text, message.peer_id, &keyboard)
-                        .await?;
+                        .await
+                        .with_context(|| "Error while sending reply to vk")?;
 
                     Ok(None)
                 } else {

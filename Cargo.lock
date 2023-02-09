@@ -842,6 +842,8 @@ dependencies = [
  "common_errors",
  "domain_bot",
  "domain_telegram_bot",
+ "env_logger",
+ "log",
  "once_cell",
 ]
 
@@ -853,6 +855,8 @@ dependencies = [
  "common_errors",
  "domain_bot",
  "domain_vk_bot",
+ "env_logger",
+ "log",
  "once_cell",
 ]
 
