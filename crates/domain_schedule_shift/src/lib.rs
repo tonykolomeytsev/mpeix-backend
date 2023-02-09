@@ -5,6 +5,8 @@ use chrono::{Datelike, NaiveDate};
 use tokio::{fs::File, io::AsyncReadExt};
 use toml::Table;
 
+/// Structure, remembering exceptions to the rules in the numbering of academic weeks.
+/// Used in `domain_schedule` crate to make it easier to work with non-standard study week numbers.
 #[derive(Debug, PartialEq, Eq)]
 pub struct ScheduleShift(HashMap<(Year, ShiftedSemester), ShiftRule>);
 
@@ -17,12 +19,14 @@ impl Year {
     }
 }
 
+/// Type of semester with non-standard study week numbers
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum ShiftedSemester {
     Spring,
     Fall,
 }
 
+/// A rule that describes the shift in the numbers of academic weeks of a particular semester
 #[derive(Debug, PartialEq, Eq)]
 pub struct ShiftRule {
     /// Points to first study day of semester
@@ -41,6 +45,7 @@ impl ScheduleShift {
         ScheduleShift::from_str(&serialized_value)
     }
 
+    /// Get shift rule for specified year and semester
     pub fn get(&self, year: Year, semester: ShiftedSemester) -> Option<&ShiftRule> {
         self.0.get(&(year, semester))
     }

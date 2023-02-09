@@ -4,6 +4,7 @@ use anyhow::{anyhow, Context};
 use common_errors::errors::CommonError;
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 
+/// Representation of the Telegram API
 pub struct TelegramApi {
     access_token: String,
     webhook_url: String,

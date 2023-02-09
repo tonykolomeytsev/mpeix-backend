@@ -1,6 +1,6 @@
 # mpeix-backend/app_schedule_vk_bot
 
-Microservice responsible for working with the schedules via VK Bot [**@mpeixbot**](https://vk.com/mpeixbot).
+Microservice for VK Bot [**@mpeixbot**](https://vk.com/mpeixbot).
 
 ### Environment variables:
 - App <sup>`app_schedule_vk_bot`</sup>:
