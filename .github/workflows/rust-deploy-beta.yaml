@@ -15,7 +15,7 @@ jobs:
 
       - name: Put release version from tag name to ENV
         run: |
-          echo "RELEASE_VERSION='beta-${GITHUB_REF#refs/*/*/}'" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=beta-${GITHUB_REF#refs/*/*/}" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
