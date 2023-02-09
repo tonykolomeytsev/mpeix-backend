@@ -5,6 +5,7 @@ use common_errors::errors::CommonError;
 use domain_schedule_models::dto::v1::{Schedule, ScheduleSearchResult, ScheduleType};
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 
+/// Representation of the `app_schedule` microservice API
 pub struct MpeixApi {
     base_url: String,
     client: Client,
@@ -28,6 +29,7 @@ impl Default for MpeixApi {
 }
 
 impl MpeixApi {
+    /// Get schedule from `app_schedule` microservice
     pub async fn get_schedule(
         &self,
         name: &str,
@@ -47,6 +49,7 @@ impl MpeixApi {
             .with_context(|| "Error while deserializing response from app_schedule microservice")
     }
 
+    /// Get search results from `app_schedule` microservice
     pub async fn search_schedule(
         &self,
         query: &str,

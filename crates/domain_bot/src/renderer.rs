@@ -9,6 +9,7 @@ pub enum RenderTargetPlatform {
     Telegram,
 }
 
+/// Turn the [Reply] response model into the text of the message, for further sending to social networks.
 pub fn render_message(reply: &Reply, platform: RenderTargetPlatform) -> String {
     match reply {
         Reply::StartGreetings => include_str!("../res/msg_cannot_find_schedule.txt").to_owned(),
@@ -21,7 +22,7 @@ pub fn render_message(reply: &Reply, platform: RenderTargetPlatform) -> String {
             week,
             schedule_type,
         } => {
-            let mut buf = String::with_capacity(2048);
+            let mut buf = String::with_capacity(4096);
             render_week(*week_offset, week, schedule_type, &mut buf);
             buf
         }

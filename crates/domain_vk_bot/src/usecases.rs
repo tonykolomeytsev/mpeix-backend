@@ -3,6 +3,7 @@ use common_errors::errors::CommonError;
 
 use crate::{vk_api::VkApi, Keyboard};
 
+/// Send message reply to VK
 #[derive(Default)]
 pub struct ReplyToVkUseCase(VkApi);
 

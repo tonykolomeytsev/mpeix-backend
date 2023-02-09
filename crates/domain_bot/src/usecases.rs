@@ -133,6 +133,11 @@ fn create_multipattern<F: FnOnce(&str, &str) -> String>(
 }
 
 /// Generate response to user's message.
+///
+/// The main logic for generating responses to user messages is described here.
+/// During the preparation of responses, asynchronous requests to the `app_schedule`
+/// microservice can be made. All logic related to caching is implemented on the
+/// side of the `app_schedule` microservice.
 pub struct GenerateReplyUseCase(
     pub(crate) Arc<TextToActionUseCase>,
     pub(crate) Arc<PeerRepository>,
@@ -142,6 +147,7 @@ pub struct GenerateReplyUseCase(
 );
 
 impl GenerateReplyUseCase {
+    /// Generate [Reply] model from user request for further text reply rendering.
     pub async fn generate_reply(
         &self,
         platform_id: PlatformId,
@@ -176,6 +182,8 @@ impl GenerateReplyUseCase {
         }
     }
 
+    /// Process `/start` command.
+    /// This command can usually be sent by new bot users.
     async fn handle_start(&self, peer: Peer) -> anyhow::Result<Reply> {
         if peer.is_not_started() {
             self.1
@@ -192,6 +200,8 @@ impl GenerateReplyUseCase {
         }
     }
 
+    /// Process `/thisweek` and `/nextweek` commands
+    /// with `offset` equals 0 and 1 respectively.
     async fn handle_week_with_offset(&self, peer: Peer, offset: i8) -> anyhow::Result<Reply> {
         let schedule = self
             .2
@@ -212,6 +222,7 @@ impl GenerateReplyUseCase {
         })
     }
 
+    /// Process `/today`, `/tomorrow` and other commands about specific day schedules.
     async fn handle_day_with_offset(&self, peer: Peer, offset: i8) -> anyhow::Result<Reply> {
         let current_date = Local::now().date_naive();
         let selected_date = match offset.cmp(&0) {
@@ -249,6 +260,9 @@ impl GenerateReplyUseCase {
         })
     }
 
+    /// Process uncnown commands which may be a schedule change request commands.
+    ///
+    /// We suggest search results if it is not possible to switch to the specified schedule.
     async fn handle_schedule_search(&self, peer: Peer, q: &str) -> anyhow::Result<Reply> {
         let search_results = self
             .3
@@ -282,6 +296,11 @@ impl GenerateReplyUseCase {
     }
 }
 
+/// Use case which generates a response similar to the mpeix dashboard page content.
+///
+/// In simple words, shows upcoming events, if any.
+/// Shows how much time is left until the next pair,
+/// shows which pair has already started and is running.
 pub struct GetUpcomingEventsUseCase(pub(crate) Arc<ScheduleRepository>);
 
 impl GetUpcomingEventsUseCase {

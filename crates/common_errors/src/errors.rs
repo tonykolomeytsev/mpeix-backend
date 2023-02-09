@@ -16,14 +16,17 @@ pub enum CommonError {
 }
 
 impl CommonError {
+    /// Alias for [CommonError::InternalError], immediately convert argument to string.
     pub fn internal<E: Display>(e: E) -> CommonError {
         CommonError::InternalError(e.to_string())
     }
 
+    /// Alias for [CommonError::GatewayError], immediately convert argument to string.
     pub fn gateway<E: Display>(e: E) -> CommonError {
         CommonError::GatewayError(e.to_string())
     }
 
+    /// Alias for [CommonError::UserError], immediately convert argument to string.
     pub fn user<E: Display>(e: E) -> CommonError {
         CommonError::UserError(e.to_string())
     }

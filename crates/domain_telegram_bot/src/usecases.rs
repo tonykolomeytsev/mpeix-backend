@@ -3,6 +3,8 @@ use common_errors::errors::CommonError;
 
 use crate::{telegram_api::TelegramApi, CommonKeyboardMarkup};
 
+/// Set weebhookfor Telegram Bot API manually.
+/// This use case must be started **STRICTLY** before the server starts.
 #[derive(Default)]
 pub struct SetWebhookUseCase(TelegramApi);
 
@@ -12,6 +14,7 @@ impl SetWebhookUseCase {
     }
 }
 
+/// Send message reply to Telegram
 #[derive(Default)]
 pub struct ReplyToTelegramUseCase(TelegramApi);
 

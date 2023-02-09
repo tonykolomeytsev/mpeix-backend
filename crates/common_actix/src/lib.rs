@@ -1,6 +1,9 @@
 use common_rust::env;
 use log::info;
 
+/// Get address tuple (Host, Port) from environment variables `HOST` and `PORT`.
+/// Default host in prod builds is `0.0.0.0`, in debug builds is `127.0.0.1`.
+/// Default port is 8080 for all types of build.
 pub fn get_address() -> (String, u16) {
     let host = env::get_or(
         "HOST",
@@ -15,6 +18,14 @@ pub fn get_address() -> (String, u16) {
     (host, port)
 }
 
+/// Create struct for app scope Error and implement all necessary standard
+/// and actix-web traits for further use as `Responder`.
+///
+/// Following traits will be implemented:
+/// - [std::fmt::Debug]
+/// - [std::fmt::Display]
+/// - From<[anyhow::Error]>
+/// - [actix_web::ResponseError]
 #[macro_export]
 macro_rules! define_app_error {
     ($name:tt) => {

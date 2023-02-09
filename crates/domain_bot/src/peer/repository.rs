@@ -8,6 +8,7 @@ use tokio_postgres::Row;
 
 use crate::models::Peer;
 
+/// Repository for accessing tables `peer` and `peer_by_platform` of the mpeix database
 pub struct PeerRepository {
     db_pool: Arc<Pool>,
 }

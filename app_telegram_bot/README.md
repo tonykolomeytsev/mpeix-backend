@@ -1,6 +1,6 @@
 # mpeix-backend/app_schedule_telegram_bot
 
-Microservice responsible for working with the schedules via Telegram Bot [**@mpeixbot**](https://mpeixbot.t.me).
+Microservice for Telegram Bot [**@MpeixBot**](https://mpeixbot.t.me).
 
 ### Environment variables:
 - App <sup>`app_schedule_telegram_bot`</sup>:

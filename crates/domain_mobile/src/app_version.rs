@@ -1,5 +1,7 @@
 use std::{cmp::Ordering, collections::VecDeque, fmt::Display, num::ParseIntError, str::FromStr};
 
+/// Represention of the semantic version of the mpeix application.
+/// The structure supports all comparison operations.
 #[derive(Debug, Clone)]
 pub struct AppVersion {
     pub major: u16,

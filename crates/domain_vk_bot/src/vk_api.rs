@@ -6,6 +6,7 @@ use reqwest::{redirect::Policy, Client, ClientBuilder};
 
 const VK_API_VERSION: &str = "5.130";
 
+/// Representation of the VK API
 pub struct VkApi {
     access_token: String,
     client: Client,
