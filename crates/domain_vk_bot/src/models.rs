@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// https://dev.vk.com/api/callback/getting-started
+/// https://dev.vk.com/api/community-events/json-schema
 #[derive(Debug, Deserialize)]
 pub struct VkCallbackRequest {
     #[serde(default)]
