@@ -10,4 +10,6 @@ domain_bot = { workspace = true }
 domain_telegram_bot = { workspace = true }
 
 anyhow = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
 once_cell = { workspace = true }
