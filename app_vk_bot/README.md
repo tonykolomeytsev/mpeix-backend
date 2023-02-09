@@ -6,7 +6,6 @@ Microservice responsible for working with the schedules via VK Bot [**@mpeixbot*
 - App <sup>`app_schedule_vk_bot`</sup>:
   - `HOST` — app host name. In release mode default is `0.0.0.0`, in debug mode default is `127.0.0.1`.
   - `PORT` — app port. Default is `8080`.
-  - `RUST_LOG` logging verbosity. Default is `info`. See all available values in [env_logger documentation](https://docs.rs/env_logger/latest/env_logger/).
 - Database <sup>`common_database`</sup>:
   - `POSTGRES_PASSWORD`<sup>**required**</sup> — password for PostgreSQL database.
   - `POSTGRES_USER` - postgres user. Default is `postgres`.
