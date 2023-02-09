@@ -58,19 +58,19 @@ impl Default for ChatType {
 }
 
 /// https://core.telegram.org/bots/api/#inlinekeyboardmarkup
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct InlineKeyboardMarkup {
     pub inline_keyboard: Vec<Vec<InlineKeyboardButton>>,
 }
 
 /// https://core.telegram.org/bots/api/#inlinekeyboardbutton
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct InlineKeyboardButton {
     pub text: String,
 }
 
 /// https://core.telegram.org/bots/api/#replykeyboardmarkup
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct ReplyKeyboardMarkup {
     pub keyboard: Vec<Vec<KeyboardButton>>,
     pub one_time_keyboard: bool,
@@ -79,12 +79,20 @@ pub struct ReplyKeyboardMarkup {
 }
 
 /// https://core.telegram.org/bots/api/#keyboardbutton
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct KeyboardButton {
     pub text: String,
 }
 
 /// https://core.telegram.org/bots/api/#replykeyboardremove
+#[derive(Debug, Serialize, Clone)]
 pub struct ReplyKeyboardRemove {
     pub remove_keyboard: bool,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub enum CommonKeyboardMarkup {
+    Inline(InlineKeyboardMarkup),
+    Reply(ReplyKeyboardMarkup),
+    Remove(ReplyKeyboardRemove),
 }
