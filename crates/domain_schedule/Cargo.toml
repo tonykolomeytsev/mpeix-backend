@@ -14,13 +14,13 @@ domain_schedule_shift = { workspace = true }
 
 anyhow = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
-deadpool-postgres = { version = "0.10", features = ["serde"] }
+deadpool-postgres = { workspace = true, features = ["serde"] }
 env_logger = { workspace = true }
-lazy_static = { version = "1.4" }
+lazy_static = { version = "1.4" }                                      # TODO: replace with once_cell
 log = { workspace = true }
-num-traits = { version = "0.2.15" }
-regex = { version = "1.7" }
+num-traits = { workspace = true }
+regex = { workspace = true }
 reqwest = { workspace = true, features = ["gzip", "deflate", "json"] }
-serde = { version = "1.0", features = ["derive"] }
+serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true }
-tokio-postgres = "0.7"
+tokio-postgres = { workspace = true }

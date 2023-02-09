@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
-toml = { version = "0.7" }
-chrono = { version = "0.4" }
-anyhow = { version = "1.0" }
-tokio = { version = "1.23", features = ["fs", "io-util", "macros"] }
+toml = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+tokio = { workspace = true, features = ["fs", "io-util", "macros"] }

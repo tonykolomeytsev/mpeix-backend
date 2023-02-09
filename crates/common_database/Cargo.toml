@@ -7,6 +7,6 @@ authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 [dependencies]
 common_rust = { workspace = true }
 
-anyhow = { version = "1.0" }
-deadpool-postgres = { version = "0.10", features = ["serde"] }
-tokio-postgres = "0.7"
+anyhow = { workspace = true }
+deadpool-postgres = { workspace = true, features = ["serde"] }
+tokio-postgres = { workspace = true }

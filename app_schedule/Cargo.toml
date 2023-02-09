@@ -1,6 +1,6 @@
 [package]
 name = "app_schedule"
-version = "0.1.0"
+version.workspace = true
 edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 readme = "README.md"
