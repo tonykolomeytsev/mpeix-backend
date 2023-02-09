@@ -120,13 +120,22 @@ mod tests {
         let shift = ScheduleShift::from_str(toml_content);
         assert!(shift.is_ok());
         assert_eq!(
-            ScheduleShift(HashMap::from([(
-                (Year::new(2021), ShiftedSemester::Spring),
-                ShiftRule {
-                    first_day: NaiveDate::from_ymd_opt(2021, 2, 15).unwrap(),
-                    week_number: Some(0),
-                }
-            )])),
+            ScheduleShift(HashMap::from([
+                (
+                    (Year::new(2021), ShiftedSemester::Spring),
+                    ShiftRule {
+                        first_day: NaiveDate::from_ymd_opt(2021, 2, 15).unwrap(),
+                        week_number: Some(0),
+                    }
+                ),
+                (
+                    (Year::new(2023), ShiftedSemester::Spring),
+                    ShiftRule {
+                        first_day: NaiveDate::from_ymd_opt(2023, 2, 8).unwrap(),
+                        week_number: Some(0),
+                    }
+                )
+            ])),
             shift.unwrap(),
         );
     }
