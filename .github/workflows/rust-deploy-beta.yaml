@@ -35,18 +35,18 @@ jobs:
         with:
           file: "./app_schedule/Dockerfile"
           push: true
-          tags: tonykolomeytsev/mpeix-backend-app-schedule:${{ env.RELEASE_VERSION }}
+          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-schedule:${{ env.RELEASE_VERSION }}
 
       - name: Build and push app_telegram_bot
         uses: docker/build-push-action@v4
         with:
           file: "./app_telegram_bot/Dockerfile"
           push: true
-          tags: tonykolomeytsev/mpeix-backend-app-telegram-bot:${{ env.RELEASE_VERSION }}
+          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-telegram-bot:${{ env.RELEASE_VERSION }}
 
       - name: Build and push app_vk_bot
         uses: docker/build-push-action@v4
         with:
           file: "./app_vk_bot/Dockerfile"
           push: true
-          tags: tonykolomeytsev/mpeix-backend-app-vk-bot:beta-${{ env.RELEASE_VERSION }}
+          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-vk-bot:beta-${{ env.RELEASE_VERSION }}
