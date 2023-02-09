@@ -733,6 +733,7 @@ dependencies = [
  "common_errors",
  "reqwest",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -744,6 +745,7 @@ dependencies = [
  "rand",
  "reqwest",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -840,6 +842,7 @@ dependencies = [
  "common_errors",
  "domain_bot",
  "domain_telegram_bot",
+ "once_cell",
 ]
 
 [[package]]
@@ -850,7 +853,7 @@ dependencies = [
  "common_errors",
  "domain_bot",
  "domain_vk_bot",
- "envmnt",
+ "once_cell",
 ]
 
 [[package]]

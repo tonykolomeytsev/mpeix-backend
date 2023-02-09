@@ -270,7 +270,11 @@ impl GenerateReplyUseCase {
         } else if !search_results.is_empty() {
             Ok(Reply::ScheduleSearchResults {
                 schedule_name: q.to_owned(),
-                results: search_results.into_iter().map(|it| it.name).collect(),
+                results: search_results
+                    .into_iter()
+                    .take(3)
+                    .map(|it| it.name)
+                    .collect(),
             })
         } else {
             Ok(Reply::CannotFindSchedule(q.to_owned()))

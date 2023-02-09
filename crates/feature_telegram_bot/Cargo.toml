@@ -9,4 +9,5 @@ common_errors = { workspace = true }
 domain_bot = { workspace = true }
 domain_telegram_bot = { workspace = true }
 
-anyhow = "1.0"
+anyhow = { workspace = true }
+once_cell = { workspace = true }

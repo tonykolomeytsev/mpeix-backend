@@ -7,8 +7,10 @@ use domain_bot::{
     usecases::GenerateReplyUseCase,
 };
 use domain_vk_bot::{
-    usecases::ReplyToVkUseCase, NewMessageObject, VkCallbackRequest, VkCallbackType,
+    usecases::ReplyToVkUseCase, ButtonActionType, Keyboard, KeyboardButton, KeyboardButtonAction,
+    MessagePeerType, NewMessageObject, VkCallbackRequest, VkCallbackType,
 };
+use once_cell::sync::Lazy;
 
 pub struct FeatureVkBot {
     pub(crate) config: Config,
@@ -39,6 +41,39 @@ impl Default for Config {
     }
 }
 
+macro_rules! button {
+    ($label:expr, $color:expr $(,)?) => {
+        KeyboardButton {
+            action: KeyboardButtonAction {
+                r#type: ButtonActionType::Text,
+                label: $label.to_owned(),
+                payload: Some("{}".to_owned()),
+            },
+            color: $color,
+        }
+    };
+}
+
+static KEYBOARD_EMPTY: Lazy<Keyboard> = Lazy::new(|| Keyboard {
+    buttons: vec![vec![]],
+    inline: false,
+    one_time: false,
+});
+static KEYBOARD_INLINE_HELP: Lazy<Keyboard> = Lazy::new(|| Keyboard {
+    buttons: vec![vec![button!("Помощь", Some("primary".to_owned()))]],
+    inline: true,
+    one_time: false,
+});
+static KEYBOARD_DEFAULT: Lazy<Keyboard> = Lazy::new(|| Keyboard {
+    buttons: vec![
+        vec![button!("Ближайшие пары", Some("primary".to_owned()))],
+        vec![button!("Пары сегодня", None), button!("Пары завтра", None)],
+        vec![button!("Помощь", None), button!("Сменить расписание", None)],
+    ],
+    inline: false,
+    one_time: false,
+});
+
 impl FeatureVkBot {
     pub async fn reply(&self, callback: VkCallbackRequest) -> anyhow::Result<Option<String>> {
         ensure!(
@@ -62,9 +97,9 @@ impl FeatureVkBot {
                     client_info: _,
                 }) = callback.object
                 {
-                    let reply = if let Some(text) = message.text {
+                    let reply = if let Some(text) = &message.text {
                         self.generate_reply_use_case
-                            .generate_reply(PlatformId::Vk(message.peer_id), &text)
+                            .generate_reply(PlatformId::Vk(message.peer_id), text)
                             .await
                             .unwrap_or(Reply::InternalError)
                     } else {
@@ -73,9 +108,9 @@ impl FeatureVkBot {
 
                     let text =
                         domain_bot::renderer::render_message(&reply, RenderTargetPlatform::Vk);
-                    // TODO: handle kayboard
+                    let keyboard = self.render_keyboard(&reply, &message.peer_type());
                     self.reply_to_vk_use_case
-                        .reply(&text, message.peer_id)
+                        .reply(&text, message.peer_id, &keyboard)
                         .await?;
 
                     Ok(None)
@@ -88,6 +123,25 @@ impl FeatureVkBot {
             VkCallbackType::Unknown => {
                 Err(anyhow!(CommonError::internal("Unsupported callback type")))
             }
+        }
+    }
+
+    fn render_keyboard(&self, reply: &Reply, peer_type: &MessagePeerType) -> Keyboard {
+        match (reply, peer_type) {
+            (Reply::UnknownMessageType, _) => KEYBOARD_INLINE_HELP.to_owned(),
+            (_, MessagePeerType::GroupChat) => KEYBOARD_EMPTY.to_owned(),
+            (
+                Reply::ScheduleSearchResults {
+                    schedule_name: _,
+                    results,
+                },
+                _,
+            ) => Keyboard {
+                buttons: results.iter().map(|it| vec![button!(it, None)]).collect(),
+                inline: true,
+                one_time: false,
+            },
+            _ => KEYBOARD_DEFAULT.to_owned(),
         }
     }
 }

@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// https://dev.vk.com/api/callback/getting-started
 #[derive(Debug, Deserialize)]
@@ -70,7 +70,7 @@ pub struct ClientInfo {
     pub carousel: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum ButtonActionType {
     Text,
@@ -90,4 +90,24 @@ impl Default for ButtonActionType {
     fn default() -> Self {
         Self::Unknown
     }
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct Keyboard {
+    pub buttons: Vec<Vec<KeyboardButton>>,
+    pub inline: bool,
+    pub one_time: bool,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct KeyboardButton {
+    pub action: KeyboardButtonAction,
+    pub color: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct KeyboardButtonAction {
+    pub r#type: ButtonActionType,
+    pub label: String,
+    pub payload: Option<String>,
 }
