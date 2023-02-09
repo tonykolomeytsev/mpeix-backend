@@ -32,19 +32,19 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           file: "./app_schedule/Dockerfile"
-          push: false
+          push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/mpeix-backend-app-schedule:beta-${{ env.RELEASE_VERSION }}
 
       - name: Build and push app_telegram_bot
         uses: docker/build-push-action@v4
         with:
           file: "./app_telegram_bot/Dockerfile"
-          push: false
+          push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/mpeix-backend-app-telegram-bot:beta-${{ env.RELEASE_VERSION }}
 
       - name: Build and push app_vk_bot
         uses: docker/build-push-action@v4
         with:
           file: "./app_vk_bot/Dockerfile"
-          push: false
+          push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/mpeix-backend-app-vk-bot:beta-${{ env.RELEASE_VERSION }}
