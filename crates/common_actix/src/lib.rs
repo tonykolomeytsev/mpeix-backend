@@ -1,7 +1,8 @@
+use common_rust::env;
 use log::info;
 
 pub fn get_address() -> (String, u16) {
-    let host = envmnt::get_or(
+    let host = env::get_or(
         "HOST",
         if cfg!(debug_assertions) {
             "127.0.0.1"
@@ -9,7 +10,7 @@ pub fn get_address() -> (String, u16) {
             "0.0.0.0"
         },
     );
-    let port = envmnt::get_u16("PORT", 8080);
+    let port = env::get_parsed_or::<u16>("PORT", 8080);
     info!("Starting server on {}:{}", host, port);
     (host, port)
 }

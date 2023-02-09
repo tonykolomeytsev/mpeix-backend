@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use anyhow::bail;
 use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
+use common_rust::env;
 use domain_schedule_models::dto::v1::ScheduleType;
 use lazy_static::lazy_static;
 use log::info;
@@ -37,9 +38,9 @@ struct ScheduleId(i64);
 
 impl Default for ScheduleIdRepository {
     fn default() -> Self {
-        let cache_capacity = envmnt::get_usize("SCHEDULE_ID_CACHE_CAPACITY", 3000);
-        let cache_max_hits = envmnt::get_u32("SCHEDULE_ID_CACHE_MAX_HITS", 10);
-        let cache_lifetife = envmnt::get_i64("SCHEDULE_ID_CACHE_LIFETIME_HOURS", 12);
+        let cache_capacity = env::get_parsed_or("SCHEDULE_ID_CACHE_CAPACITY", 3000);
+        let cache_max_hits = env::get_parsed_or("SCHEDULE_ID_CACHE_MAX_HITS", 10);
+        let cache_lifetife = env::get_parsed_or("SCHEDULE_ID_CACHE_LIFETIME_HOURS", 12);
 
         Self {
             api: MpeiApi::default(),

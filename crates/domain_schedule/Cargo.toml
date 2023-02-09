@@ -8,6 +8,7 @@ authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 common_errors = { workspace = true }
 common_in_memory_cache = { workspace = true }
 common_persistent_cache = { workspace = true }
+common_rust = { workspace = true }
 domain_schedule_models = { workspace = true }
 domain_schedule_shift = { workspace = true }
 
@@ -15,7 +16,6 @@ anyhow = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
 deadpool-postgres = { version = "0.10", features = ["serde"] }
 env_logger = { workspace = true }
-envmnt = "0.10.4"
 lazy_static = { version = "1.4" }
 log = { workspace = true }
 num-traits = { version = "0.2.15" }

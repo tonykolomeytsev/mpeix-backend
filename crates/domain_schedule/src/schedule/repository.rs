@@ -2,6 +2,7 @@ use anyhow::Context;
 use chrono::{Days, NaiveDate};
 use common_in_memory_cache::InMemoryCache;
 use common_persistent_cache::PersistentCache;
+use common_rust::env;
 use domain_schedule_models::dto::v1::{Schedule, ScheduleType};
 use tokio::sync::Mutex;
 
@@ -20,10 +21,10 @@ pub struct ScheduleRepository {
 
 impl Default for ScheduleRepository {
     fn default() -> Self {
-        let cache_capacity = envmnt::get_usize("SCHEDULE_CACHE_CAPACITY", 500);
-        let cache_max_hits = envmnt::get_u32("SCHEDULE_CACHE_MAX_HITS", 10);
-        let cache_lifetife = envmnt::get_i64("SCHEDULE_CACHE_LIFETIME_HOURS", 6);
-        let cache_dir = envmnt::get_or("SCHEDULE_CACHE_DIR", "./cache");
+        let cache_capacity = env::get_parsed_or("SCHEDULE_CACHE_CAPACITY", 500);
+        let cache_max_hits = env::get_parsed_or("SCHEDULE_CACHE_MAX_HITS", 10);
+        let cache_lifetife = env::get_parsed_or("SCHEDULE_CACHE_LIFETIME_HOURS", 6);
+        let cache_dir = env::get_or("SCHEDULE_CACHE_DIR", "./cache");
 
         Self {
             api: MpeiApi::default(),
