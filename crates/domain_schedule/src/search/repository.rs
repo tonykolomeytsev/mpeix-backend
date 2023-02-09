@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::{bail, Context};
 use common_in_memory_cache::InMemoryCache;
+use common_rust::env;
 use deadpool_postgres::Pool;
 use domain_schedule_models::dto::v1::{ScheduleSearchResult, ScheduleType};
 use log::info;
@@ -25,8 +26,8 @@ struct TypedSearchQuery(ScheduleSearchQuery, Option<ScheduleType>);
 
 impl ScheduleSearchRepository {
     pub fn new(db_pool: Arc<Pool>) -> Self {
-        let cache_capacity = envmnt::get_usize("SCHEDULE_SEARCH_CACHE_CAPACITY", 3000);
-        let cache_lifetife = envmnt::get_i64("SCHEDULE_SEARCH_CACHE_LIFETIME_MINUTES", 5);
+        let cache_capacity = env::get_parsed_or("SCHEDULE_SEARCH_CACHE_CAPACITY", 3000);
+        let cache_lifetife = env::get_parsed_or("SCHEDULE_SEARCH_CACHE_LIFETIME_MINUTES", 5);
 
         Self {
             api: MpeiApi::default(),

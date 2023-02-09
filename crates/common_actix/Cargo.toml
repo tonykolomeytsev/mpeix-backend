@@ -5,8 +5,9 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
+common_rust = { workspace = true }
+
 actix-web = { workspace = true }
 anyhow = { workspace = true }
-envmnt = "0.10.4"
 env_logger = { workspace = true }
 log = { workspace = true }
