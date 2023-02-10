@@ -2,7 +2,7 @@
 members = ["app_schedule", "app_telegram_bot", "app_vk_bot"]
 
 [workspace.package]
-version = "3.0.3"
+version = "3.0.4"
 
 [workspace.dependencies]
 # common crates

@@ -45,5 +45,9 @@ async fn init_app_components(app: &AppTelegramBot) -> anyhow::Result<()> {
     app.init_domain_bot_use_case
         .init()
         .await
-        .with_context(|| "domain_bot init error")
+        .with_context(|| "domain_bot init error")?;
+    app.feature_telegram_bot
+        .set_webhook()
+        .await
+        .with_context(|| "Set webhook error")
 }
