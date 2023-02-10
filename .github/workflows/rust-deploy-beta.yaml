@@ -6,10 +6,12 @@ on:
       - "beta/*"
 
 jobs:
-  deploy:
+  build:
     name: Release Build
     runs-on: ubuntu-latest
-    environment: "Deploy Environment"
+    strategy:
+      matrix:
+        app: [schedule, telegram-bot, vk-bot]
     steps:
       - uses: actions/checkout@v3
 
@@ -30,31 +32,31 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push app_schedule
+      - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           file: "./app_schedule/Dockerfile"
           push: true
-          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-schedule:${{ env.RELEASE_VERSION }}
+          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-${{ matrix.app }}:${{ env.RELEASE_VERSION }}
 
-      - name: Build and push app_telegram_bot
-        uses: docker/build-push-action@v4
-        with:
-          file: "./app_telegram_bot/Dockerfile"
-          push: true
-          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-telegram-bot:${{ env.RELEASE_VERSION }}
+  deploy:
+    name: Deploy Beta
+    runs-on: ubuntu-latest
+    environment: "Deploy Environment"
+    needs: build
+    steps:
+      - name: Put release version from tag name to ENV
+        run: |
+          echo "RELEASE_VERSION=beta-${GITHUB_REF#refs/*/*/}" >> $GITHUB_ENV
 
-      - name: Build and push app_vk_bot
-        uses: docker/build-push-action@v4
-        with:
-          file: "./app_vk_bot/Dockerfile"
-          push: true
-          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-vk-bot:${{ env.RELEASE_VERSION }}
-
-      - name: Trigger update on DEV VDS
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ env.DEV_VDS_HOST }}
-          username: ${{ env.DEV_VDS_USER }}
-          key: ${{ secrets.VDS_SSH_KEY }}
-          script: /root/autodeploy.sh ${{ env.RELEASE_VERSION }} schedule telegram-bot vk-bot
+      - name: Trigger update on DEV VDS via SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/deploy.key
+          chmod 600 ~/.ssh/deploy.key
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy.key $SSH_USER@$SSH_HOST \
+            "/root/autodeploy.sh ${{ env.RELEASE_VERSION }} schedule telegram-bot vk-bot"
+        env:
+          SSH_KEY: ${{ secrets.VDS_SSH_KEY }}
+          SSH_USER: ${{ vars.DEV_VDS_USER }}
+          SSH_HOST: ${{ vars.DEV_VDS_HOST }}
