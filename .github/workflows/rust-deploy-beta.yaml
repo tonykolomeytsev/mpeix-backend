@@ -19,6 +19,10 @@ jobs:
         run: |
           echo "RELEASE_VERSION=beta-${GITHUB_REF#refs/*/*/}" >> $GITHUB_ENV
 
+      - name: Put app name to ENV
+        run: |
+          echo "APP_NAME=app_$(echo "${{ matrix.app }}" | sed -r 's/[-]/_/g')" >> $GITHUB_ENV
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -35,7 +39,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          file: "./app_schedule/Dockerfile"
+          file: "./${{ env.APP_NAME }}/Dockerfile"
           push: true
           tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-${{ matrix.app }}:${{ env.RELEASE_VERSION }}
 
