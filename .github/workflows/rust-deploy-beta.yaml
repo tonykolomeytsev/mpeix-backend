@@ -49,7 +49,7 @@ jobs:
         with:
           file: "./app_vk_bot/Dockerfile"
           push: true
-          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-vk-bot:beta-${{ env.RELEASE_VERSION }}
+          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-vk-bot:${{ env.RELEASE_VERSION }}
 
       - name: Trigger update on DEV VDS
         uses: appleboy/ssh-action@v0.1.7
@@ -57,4 +57,4 @@ jobs:
           host: ${{ env.DEV_VDS_HOST }}
           username: ${{ env.DEV_VDS_USER }}
           key: ${{ secrets.VDS_SSH_KEY }}
-          script: /root/autodeploy.sh
+          script: /root/autodeploy.sh ${{ env.RELEASE_VERSION }} schedule telegram-bot vk-bot
