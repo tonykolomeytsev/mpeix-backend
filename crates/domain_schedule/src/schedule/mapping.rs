@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{Datelike, NaiveDate, NaiveTime};
+use chrono::{Datelike, NaiveDate, Timelike};
 use domain_schedule_models::dto::v1::{
     Classes, ClassesTime, ClassesType, Day, Schedule, ScheduleType, Week,
 };
@@ -97,21 +97,14 @@ fn check_is_not_empty(lecturer: &str) -> String {
 }
 
 fn get_number(time: &ClassesTime) -> i8 {
-    if time.start == NaiveTime::from_hms_opt(9, 20, 0).unwrap() {
-        1
-    } else if time.start == NaiveTime::from_hms_opt(11, 10, 0).unwrap() {
-        2
-    } else if time.start == NaiveTime::from_hms_opt(13, 45, 0).unwrap() {
-        3
-    } else if time.start == NaiveTime::from_hms_opt(15, 35, 0).unwrap() {
-        4
-    } else if time.start == NaiveTime::from_hms_opt(17, 20, 0).unwrap() {
-        5
-    } else if time.start == NaiveTime::from_hms_opt(18, 55, 0).unwrap() {
-        6
-    } else if time.start == NaiveTime::from_hms_opt(20, 30, 0).unwrap() {
-        7
-    } else {
-        -1
+    match (time.start.hour(), time.start.minute()) {
+        (9, 20) => 1,
+        (11, 10) => 2,
+        (13, 45) => 3,
+        (15, 35) => 4,
+        (17, 20) => 5,
+        (18, 55) => 6,
+        (20, 30) => 7,
+        _ => -1,
     }
 }
