@@ -279,13 +279,14 @@ impl GenerateReplyUseCase {
                 candidate.name.to_owned(),
             ))
         } else if !search_results.is_empty() {
+            let mut reversed_search_results = search_results
+                .into_iter()
+                .map(|it| it.name)
+                .collect::<Vec<String>>();
+            reversed_search_results.reverse();
             Ok(Reply::ScheduleSearchResults {
                 schedule_name: q.to_owned(),
-                results: search_results
-                    .into_iter()
-                    .take(3)
-                    .map(|it| it.name)
-                    .collect(),
+                results: reversed_search_results.into_iter().take(3).collect(),
             })
         } else {
             Ok(Reply::CannotFindSchedule(q.to_owned()))

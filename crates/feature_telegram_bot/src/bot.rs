@@ -7,7 +7,7 @@ use domain_bot::{
     usecases::GenerateReplyUseCase,
 };
 use domain_telegram_bot::{
-    usecases::{ReplyToTelegramUseCase, SetWebhookUseCase},
+    usecases::{DeleteMessageUseCase, ReplyToTelegramUseCase, SetWebhookUseCase},
     ChatType, CommonKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup,
     ReplyKeyboardRemove, Update,
 };
@@ -19,6 +19,7 @@ pub struct FeatureTelegramBot {
     pub(crate) generate_reply_use_case: Arc<GenerateReplyUseCase>,
     pub(crate) set_webhook_use_case: Arc<SetWebhookUseCase>,
     pub(crate) reply_to_telegram_use_case: Arc<ReplyToTelegramUseCase>,
+    pub(crate) delete_message_use_case: Arc<DeleteMessageUseCase>,
 }
 
 pub(crate) struct Config {
@@ -89,6 +90,9 @@ impl FeatureTelegramBot {
         } else {
             error!("Cannot send reply, because message is None");
         }
+
+        // TODO: hide search results message
+        let _ = self.delete_message_use_case;
 
         Ok(())
     }

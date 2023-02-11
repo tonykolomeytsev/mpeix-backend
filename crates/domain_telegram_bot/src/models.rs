@@ -11,7 +11,7 @@ pub struct Update {
 /// https://core.telegram.org/bots/api/#message
 #[derive(Debug, Deserialize)]
 pub struct Message {
-    pub message_id: i32,
+    pub message_id: i64,
     pub from: Option<User>,
     pub chat: Chat,
     pub text: Option<String>,

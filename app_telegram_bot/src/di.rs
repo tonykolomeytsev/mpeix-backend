@@ -9,7 +9,10 @@ use domain_bot::{
         GenerateReplyUseCase, GetUpcomingEventsUseCase, InitDomainBotUseCase, TextToActionUseCase,
     },
 };
-use domain_telegram_bot::usecases::{ReplyToTelegramUseCase, SetWebhookUseCase};
+use domain_telegram_bot::{
+    telegram_api::TelegramApi,
+    usecases::{DeleteMessageUseCase, ReplyToTelegramUseCase, SetWebhookUseCase},
+};
 use feature_telegram_bot::FeatureTelegramBot;
 
 use crate::AppTelegramBot;
@@ -31,14 +34,17 @@ pub fn create_app() -> AppTelegramBot {
         schedule_search_repository,
         get_upcoming_events_use_case,
     ));
-    let set_webhook_use_case = Arc::new(SetWebhookUseCase::default());
-    let reply_to_telegram_use_case = Arc::new(ReplyToTelegramUseCase::default());
+    let telegram_api = Arc::new(TelegramApi::default());
+    let set_webhook_use_case = Arc::new(SetWebhookUseCase::new(telegram_api.clone()));
+    let reply_to_telegram_use_case = Arc::new(ReplyToTelegramUseCase::new(telegram_api.clone()));
+    let delete_message_use_case = Arc::new(DeleteMessageUseCase::new(telegram_api));
 
     AppTelegramBot {
         feature_telegram_bot: FeatureTelegramBot::new(
             generate_reply_use_case,
             set_webhook_use_case,
             reply_to_telegram_use_case,
+            delete_message_use_case,
         ),
         init_domain_bot_use_case: InitDomainBotUseCase::new(peer_repository),
     }

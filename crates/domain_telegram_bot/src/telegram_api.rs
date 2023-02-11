@@ -91,4 +91,34 @@ impl TelegramApi {
             ))))
         }
     }
+
+    pub async fn delete_message(&self, chat_id: i64, message_id: i64) -> anyhow::Result<()> {
+        let access_token = &self.access_token;
+        let response = self
+            .client
+            .get(format!(
+                "https://api.telegram.org/bot{access_token}/sendMessage"
+            ))
+            .query(&[
+                ("chat_id", &chat_id.to_string()),
+                ("message_id", &message_id.to_string()),
+            ])
+            .send()
+            .await
+            .map_err(|e| anyhow!(CommonError::gateway(e)))
+            .with_context(|| "Error while executing a request to telegram backend")?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            let status = response.status();
+            let text = response
+                .text()
+                .await
+                .unwrap_or_else(|e| format!("Failed to get error text ({e})"));
+            Err(anyhow!(CommonError::gateway(format!(
+                "Telegram response: {status}, {text}"
+            ))))
+        }
+    }
 }
