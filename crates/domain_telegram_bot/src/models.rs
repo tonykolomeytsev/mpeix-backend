@@ -21,7 +21,8 @@ pub struct Message {
 #[derive(Debug, Deserialize)]
 pub struct CallbackQuery {
     pub id: String,
-    pub message: Message,
+    pub message: Option<Message>,
+    pub data: Option<String>,
 }
 
 /// https://core.telegram.org/bots/api/#user
@@ -67,6 +68,7 @@ pub struct InlineKeyboardMarkup {
 #[derive(Debug, Serialize, Clone)]
 pub struct InlineKeyboardButton {
     pub text: String,
+    pub callback_data: String,
 }
 
 /// https://core.telegram.org/bots/api/#replykeyboardmarkup

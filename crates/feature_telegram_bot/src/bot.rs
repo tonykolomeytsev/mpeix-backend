@@ -8,7 +8,7 @@ use domain_bot::{
 };
 use domain_telegram_bot::{
     usecases::{ReplyToTelegramUseCase, SetWebhookUseCase},
-    ChatType, CommonKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup,
+    ChatType, CommonKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, Message,
     ReplyKeyboardRemove, Update,
 };
 use log::error;
@@ -35,9 +35,10 @@ impl Default for Config {
 }
 
 macro_rules! inline_button {
-    ($text:expr $(,)?) => {
+    ($text:expr, $cq:expr $(,)?) => {
         InlineKeyboardButton {
             text: $text.to_owned(),
+            callback_data: $cq.to_owned(),
         }
     };
 }
@@ -58,8 +59,17 @@ impl FeatureTelegramBot {
             secret == self.config.secret,
             CommonError::user("Request has invalid secret key")
         );
-        if let Some(message) = update.message {
-            let reply = if let Some(text) = message.text {
+        let (text, message) = if let Some(cq) = update.callback_query {
+            (cq.data, cq.message)
+        } else {
+            (
+                update.message.as_ref().and_then(|it| it.text.to_owned()),
+                update.message,
+            )
+        };
+
+        if let Some(message) = message {
+            let reply = if let Some(text) = text {
                 self.generate_reply_use_case
                     .generate_reply(PlatformId::Telegram(message.chat.id), &text)
                     .await
@@ -70,20 +80,17 @@ impl FeatureTelegramBot {
             } else {
                 Reply::UnknownMessageType
             };
-
             let text = domain_bot::renderer::render_message(&reply, RenderTargetPlatform::Telegram);
             let keyboard = self.render_keyboard(&reply, &message.chat.r#type);
             self.reply_to_telegram_use_case
                 .reply(&text, message.chat.id, &keyboard)
                 .await
                 .with_context(|| "Error while sending reply to telegram")?;
-
-            Ok(())
         } else {
-            Err(anyhow!(CommonError::user(
-                "Callback with null 'message' field"
-            )))
+            error!("Cannot send reply, because message is None");
         }
+
+        Ok(())
     }
 
     fn render_keyboard(&self, reply: &Reply, chat_type: &ChatType) -> CommonKeyboardMarkup {
@@ -97,7 +104,7 @@ impl FeatureTelegramBot {
             ) => CommonKeyboardMarkup::Inline(InlineKeyboardMarkup {
                 inline_keyboard: results
                     .iter()
-                    .map(|text| vec![inline_button!(text)])
+                    .map(|text| vec![inline_button!(text, text)])
                     .collect(),
             }),
             _ => KEYBOARD_EMPTY.to_owned(),
