@@ -1,6 +1,6 @@
 use std::{env, sync::Arc};
 
-use anyhow::{anyhow, ensure, Context};
+use anyhow::{ensure, Context};
 use common_errors::errors::CommonError;
 use domain_bot::{
     models::Reply, peer::repository::PlatformId, renderer::RenderTargetPlatform,
@@ -8,7 +8,7 @@ use domain_bot::{
 };
 use domain_telegram_bot::{
     usecases::{ReplyToTelegramUseCase, SetWebhookUseCase},
-    ChatType, CommonKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, Message,
+    ChatType, CommonKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup,
     ReplyKeyboardRemove, Update,
 };
 use log::error;

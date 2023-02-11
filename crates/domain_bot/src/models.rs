@@ -16,6 +16,7 @@ impl Peer {
 }
 
 /// Input actions for the bot
+#[derive(Debug, PartialEq, Eq)]
 pub enum UserAction {
     /// User just started communicating with the bot and sent the "Start" command
     Start,
