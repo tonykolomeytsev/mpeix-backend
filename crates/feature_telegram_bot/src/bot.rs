@@ -68,7 +68,6 @@ static KEYBOARD_DEFAULT: Lazy<CommonKeyboardMarkup> = Lazy::new(|| {
             vec![button!("Помощь"), button!("Сменить расписание")],
         ],
         one_time_keyboard: false,
-        input_field_placeholder: None,
     })
 });
 

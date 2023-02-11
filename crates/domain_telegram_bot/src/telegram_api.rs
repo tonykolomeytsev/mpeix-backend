@@ -82,7 +82,10 @@ impl TelegramApi {
             Ok(())
         } else {
             let status = response.status();
-            let text = response.text().await?;
+            let text = response
+                .text()
+                .await
+                .unwrap_or_else(|e| format!("Failed to get error text ({e})"));
             Err(anyhow!(CommonError::gateway(format!(
                 "Telegram response: {status}, {text}"
             ))))

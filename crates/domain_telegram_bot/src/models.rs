@@ -74,8 +74,6 @@ pub struct InlineKeyboardButton {
 pub struct ReplyKeyboardMarkup {
     pub keyboard: Vec<Vec<KeyboardButton>>,
     pub one_time_keyboard: bool,
-    /// Placeholder length should be from 1 to 64 chars
-    pub input_field_placeholder: Option<String>,
 }
 
 /// https://core.telegram.org/bots/api/#keyboardbutton
