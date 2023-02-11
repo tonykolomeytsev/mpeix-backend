@@ -65,6 +65,14 @@ pub fn render_message(reply: &Reply, platform: RenderTargetPlatform) -> String {
             }
             RenderTargetPlatform::Vk => include_str!("../res/msg_show_help_vk.txt").to_owned(),
         },
+        Reply::UnknownCommand => match platform {
+            RenderTargetPlatform::Telegram => {
+                include_str!("../res/msg_unknown_command_telegram.txt").to_owned()
+            }
+            RenderTargetPlatform::Vk => {
+                include_str!("../res/msg_unknown_command_vk.txt").to_owned()
+            }
+        },
         Reply::UnknownMessageType => match platform {
             RenderTargetPlatform::Telegram => {
                 include_str!("../res/msg_unknown_message_type_telegram.txt").to_owned()

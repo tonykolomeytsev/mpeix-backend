@@ -133,7 +133,9 @@ impl FeatureVkBot {
 
     fn render_keyboard(&self, reply: &Reply, peer_type: &MessagePeerType) -> Keyboard {
         match (reply, peer_type) {
-            (Reply::UnknownMessageType, _) => KEYBOARD_INLINE_HELP.to_owned(),
+            (Reply::UnknownMessageType | Reply::UnknownCommand, _) => {
+                KEYBOARD_INLINE_HELP.to_owned()
+            }
             (_, MessagePeerType::GroupChat) => KEYBOARD_EMPTY.to_owned(),
             (
                 Reply::ScheduleSearchResults {

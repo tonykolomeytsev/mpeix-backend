@@ -61,6 +61,7 @@ pub enum Reply {
     CannotFindSchedule(String),
     ReadyToChangeSchedule,
     ShowHelp,
+    UnknownCommand,
     /// Type for non-text messages
     UnknownMessageType,
     /// Type for default error message

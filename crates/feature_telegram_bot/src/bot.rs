@@ -6,11 +6,10 @@ use domain_bot::{
     models::Reply, peer::repository::PlatformId, renderer::RenderTargetPlatform,
     usecases::GenerateReplyUseCase,
 };
-use domain_telegram_bot::KeyboardButton;
 use domain_telegram_bot::{
     usecases::{ReplyToTelegramUseCase, SetWebhookUseCase},
     ChatType, CommonKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup,
-    ReplyKeyboardMarkup, ReplyKeyboardRemove, Update,
+    ReplyKeyboardRemove, Update,
 };
 use log::error;
 use once_cell::sync::Lazy;
@@ -42,32 +41,10 @@ macro_rules! inline_button {
         }
     };
 }
-macro_rules! button {
-    ($text:expr $(,)?) => {
-        KeyboardButton {
-            text: $text.to_owned(),
-        }
-    };
-}
 
 static KEYBOARD_EMPTY: Lazy<CommonKeyboardMarkup> = Lazy::new(|| {
     CommonKeyboardMarkup::Remove(ReplyKeyboardRemove {
         remove_keyboard: true,
-    })
-});
-static KEYBOARD_INLINE_HELP: Lazy<CommonKeyboardMarkup> = Lazy::new(|| {
-    CommonKeyboardMarkup::Inline(InlineKeyboardMarkup {
-        inline_keyboard: vec![vec![inline_button!("Помощь")]],
-    })
-});
-static KEYBOARD_DEFAULT: Lazy<CommonKeyboardMarkup> = Lazy::new(|| {
-    CommonKeyboardMarkup::Reply(ReplyKeyboardMarkup {
-        keyboard: vec![
-            vec![button!("Ближайшие пары")],
-            vec![button!("Пары сегодня"), button!("Пары завтра")],
-            vec![button!("Помощь"), button!("Сменить расписание")],
-        ],
-        one_time_keyboard: false,
     })
 });
 
@@ -111,8 +88,6 @@ impl FeatureTelegramBot {
 
     fn render_keyboard(&self, reply: &Reply, chat_type: &ChatType) -> CommonKeyboardMarkup {
         match (reply, chat_type) {
-            (Reply::UnknownMessageType, _) => KEYBOARD_INLINE_HELP.to_owned(),
-            (_, t) if !matches!(t, ChatType::Private) => KEYBOARD_EMPTY.to_owned(),
             (
                 Reply::ScheduleSearchResults {
                     schedule_name: _,
@@ -125,7 +100,7 @@ impl FeatureTelegramBot {
                     .map(|text| vec![inline_button!(text)])
                     .collect(),
             }),
-            _ => KEYBOARD_DEFAULT.to_owned(),
+            _ => KEYBOARD_EMPTY.to_owned(),
         }
     }
 }

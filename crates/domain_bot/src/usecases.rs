@@ -171,9 +171,7 @@ impl GenerateReplyUseCase {
                 if peer.selecting_schedule || peer.is_not_started() {
                     self.handle_schedule_search(peer, &q).await
                 } else {
-                    Err(anyhow!(CommonError::user(format!(
-                        "Unknown command: {text}"
-                    ))))
+                    Ok(Reply::UnknownCommand)
                 }
             }
             UserAction::ChangeScheduleIntent => {
