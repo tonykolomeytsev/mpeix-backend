@@ -81,9 +81,10 @@ impl TelegramApi {
         if response.status().is_success() {
             Ok(())
         } else {
+            let status = response.status();
+            let text = response.text().await?;
             Err(anyhow!(CommonError::gateway(format!(
-                "Telegram backend response status: {}",
-                response.status()
+                "Telegram response: {status}, {text}"
             ))))
         }
     }
