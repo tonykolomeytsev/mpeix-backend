@@ -98,7 +98,11 @@ impl TextToActionUseCase {
                     let (requested_day_of_week, _) = DAY_OF_WEEK_MAP
                         .iter()
                         .find(|(_, v)| v.contains(&cleared_text))
-                        .expect("Fatal error: text present in pattern but absent in map");
+                        .ok_or_else(|| {
+                            CommonError::internal(
+                                "Error: text present in pattern but absent in map (day of week)",
+                            )
+                        })?;
                     let requested_day_of_week = *requested_day_of_week as u32;
                     let current_day_of_week = Local::now().weekday().number_from_monday();
                     let day_offset = match current_day_of_week.cmp(&requested_day_of_week) {
@@ -113,7 +117,11 @@ impl TextToActionUseCase {
                     let (requested_day_offset, _) = REL_DAY_PTR_MAP
                         .iter()
                         .find(|(_, v)| v.contains(&cleared_text))
-                        .expect("Fatal error: text present in pattern but absent in map");
+                        .ok_or_else(|| {
+                            CommonError::internal(
+                                "Error: text present in pattern but absent in map (rel day ptr)",
+                            )
+                        })?;
                     Ok(UserAction::DayWithOffset(*requested_day_offset))
                 } else {
                     Ok(UserAction::Unknown(cleared_text.to_owned()))
