@@ -7,7 +7,6 @@ pub struct VkCallbackRequest {
     #[serde(default)]
     pub r#type: VkCallbackType,
     pub group_id: i64,
-    pub event_id: i64,
     pub secret: Option<String>,
     pub object: Option<NewMessageObject>,
 }

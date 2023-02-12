@@ -47,6 +47,7 @@ pub struct Chat {
 pub enum ChatType {
     Private,
     Group,
+    #[serde(alias = "supergroup")]
     SuperGroup,
     Channel,
     Unknown,
