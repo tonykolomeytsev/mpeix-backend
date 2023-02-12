@@ -64,3 +64,11 @@ jobs:
           SSH_KEY: ${{ secrets.VDS_SSH_KEY }}
           SSH_USER: ${{ vars.DEV_VDS_USER }}
           SSH_HOST: ${{ vars.DEV_VDS_HOST }}
+
+      - name: Send Telegram message
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_BOT_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
+          message: mpeix-backend ${{ env.RELEASE_VERSION }} has been successfully deployed on the test server
