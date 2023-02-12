@@ -55,11 +55,6 @@ macro_rules! button {
     };
 }
 
-static KEYBOARD_EMPTY: Lazy<Keyboard> = Lazy::new(|| Keyboard {
-    buttons: vec![vec![]],
-    inline: false,
-    one_time: false,
-});
 static KEYBOARD_INLINE_HELP: Lazy<Keyboard> = Lazy::new(|| Keyboard {
     buttons: vec![vec![button!("Помощь", Some("primary".to_owned()))]],
     inline: true,
@@ -114,7 +109,7 @@ impl FeatureVkBot {
                         domain_bot::renderer::render_message(&reply, RenderTargetPlatform::Vk);
                     let keyboard = self.render_keyboard(&reply, &message.peer_type());
                     self.reply_to_vk_use_case
-                        .reply(&text, message.peer_id, &keyboard)
+                        .reply(&text, message.peer_id, keyboard)
                         .await
                         .with_context(|| "Error while sending reply to vk")?;
 
@@ -131,24 +126,24 @@ impl FeatureVkBot {
         }
     }
 
-    fn render_keyboard(&self, reply: &Reply, peer_type: &MessagePeerType) -> Keyboard {
+    fn render_keyboard(&self, reply: &Reply, peer_type: &MessagePeerType) -> Option<Keyboard> {
         match (reply, peer_type) {
             (Reply::UnknownMessageType | Reply::UnknownCommand, _) => {
-                KEYBOARD_INLINE_HELP.to_owned()
+                Some(KEYBOARD_INLINE_HELP.to_owned())
             }
-            (_, MessagePeerType::GroupChat) => KEYBOARD_EMPTY.to_owned(),
+            (_, MessagePeerType::GroupChat) => None,
             (
                 Reply::ScheduleSearchResults {
                     schedule_name: _,
                     results,
                 },
                 _,
-            ) => Keyboard {
+            ) => Some(Keyboard {
                 buttons: results.iter().map(|it| vec![button!(it, None)]).collect(),
                 inline: true,
                 one_time: false,
-            },
-            _ => KEYBOARD_DEFAULT.to_owned(),
+            }),
+            _ => Some(KEYBOARD_DEFAULT.to_owned()),
         }
     }
 }
