@@ -252,8 +252,8 @@ impl SearchScheduleUseCase {
 
         let max_idx = db_results.len();
         db_results.sort_by(|a, b| {
-            let idx_a = a.name.find(query.as_ref()).or(Some(max_idx));
-            let idx_b = b.name.find(query.as_ref()).or(Some(max_idx));
+            let idx_a = a.name.to_lowercase().find(query.as_ref()).or(Some(max_idx));
+            let idx_b = b.name.to_lowercase().find(query.as_ref()).or(Some(max_idx));
             idx_a.cmp(&idx_b)
         });
 

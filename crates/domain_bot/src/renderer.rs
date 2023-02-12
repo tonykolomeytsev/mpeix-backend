@@ -49,12 +49,16 @@ pub fn render_message(reply: &Reply, platform: RenderTargetPlatform) -> String {
         Reply::ScheduleSearchResults {
             schedule_name,
             results: _,
+            results_contains_person: _,
         } => format!(
             include_str!("../res/msg_schedule_search_results.txt"),
             schedule_name = &schedule_name
         ),
         Reply::CannotFindSchedule(q) => {
-            format!(include_str!("../res/msg_cannot_find_schedule.txt"), q = &q)
+            format!(
+                include_str!("../res/msg_cannot_find_schedule.txt"),
+                schedule_name = q
+            )
         }
         Reply::ReadyToChangeSchedule => {
             include_str!("../res/msg_ready_to_change_schedule.txt").to_owned()

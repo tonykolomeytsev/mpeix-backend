@@ -58,11 +58,6 @@ impl VkApi {
             .with_context(|| "Error while executing a request to vk backend")?;
 
         if response.status().is_success() {
-            dbg!(&(
-                "response from vk server: ",
-                response.status(),
-                response.text().await
-            ));
             Ok(())
         } else {
             Err(anyhow!(CommonError::gateway(format!(

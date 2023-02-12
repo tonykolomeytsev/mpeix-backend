@@ -136,14 +136,44 @@ impl FeatureVkBot {
                 Reply::ScheduleSearchResults {
                     schedule_name: _,
                     results,
+                    results_contains_person,
                 },
                 _,
-            ) => Some(Keyboard {
+            ) => Some(self.render_search_results_keyboard(results, *results_contains_person)),
+            _ => Some(KEYBOARD_DEFAULT.to_owned()),
+        }
+    }
+
+    fn render_search_results_keyboard(
+        &self,
+        results: &[String],
+        results_contains_person: bool,
+    ) -> Keyboard {
+        if results_contains_person {
+            return Keyboard {
                 buttons: results.iter().map(|it| vec![button!(it, None)]).collect(),
                 inline: true,
                 one_time: false,
-            }),
-            _ => Some(KEYBOARD_DEFAULT.to_owned()),
+            };
+        }
+
+        let mut buttons: Vec<Vec<KeyboardButton>> = vec![];
+        let mut iter = results.iter();
+        let mut i = 0;
+
+        while i < results.len() - 1 {
+            if let (Some(btn1), Some(btn2)) = (iter.next(), iter.next()) {
+                buttons.push(vec![button!(btn1, None), button!(btn2, None)]);
+            }
+            i += 2;
+        }
+        if let Some(btn) = iter.next() {
+            buttons.push(vec![button!(btn, None)]);
+        }
+        Keyboard {
+            buttons,
+            inline: true,
+            one_time: false,
         }
     }
 }

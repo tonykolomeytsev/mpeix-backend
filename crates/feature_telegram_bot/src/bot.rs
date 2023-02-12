@@ -103,6 +103,7 @@ impl FeatureTelegramBot {
                 Reply::ScheduleSearchResults {
                     schedule_name: _,
                     results,
+                    results_contains_person: _,
                 },
                 _,
             ) => CommonKeyboardMarkup::Inline(InlineKeyboardMarkup {

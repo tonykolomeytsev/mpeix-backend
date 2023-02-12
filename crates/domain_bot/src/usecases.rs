@@ -3,7 +3,7 @@ use std::{cmp::Ordering, sync::Arc};
 use anyhow::{anyhow, Context};
 use chrono::{Datelike, Days, Local};
 use common_errors::errors::CommonError;
-use domain_schedule_models::dto::v1::{Classes, Day};
+use domain_schedule_models::dto::v1::{Classes, Day, ScheduleType};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -154,12 +154,20 @@ impl GenerateReplyUseCase {
     ) -> anyhow::Result<Reply> {
         let action = self.0.text_to_action(text)?;
         let peer = self.1.get_peer_by_platform_id(platform_id).await?;
+        // handle initial state
+        if peer.selected_schedule.is_empty() && !matches!(&action, UserAction::Unknown(_)) {
+            return if peer.selecting_schedule {
+                Ok(Reply::ReadyToChangeSchedule)
+            } else {
+                self.handle_start(peer).await
+            };
+        }
         match action {
             UserAction::Start => self.handle_start(peer).await,
             UserAction::WeekWithOffset(offset) => self.handle_week_with_offset(peer, offset).await,
             UserAction::DayWithOffset(offset) => self.handle_day_with_offset(peer, offset).await,
             UserAction::Unknown(q) => {
-                if peer.selecting_schedule || peer.is_not_started() {
+                if peer.selecting_schedule || peer.selected_schedule.is_empty() {
                     self.handle_schedule_search(peer, &q).await
                 } else {
                     Ok(Reply::UnknownCommand)
@@ -182,7 +190,7 @@ impl GenerateReplyUseCase {
     /// Process `/start` command.
     /// This command can usually be sent by new bot users.
     async fn handle_start(&self, peer: Peer) -> anyhow::Result<Reply> {
-        if peer.is_not_started() {
+        if peer.selected_schedule.is_empty() {
             self.1
                 .save_peer(Peer {
                     selecting_schedule: true,
@@ -191,9 +199,9 @@ impl GenerateReplyUseCase {
                 .await?;
             Ok(Reply::StartGreetings)
         } else {
-            Ok(Reply::AlreadyStarted {
-                schedule_name: peer.selected_schedule,
-            })
+            let schedule_name = peer.selected_schedule.to_owned();
+            self.reset_schedule_selection_if_needed(peer).await?;
+            Ok(Reply::AlreadyStarted { schedule_name })
         }
     }
 
@@ -208,6 +216,7 @@ impl GenerateReplyUseCase {
                 offset,
             )
             .await?;
+        self.reset_schedule_selection_if_needed(peer).await?;
         Ok(Reply::Week {
             week_offset: offset,
             week: schedule
@@ -250,6 +259,7 @@ impl GenerateReplyUseCase {
                 date: selected_date,
                 classes: Vec::with_capacity(0),
             });
+        self.reset_schedule_selection_if_needed(peer).await?;
         Ok(Reply::Day {
             day_offset: offset,
             day,
@@ -279,18 +289,41 @@ impl GenerateReplyUseCase {
                 candidate.name.to_owned(),
             ))
         } else if !search_results.is_empty() {
-            let mut reversed_search_results = search_results
-                .into_iter()
-                .map(|it| it.name)
-                .collect::<Vec<String>>();
-            reversed_search_results.reverse();
+            let mut results = search_results;
+            let max_idx = results.len();
+            results.sort_by(|a, b| {
+                let idx_a = a.name.to_lowercase().find(q).or(Some(max_idx));
+                let idx_b = b.name.to_lowercase().find(q).or(Some(max_idx));
+                idx_a.cmp(&idx_b)
+            });
+            let results_contains_person = results
+                .iter()
+                .any(|it| matches!(it.r#type, ScheduleType::Person));
+
             Ok(Reply::ScheduleSearchResults {
                 schedule_name: q.to_owned(),
-                results: reversed_search_results.into_iter().take(3).collect(),
+                results_contains_person,
+                results: if results_contains_person {
+                    results.into_iter().take(3).map(|it| it.name).collect()
+                } else {
+                    results.into_iter().take(6).map(|it| it.name).collect()
+                },
             })
         } else {
             Ok(Reply::CannotFindSchedule(q.to_owned()))
         }
+    }
+
+    async fn reset_schedule_selection_if_needed(&self, peer: Peer) -> anyhow::Result<()> {
+        if peer.selecting_schedule {
+            self.1
+                .save_peer(Peer {
+                    selecting_schedule: false,
+                    ..peer
+                })
+                .await?;
+        }
+        Ok(())
     }
 }
 
