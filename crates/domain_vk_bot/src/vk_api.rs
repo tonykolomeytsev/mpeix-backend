@@ -4,6 +4,8 @@ use anyhow::{anyhow, Context};
 use common_errors::errors::CommonError;
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 
+use crate::MessagePeerType;
+
 const VK_API_VERSION: &str = "5.130";
 
 /// Representation of the VK API
@@ -34,6 +36,7 @@ impl VkApi {
         &self,
         text: &str,
         peer_id: i64,
+        peer_type: &MessagePeerType,
         additional_query: Option<&[(&str, &str)]>,
     ) -> anyhow::Result<()> {
         let mut request = self
@@ -43,7 +46,14 @@ impl VkApi {
                 ("v", VK_API_VERSION),
                 ("access_token", &self.access_token),
                 ("random_id", &rand::random::<i32>().to_string()),
-                ("peer_id", &peer_id.to_string()),
+                (
+                    if matches!(peer_type, MessagePeerType::GroupChat) {
+                        "chat_id"
+                    } else {
+                        "peer_id"
+                    },
+                    &peer_id.to_string(),
+                ),
                 ("message", text),
             ]);
         if let Some(query) = additional_query {
