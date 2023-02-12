@@ -92,7 +92,7 @@ impl FeatureVkBot {
 
         match callback.r#type {
             VkCallbackType::Confirmation => Ok(Some(self.config.confirmation_code.to_owned())),
-            VkCallbackType::NewMessage => {
+            VkCallbackType::MessageNew => {
                 if let Some(NewMessageObject {
                     message,
                     client_info: _,
