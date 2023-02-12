@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Context;
 use common_errors::errors::CommonError;
 
@@ -5,8 +7,7 @@ use crate::{telegram_api::TelegramApi, CommonKeyboardMarkup};
 
 /// Set weebhookfor Telegram Bot API manually.
 /// This use case must be started **STRICTLY** before the server starts.
-#[derive(Default)]
-pub struct SetWebhookUseCase(TelegramApi);
+pub struct SetWebhookUseCase(pub(crate) Arc<TelegramApi>);
 
 impl SetWebhookUseCase {
     pub async fn set_webhook(&self) -> anyhow::Result<()> {
@@ -15,8 +16,7 @@ impl SetWebhookUseCase {
 }
 
 /// Send message reply to Telegram
-#[derive(Default)]
-pub struct ReplyToTelegramUseCase(TelegramApi);
+pub struct ReplyToTelegramUseCase(pub(crate) Arc<TelegramApi>);
 
 impl ReplyToTelegramUseCase {
     pub async fn reply(
@@ -36,5 +36,17 @@ impl ReplyToTelegramUseCase {
         self.0
             .send_message(text, chat_id, Some(&[("reply_markup", &keyboard)]))
             .await
+    }
+}
+
+/// Delete message in telegram chat
+pub struct DeleteMessageUseCase(pub(crate) Arc<TelegramApi>);
+
+impl DeleteMessageUseCase {
+    pub async fn delete_message(&self, chat_id: i64, message_id: i64) -> anyhow::Result<()> {
+        self.0
+            .delete_message(chat_id, message_id)
+            .await
+            .with_context(|| "Error while deleting message")
     }
 }

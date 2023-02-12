@@ -7,7 +7,6 @@ pub struct VkCallbackRequest {
     #[serde(default)]
     pub r#type: VkCallbackType,
     pub group_id: i64,
-    pub event_id: i64,
     pub secret: Option<String>,
     pub object: Option<NewMessageObject>,
 }
@@ -16,7 +15,7 @@ pub struct VkCallbackRequest {
 #[serde(rename_all = "snake_case")]
 pub enum VkCallbackType {
     Confirmation,
-    NewMessage,
+    MessageNew,
     Unknown,
 }
 
@@ -37,7 +36,6 @@ pub struct Message {
     pub id: i64,
     pub date: u64,
     pub peer_id: i64,
-    pub chat_id: i64,
     pub from_id: i64,
     pub text: Option<String>,
     pub payload: Option<String>,

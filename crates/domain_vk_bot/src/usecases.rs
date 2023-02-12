@@ -8,12 +8,21 @@ use crate::{vk_api::VkApi, Keyboard};
 pub struct ReplyToVkUseCase(VkApi);
 
 impl ReplyToVkUseCase {
-    pub async fn reply(&self, text: &str, peer_id: i64, keyboard: &Keyboard) -> anyhow::Result<()> {
-        let keyboard = serde_json::to_string(keyboard).with_context(|| {
-            CommonError::internal("Error while serializing vk keyboard to JSON")
-        })?;
-        self.0
-            .send_message(text, peer_id, Some(&[("keyboard", &keyboard)]))
-            .await
+    pub async fn reply(
+        &self,
+        text: &str,
+        peer_id: i64,
+        keyboard: Option<Keyboard>,
+    ) -> anyhow::Result<()> {
+        if let Some(keyboard) = keyboard {
+            let keyboard = serde_json::to_string(&keyboard).with_context(|| {
+                CommonError::internal("Error while serializing vk keyboard to JSON")
+            })?;
+            self.0
+                .send_message(text, peer_id, Some(&[("keyboard", &keyboard)]))
+                .await
+        } else {
+            self.0.send_message(text, peer_id, None).await
+        }
     }
 }

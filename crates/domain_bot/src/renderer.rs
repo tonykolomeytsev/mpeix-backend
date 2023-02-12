@@ -13,10 +13,9 @@ pub enum RenderTargetPlatform {
 pub fn render_message(reply: &Reply, platform: RenderTargetPlatform) -> String {
     match reply {
         Reply::StartGreetings => include_str!("../res/msg_cannot_find_schedule.txt").to_owned(),
-        Reply::AlreadyStarted { schedule_name } => format!(
-            include_str!("../res/msg_already_started.txt"),
-            schedule_name = &schedule_name
-        ),
+        Reply::AlreadyStarted { schedule_name: _ } => {
+            include_str!("../res/msg_already_started.txt").to_owned()
+        }
         Reply::Week {
             week_offset,
             week,
@@ -65,6 +64,14 @@ pub fn render_message(reply: &Reply, platform: RenderTargetPlatform) -> String {
                 include_str!("../res/msg_show_help_telegram.txt").to_owned()
             }
             RenderTargetPlatform::Vk => include_str!("../res/msg_show_help_vk.txt").to_owned(),
+        },
+        Reply::UnknownCommand => match platform {
+            RenderTargetPlatform::Telegram => {
+                include_str!("../res/msg_unknown_command_telegram.txt").to_owned()
+            }
+            RenderTargetPlatform::Vk => {
+                include_str!("../res/msg_unknown_command_vk.txt").to_owned()
+            }
         },
         Reply::UnknownMessageType => match platform {
             RenderTargetPlatform::Telegram => {

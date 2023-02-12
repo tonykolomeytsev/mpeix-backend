@@ -14,7 +14,7 @@ use crate::{AppSchedule, AppScheduleError};
 
 /// Health check method
 /// Returns `200 OK` with text `"I'm alive"` if service is alive
-#[actix_web::get("/v1/health")]
+#[actix_web::get("v1/health")]
 async fn health() -> impl Responder {
     HttpResponse::Ok().body("I'm alive :)")
 }
@@ -24,7 +24,7 @@ struct GetIdResponse {
     id: i64,
 }
 
-#[actix_web::get("/v1/{type}/{name}/id")]
+#[actix_web::get("v1/{type}/{name}/id")]
 async fn get_id_v1(
     path: Path<(String, String)>,
     state: Data<AppSchedule>,
@@ -36,7 +36,7 @@ async fn get_id_v1(
     }))
 }
 
-#[actix_web::get("/v1/{type}/{name}/schedule/{offset}")]
+#[actix_web::get("v1/{type}/{name}/schedule/{offset}")]
 async fn get_schedule_v1(
     path: Path<(String, String, i32)>,
     state: Data<AppSchedule>,
@@ -60,7 +60,7 @@ struct SearchQuery {
     r#type: Option<String>,
 }
 
-#[actix_web::get("/v1/search")]
+#[actix_web::get("v1/search")]
 async fn search_schedule_v1(
     query: Query<SearchQuery>,
     state: Data<AppSchedule>,

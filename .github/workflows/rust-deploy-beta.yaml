@@ -6,16 +6,22 @@ on:
       - "beta/*"
 
 jobs:
-  deploy:
-    name: Release Build
+  build:
+    name: Build
     runs-on: ubuntu-latest
-    environment: "Deploy Environment"
+    strategy:
+      matrix:
+        app: [schedule, telegram-bot, vk-bot]
     steps:
       - uses: actions/checkout@v3
 
       - name: Put release version from tag name to ENV
         run: |
           echo "RELEASE_VERSION=beta-${GITHUB_REF#refs/*/*/}" >> $GITHUB_ENV
+
+      - name: Put app name to ENV
+        run: |
+          echo "APP_NAME=app_$(echo "${{ matrix.app }}" | sed -r 's/[-]/_/g')" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -30,23 +36,39 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push app_schedule
+      - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          file: "./app_schedule/Dockerfile"
+          file: "./${{ env.APP_NAME }}/Dockerfile"
           push: true
-          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-schedule:${{ env.RELEASE_VERSION }}
+          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-${{ matrix.app }}:${{ env.RELEASE_VERSION }}
 
-      - name: Build and push app_telegram_bot
-        uses: docker/build-push-action@v4
-        with:
-          file: "./app_telegram_bot/Dockerfile"
-          push: true
-          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-telegram-bot:${{ env.RELEASE_VERSION }}
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: "Deploy Environment"
+    needs: build
+    steps:
+      - name: Put release version from tag name to ENV
+        run: |
+          echo "RELEASE_VERSION=beta-${GITHUB_REF#refs/*/*/}" >> $GITHUB_ENV
 
-      - name: Build and push app_vk_bot
-        uses: docker/build-push-action@v4
+      - name: Trigger update on DEV VDS via SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/deploy.key
+          chmod 600 ~/.ssh/deploy.key
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy.key $SSH_USER@$SSH_HOST \
+            "/root/autodeploy.sh ${{ env.RELEASE_VERSION }} schedule telegram-bot vk-bot"
+        env:
+          SSH_KEY: ${{ secrets.VDS_SSH_KEY }}
+          SSH_USER: ${{ vars.DEV_VDS_USER }}
+          SSH_HOST: ${{ vars.DEV_VDS_HOST }}
+
+      - name: Send Telegram message
+        uses: appleboy/telegram-action@master
         with:
-          file: "./app_vk_bot/Dockerfile"
-          push: true
-          tags: ghcr.io/tonykolomeytsev/mpeix-backend-app-vk-bot:beta-${{ env.RELEASE_VERSION }}
+          to: ${{ secrets.TELEGRAM_BOT_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
+          message: "**mpeix-backend ${{ env.RELEASE_VERSION }}** has been successfully deployed on the test server"

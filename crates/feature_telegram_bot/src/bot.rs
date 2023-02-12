@@ -1,16 +1,15 @@
 use std::{env, sync::Arc};
 
-use anyhow::{anyhow, ensure, Context};
+use anyhow::{ensure, Context};
 use common_errors::errors::CommonError;
 use domain_bot::{
     models::Reply, peer::repository::PlatformId, renderer::RenderTargetPlatform,
     usecases::GenerateReplyUseCase,
 };
-use domain_telegram_bot::KeyboardButton;
 use domain_telegram_bot::{
-    usecases::{ReplyToTelegramUseCase, SetWebhookUseCase},
+    usecases::{DeleteMessageUseCase, ReplyToTelegramUseCase, SetWebhookUseCase},
     ChatType, CommonKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup,
-    ReplyKeyboardMarkup, ReplyKeyboardRemove, Update,
+    ReplyKeyboardRemove, Update,
 };
 use log::error;
 use once_cell::sync::Lazy;
@@ -20,6 +19,7 @@ pub struct FeatureTelegramBot {
     pub(crate) generate_reply_use_case: Arc<GenerateReplyUseCase>,
     pub(crate) set_webhook_use_case: Arc<SetWebhookUseCase>,
     pub(crate) reply_to_telegram_use_case: Arc<ReplyToTelegramUseCase>,
+    pub(crate) delete_message_use_case: Arc<DeleteMessageUseCase>,
 }
 
 pub(crate) struct Config {
@@ -36,16 +36,10 @@ impl Default for Config {
 }
 
 macro_rules! inline_button {
-    ($text:expr $(,)?) => {
+    ($text:expr, $cq:expr $(,)?) => {
         InlineKeyboardButton {
             text: $text.to_owned(),
-        }
-    };
-}
-macro_rules! button {
-    ($text:expr $(,)?) => {
-        KeyboardButton {
-            text: $text.to_owned(),
+            callback_data: $cq.to_owned(),
         }
     };
 }
@@ -53,22 +47,6 @@ macro_rules! button {
 static KEYBOARD_EMPTY: Lazy<CommonKeyboardMarkup> = Lazy::new(|| {
     CommonKeyboardMarkup::Remove(ReplyKeyboardRemove {
         remove_keyboard: true,
-    })
-});
-static KEYBOARD_INLINE_HELP: Lazy<CommonKeyboardMarkup> = Lazy::new(|| {
-    CommonKeyboardMarkup::Inline(InlineKeyboardMarkup {
-        inline_keyboard: vec![vec![inline_button!("Помощь")]],
-    })
-});
-static KEYBOARD_DEFAULT: Lazy<CommonKeyboardMarkup> = Lazy::new(|| {
-    CommonKeyboardMarkup::Reply(ReplyKeyboardMarkup {
-        keyboard: vec![
-            vec![button!("Ближайшие пары")],
-            vec![button!("Пары сегодня"), button!("Пары завтра")],
-            vec![button!("Помощь"), button!("Сменить расписание")],
-        ],
-        one_time_keyboard: false,
-        input_field_placeholder: None,
     })
 });
 
@@ -82,8 +60,17 @@ impl FeatureTelegramBot {
             secret == self.config.secret,
             CommonError::user("Request has invalid secret key")
         );
-        if let Some(message) = update.message {
-            let reply = if let Some(text) = message.text {
+        let (text, message) = if let Some(cq) = update.callback_query {
+            (cq.data, cq.message)
+        } else {
+            (
+                update.message.as_ref().and_then(|it| it.text.to_owned()),
+                update.message,
+            )
+        };
+
+        if let Some(message) = message {
+            let reply = if let Some(text) = text {
                 self.generate_reply_use_case
                     .generate_reply(PlatformId::Telegram(message.chat.id), &text)
                     .await
@@ -94,26 +81,24 @@ impl FeatureTelegramBot {
             } else {
                 Reply::UnknownMessageType
             };
-
             let text = domain_bot::renderer::render_message(&reply, RenderTargetPlatform::Telegram);
             let keyboard = self.render_keyboard(&reply, &message.chat.r#type);
             self.reply_to_telegram_use_case
                 .reply(&text, message.chat.id, &keyboard)
                 .await
                 .with_context(|| "Error while sending reply to telegram")?;
-
-            Ok(())
         } else {
-            Err(anyhow!(CommonError::user(
-                "Callback with null 'message' field"
-            )))
+            error!("Cannot send reply, because message is None");
         }
+
+        // TODO: hide search results message
+        let _ = self.delete_message_use_case;
+
+        Ok(())
     }
 
     fn render_keyboard(&self, reply: &Reply, chat_type: &ChatType) -> CommonKeyboardMarkup {
         match (reply, chat_type) {
-            (Reply::UnknownMessageType, _) => KEYBOARD_INLINE_HELP.to_owned(),
-            (_, t) if !matches!(t, ChatType::Private) => KEYBOARD_EMPTY.to_owned(),
             (
                 Reply::ScheduleSearchResults {
                     schedule_name: _,
@@ -123,10 +108,10 @@ impl FeatureTelegramBot {
             ) => CommonKeyboardMarkup::Inline(InlineKeyboardMarkup {
                 inline_keyboard: results
                     .iter()
-                    .map(|text| vec![inline_button!(text)])
+                    .map(|text| vec![inline_button!(text, text)])
                     .collect(),
             }),
-            _ => KEYBOARD_DEFAULT.to_owned(),
+            _ => KEYBOARD_EMPTY.to_owned(),
         }
     }
 }

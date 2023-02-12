@@ -252,7 +252,7 @@ checksum = "2cb2f989d18dd141ab8ae82f64d1a8cdd37e0840f73a406896cf5e99502fab61"
 
 [[package]]
 name = "app_schedule"
-version = "3.0.0"
+version = "3.0.8"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -271,7 +271,7 @@ dependencies = [
 
 [[package]]
 name = "app_telegram_bot"
-version = "3.0.0"
+version = "3.0.8"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -288,7 +288,7 @@ dependencies = [
 
 [[package]]
 name = "app_vk_bot"
-version = "3.0.0"
+version = "3.0.8"
 dependencies = [
  "actix-web",
  "anyhow",

@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::HashMap, sync::Arc};
+use std::{cmp::Ordering, sync::Arc};
 
 use anyhow::{anyhow, Context};
 use chrono::{Datelike, Days, Local};
@@ -30,48 +30,36 @@ pub struct TextToActionUseCase;
 
 lazy_static! {
     static ref MENTIONS_PATTERN: Regex = Regex::new(r#"(\[.*\],?)|(@\w+,?)"#).unwrap();
-    static ref DAY_OF_WEEK_MAP: HashMap<i8, Vec<&'static str>> = HashMap::from([
+    static ref DAY_OF_WEEK_MAP: Vec<(i8, Vec<&'static str>)> = vec![
         (1, vec!["пн", "понедельник", "mon", "monday"]),
         (2, vec!["вт", "вторник", "tue", "tuesday"]),
         (3, vec!["ср", "среда", "wed", "wednesday"]),
         (4, vec!["чт", "четверг", "thu", "thursday"]),
         (5, vec!["пт", "пятница", "fri", "friday"]),
         (6, vec!["сб", "суббота", "sat", "saturday"]),
-    ]);
+    ];
     static ref DAY_OF_WEEK_PATTERN: Regex = create_multipattern(
         r#"(пар[ыау]\s+)?((в|во)\s+)?"#,
         &DAY_OF_WEEK_MAP
-            .values()
-            .flatten()
-            .map(|x| x.to_string())
+            .iter()
+            .flat_map(|(_, v)| v)
+            .map(|x| x.to_lowercase())
             .collect::<Vec<String>>(),
-        |a, b| format!("{a}{b}")
+        |a, b| format!("^({a}{b})$")
     );
-    static ref REL_DAY_PTR_MAP: HashMap<i8, Vec<&'static str>> = HashMap::from([
-        (
-            3,
-            vec![
-                "Послепослезавтра",
-                "Послепослезавтрашние",
-                "Послепослезавтрашний"
-            ]
-        ),
-        (2, vec!["Послезавтра", "Послезавтрашние", "Послезавтрашний"]),
-        (1, vec!["Завтра", "Завтрашние", "Завтрашний", "/tomorrow"]),
-        (0, vec!["Сегодня", "Сегодняшние", "Сегодняшний", "/today"]),
-        (-1, vec!["Вчера", "Вчерашние", "Вчерашний", "/yesterday"]),
-        (-2, vec!["Позавчера", "Позавчерашние", "Позавчерашний"]),
-        (
-            -3,
-            vec!["Позапозавчера", "Позапозавчерашние", "Позапозавчерашний"]
-        ),
-    ]);
+    static ref REL_DAY_PTR_MAP: Vec<(i8, Vec<&'static str>)> = vec![
+        (2, vec!["послезавтра", "послезавтрашние", "послезавтрашний"]),
+        (-2, vec!["позавчера", "позавчерашние", "позавчерашний"]),
+        (0, vec!["сегодня", "сегодняшние", "сегодняшний", "/today"]),
+        (-1, vec!["вчера", "вчерашние", "вчерашний", "/yesterday"]),
+        (1, vec!["завтра", "завтрашние", "завтрашний", "/tomorrow"]),
+    ];
     static ref REL_DAY_PTR_PATTERN: Regex = create_multipattern(
         r#"(пар[ыау])?(день)?"#,
         &REL_DAY_PTR_MAP
-            .values()
-            .flatten()
-            .map(|x| x.to_string())
+            .iter()
+            .flat_map(|(_, v)| v)
+            .map(|x| x.to_lowercase())
             .collect::<Vec<String>>(),
         |a, b| format!(r#"(({a}\s+)?{b})|({b}(\s+{a})?)"#)
     );
@@ -91,14 +79,21 @@ impl TextToActionUseCase {
             "сменить" | "сменить группу" | "сменить расписание" | "change" | "/change" => {
                 Ok(UserAction::ChangeScheduleIntent)
             }
-            "эта неделя" | "/thisweek" => Ok(UserAction::WeekWithOffset(0)),
+            "неделя" | "эта неделя" | "/thisweek" => {
+                Ok(UserAction::WeekWithOffset(0))
+            }
             "следующая неделя" | "/nextweek" => Ok(UserAction::WeekWithOffset(1)),
+            "прошлая неделя" | "/prevweek" => Ok(UserAction::WeekWithOffset(-1)),
             cleared_text => {
                 if DAY_OF_WEEK_PATTERN.is_match(cleared_text) {
                     let (requested_day_of_week, _) = DAY_OF_WEEK_MAP
                         .iter()
-                        .find(|(_, v)| v.contains(&cleared_text))
-                        .expect("Fatal error: text present in pattern but absent in map");
+                        .find(|(_, v)| v.iter().any(|it| cleared_text.contains(it)))
+                        .ok_or_else(|| {
+                            CommonError::internal(
+                                "Error: text present in pattern but absent in map (day of week)",
+                            )
+                        })?;
                     let requested_day_of_week = *requested_day_of_week as u32;
                     let current_day_of_week = Local::now().weekday().number_from_monday();
                     let day_offset = match current_day_of_week.cmp(&requested_day_of_week) {
@@ -112,8 +107,12 @@ impl TextToActionUseCase {
                 } else if REL_DAY_PTR_PATTERN.is_match(cleared_text) {
                     let (requested_day_offset, _) = REL_DAY_PTR_MAP
                         .iter()
-                        .find(|(_, v)| v.contains(&cleared_text))
-                        .expect("Fatal error: text present in pattern but absent in map");
+                        .find(|(_, v)| v.iter().any(|it| cleared_text.contains(it)))
+                        .ok_or_else(|| {
+                            CommonError::internal(
+                                "Error: text present in pattern but absent in map (rel day ptr)",
+                            )
+                        })?;
                     Ok(UserAction::DayWithOffset(*requested_day_offset))
                 } else {
                     Ok(UserAction::Unknown(cleared_text.to_owned()))
@@ -163,9 +162,7 @@ impl GenerateReplyUseCase {
                 if peer.selecting_schedule || peer.is_not_started() {
                     self.handle_schedule_search(peer, &q).await
                 } else {
-                    Err(anyhow!(CommonError::user(format!(
-                        "Unknown command: {text}"
-                    ))))
+                    Ok(Reply::UnknownCommand)
                 }
             }
             UserAction::ChangeScheduleIntent => {
@@ -282,13 +279,14 @@ impl GenerateReplyUseCase {
                 candidate.name.to_owned(),
             ))
         } else if !search_results.is_empty() {
+            let mut reversed_search_results = search_results
+                .into_iter()
+                .map(|it| it.name)
+                .collect::<Vec<String>>();
+            reversed_search_results.reverse();
             Ok(Reply::ScheduleSearchResults {
                 schedule_name: q.to_owned(),
-                results: search_results
-                    .into_iter()
-                    .take(3)
-                    .map(|it| it.name)
-                    .collect(),
+                results: reversed_search_results.into_iter().take(3).collect(),
             })
         } else {
             Ok(Reply::CannotFindSchedule(q.to_owned()))
@@ -415,6 +413,146 @@ impl GetUpcomingEventsUseCase {
                 },
                 schedule_type: peer.selected_schedule_type,
             })
+        }
+    }
+}
+
+#[cfg(test)]
+mod t2a_tests {
+    use crate::models::UserAction;
+
+    use super::TextToActionUseCase;
+
+    macro_rules! test_t2a {
+        ($name:tt, $exp:expr, $inputs:expr) => {
+            #[test]
+            fn $name() {
+                let use_case = TextToActionUseCase::default();
+                for text in $inputs {
+                    assert_eq!(use_case.text_to_action(text).unwrap(), $exp);
+                }
+            }
+        };
+    }
+
+    test_t2a!(
+        action_start,
+        UserAction::Start,
+        ["старт", "начать", "start", "/start"]
+    );
+
+    test_t2a!(
+        action_status,
+        UserAction::UpcomingEvents,
+        ["статус", "ближайшие пары", "ближайшие", "status", "/status"]
+    );
+
+    test_t2a!(
+        action_help,
+        UserAction::Help,
+        ["помощь", "справка", "помоги", "help", "/help"]
+    );
+
+    test_t2a!(
+        action_change,
+        UserAction::ChangeScheduleIntent,
+        [
+            "сменить",
+            "сменить группу",
+            "сменить расписание",
+            "change",
+            "/change",
+        ]
+    );
+
+    test_t2a!(
+        action_week_offset_0,
+        UserAction::WeekWithOffset(0),
+        ["неделя", "эта неделя", "/thisweek"]
+    );
+
+    test_t2a!(
+        action_week_offset_1,
+        UserAction::WeekWithOffset(1),
+        ["следующая неделя", "/nextweek"]
+    );
+
+    test_t2a!(
+        action_week_offset_m1,
+        UserAction::WeekWithOffset(-1),
+        ["прошлая неделя", "/prevweek"]
+    );
+
+    test_t2a!(
+        action_today,
+        UserAction::DayWithOffset(0),
+        [
+            "сегодня",
+            "сегодняшние",
+            "сегодняшний",
+            "/today",
+            "пары сегодня",
+            "сегодняшние пары"
+        ]
+    );
+
+    test_t2a!(
+        action_yesterday,
+        UserAction::DayWithOffset(-1),
+        [
+            "вчера",
+            "вчерашние",
+            "вчерашний",
+            "/yesterday",
+            "пары вчера",
+            "вчерашние пары"
+        ]
+    );
+
+    test_t2a!(
+        action_tomorrow,
+        UserAction::DayWithOffset(1),
+        [
+            "завтра",
+            "завтрашние",
+            "завтрашний",
+            "/tomorrow",
+            "пары завтра",
+            "завтрашние пары"
+        ]
+    );
+
+    test_t2a!(
+        action_day_after_tomorrow,
+        UserAction::DayWithOffset(2),
+        ["послезавтра", "послезавтрашние", "послезавтрашний"]
+    );
+
+    test_t2a!(
+        action_day_before_yesterday,
+        UserAction::DayWithOffset(-2),
+        ["позавчера", "позавчерашние", "позавчерашний"]
+    );
+
+    #[test]
+    fn action_day_of_week() {
+        let use_case = TextToActionUseCase::default();
+        for text in [
+            "понедельник",
+            "вторник",
+            "среда",
+            "четверг",
+            "пятница",
+            "суббота",
+            "пн",
+            "вт",
+            "ср",
+            "чт",
+            "пт",
+            "сб",
+        ] {
+            let result = use_case.text_to_action(text).unwrap();
+            assert!(matches!(result, UserAction::DayWithOffset(_)));
         }
     }
 }

@@ -11,7 +11,7 @@ pub struct Update {
 /// https://core.telegram.org/bots/api/#message
 #[derive(Debug, Deserialize)]
 pub struct Message {
-    pub message_id: i32,
+    pub message_id: i64,
     pub from: Option<User>,
     pub chat: Chat,
     pub text: Option<String>,
@@ -21,7 +21,8 @@ pub struct Message {
 #[derive(Debug, Deserialize)]
 pub struct CallbackQuery {
     pub id: String,
-    pub message: Message,
+    pub message: Option<Message>,
+    pub data: Option<String>,
 }
 
 /// https://core.telegram.org/bots/api/#user
@@ -46,6 +47,7 @@ pub struct Chat {
 pub enum ChatType {
     Private,
     Group,
+    #[serde(alias = "supergroup")]
     SuperGroup,
     Channel,
     Unknown,
@@ -67,6 +69,7 @@ pub struct InlineKeyboardMarkup {
 #[derive(Debug, Serialize, Clone)]
 pub struct InlineKeyboardButton {
     pub text: String,
+    pub callback_data: String,
 }
 
 /// https://core.telegram.org/bots/api/#replykeyboardmarkup
@@ -74,8 +77,6 @@ pub struct InlineKeyboardButton {
 pub struct ReplyKeyboardMarkup {
     pub keyboard: Vec<Vec<KeyboardButton>>,
     pub one_time_keyboard: bool,
-    /// Placeholder length should be from 1 to 64 chars
-    pub input_field_placeholder: Option<String>,
 }
 
 /// https://core.telegram.org/bots/api/#keyboardbutton
