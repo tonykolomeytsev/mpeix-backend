@@ -114,7 +114,7 @@ impl FeatureVkBot {
                         domain_bot::renderer::render_message(&reply, RenderTargetPlatform::Vk);
                     let keyboard = self.render_keyboard(&reply, &message.peer_type());
                     self.reply_to_vk_use_case
-                        .reply(&text, message.peer_id, &message.peer_type(), &keyboard)
+                        .reply(&text, message.peer_id, &keyboard)
                         .await
                         .with_context(|| "Error while sending reply to vk")?;
 
