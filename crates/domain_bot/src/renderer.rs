@@ -156,7 +156,7 @@ fn render_time_prediction(time_prediction: &TimePrediction, buf: &mut String) {
                 buf.push_str("Ближайшая пара начнется через ");
                 render_duration(duration, buf)
             } else {
-                buf.push_str("Ближайшие пары в ");
+                buf.push_str("Ближайшие пары ");
                 buf.push_str(render_day_of_week_gen(date.weekday()));
                 buf.push_str(", ");
                 buf.push_str(&date.day().to_string());
@@ -175,6 +175,11 @@ fn render_week(_: i8, week: &Week, schedule_type: &ScheduleType, buf: &mut Strin
         buf.push_str("Расписание на неделю\n\n")
     }
 
+    if week.days.is_empty() {
+        buf.push_str("Нет пар 🤷");
+        return;
+    }
+
     for (i, day) in week.days.iter().enumerate() {
         if i > 0 {
             buf.push_str("\n\n");
@@ -191,7 +196,7 @@ fn render_day(
     inside_week: bool,
 ) {
     if !inside_week {
-        buf.push_str("Расписание на ");
+        buf.push_str("Расписание ");
     }
 
     if day_offset == 0 && !inside_week {
@@ -199,8 +204,10 @@ fn render_day(
     } else {
         if inside_week {
             buf.push_str("📅 ");
+            buf.push_str(render_day_of_week(day.date.weekday()));
+        } else {
+            buf.push_str(render_day_of_week_gen(day.date.weekday()));
         }
-        buf.push_str(render_day_of_week_gen(day.date.weekday()));
         buf.push_str(", ");
         buf.push_str(&day.date.day().to_string());
         buf.push(' ');
@@ -270,15 +277,29 @@ fn render_emoji_number<'a>(num: i8) -> &'a str {
 }
 
 #[inline]
-fn render_day_of_week_gen<'a>(weekday: Weekday) -> &'a str {
+fn render_day_of_week<'a>(weekday: Weekday) -> &'a str {
     match weekday.number_from_monday() {
         1 => "понедельник",
         2 => "вторник",
-        3 => "среду",
+        3 => "среда",
         4 => "четверг",
-        5 => "пятницу",
-        6 => "субботу",
+        5 => "пятница",
+        6 => "суббота",
         7 => "воскресенье",
+        _ => unreachable!(),
+    }
+}
+
+#[inline]
+fn render_day_of_week_gen<'a>(weekday: Weekday) -> &'a str {
+    match weekday.number_from_monday() {
+        1 => "в понедельник",
+        2 => "во вторник",
+        3 => "в среду",
+        4 => "в четверг",
+        5 => "в пятницу",
+        6 => "в субботу",
+        7 => "в воскресенье",
         _ => unreachable!(),
     }
 }
