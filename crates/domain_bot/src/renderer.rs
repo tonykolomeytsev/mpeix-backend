@@ -304,7 +304,7 @@ fn render_month<'a>(month: u32) -> &'a str {
 
 fn render_duration(duration: &chrono::Duration, buf: &mut String) {
     let h = duration.num_hours();
-    let m = duration.num_minutes();
+    let m = duration.num_minutes() % 60;
     match (h, m) {
         (h, m) if h > 0 && m > 0 => {
             render_hours(h as i8, buf);
