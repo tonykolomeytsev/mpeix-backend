@@ -830,7 +830,6 @@ dependencies = [
  "domain_telegram_bot",
  "env_logger",
  "log",
- "once_cell",
 ]
 
 [[package]]
