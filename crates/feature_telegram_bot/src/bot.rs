@@ -61,7 +61,6 @@ impl FeatureTelegramBot {
                 false,
             )
         };
-        dbg!(("callback query: ", &text, &message, is_callback));
 
         if let Some(message) = message {
             let reply = if let Some(text) = text {
@@ -86,16 +85,11 @@ impl FeatureTelegramBot {
                 self.delete_message_use_case
                     .delete_message(message.chat.id, message.message_id)
                     .await
-                    .unwrap_or_else(|e| {
-                        dbg!(("error while deleting message: ", e));
-                    });
+                    .unwrap_or_else(|e| error!("Error while deleting message: {e}"));
             }
         } else {
             error!("Cannot send reply, because message is None");
         }
-
-        // TODO: hide search results message
-        let _ = self.delete_message_use_case;
 
         Ok(())
     }
