@@ -97,7 +97,7 @@ impl TelegramApi {
         let response = self
             .client
             .get(format!(
-                "https://api.telegram.org/bot{access_token}/sendMessage"
+                "https://api.telegram.org/bot{access_token}/deleteMessage"
             ))
             .query(&[
                 ("chat_id", &chat_id.to_string()),

@@ -20,6 +20,7 @@ pub enum ScheduleType {
     Room,
 }
 
+#[derive(Debug)]
 pub struct ParseScheduleTypeError(String);
 
 impl Display for ScheduleType {

@@ -9,12 +9,6 @@ pub struct Peer {
     pub selecting_schedule: bool,
 }
 
-impl Peer {
-    pub fn is_not_started(&self) -> bool {
-        self.selected_schedule.is_empty() && !self.selecting_schedule
-    }
-}
-
 /// Input actions for the bot
 #[derive(Debug, PartialEq, Eq)]
 pub enum UserAction {
@@ -58,6 +52,7 @@ pub enum Reply {
     ScheduleSearchResults {
         schedule_name: String,
         results: Vec<String>,
+        results_contains_person: bool,
     },
     CannotFindSchedule(String),
     ReadyToChangeSchedule,

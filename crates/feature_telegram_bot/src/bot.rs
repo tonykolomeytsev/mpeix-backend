@@ -8,11 +8,9 @@ use domain_bot::{
 };
 use domain_telegram_bot::{
     usecases::{DeleteMessageUseCase, ReplyToTelegramUseCase, SetWebhookUseCase},
-    ChatType, CommonKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup,
-    ReplyKeyboardRemove, Update,
+    ChatType, CommonKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, Update,
 };
 use log::error;
-use once_cell::sync::Lazy;
 
 pub struct FeatureTelegramBot {
     pub(crate) config: Config,
@@ -35,7 +33,7 @@ impl Default for Config {
     }
 }
 
-macro_rules! inline_button {
+macro_rules! button {
     ($text:expr, $cq:expr $(,)?) => {
         InlineKeyboardButton {
             text: $text.to_owned(),
@@ -43,12 +41,6 @@ macro_rules! inline_button {
         }
     };
 }
-
-static KEYBOARD_EMPTY: Lazy<CommonKeyboardMarkup> = Lazy::new(|| {
-    CommonKeyboardMarkup::Remove(ReplyKeyboardRemove {
-        remove_keyboard: true,
-    })
-});
 
 impl FeatureTelegramBot {
     pub async fn set_webhook(&self) -> anyhow::Result<()> {
@@ -60,12 +52,13 @@ impl FeatureTelegramBot {
             secret == self.config.secret,
             CommonError::user("Request has invalid secret key")
         );
-        let (text, message) = if let Some(cq) = update.callback_query {
-            (cq.data, cq.message)
+        let (text, message, is_callback) = if let Some(cq) = update.callback_query {
+            (cq.data, cq.message, true)
         } else {
             (
                 update.message.as_ref().and_then(|it| it.text.to_owned()),
                 update.message,
+                false,
             )
         };
 
@@ -84,34 +77,66 @@ impl FeatureTelegramBot {
             let text = domain_bot::renderer::render_message(&reply, RenderTargetPlatform::Telegram);
             let keyboard = self.render_keyboard(&reply, &message.chat.r#type);
             self.reply_to_telegram_use_case
-                .reply(&text, message.chat.id, &keyboard)
+                .reply(&text, message.chat.id, keyboard)
                 .await
                 .with_context(|| "Error while sending reply to telegram")?;
+
+            if is_callback {
+                self.delete_message_use_case
+                    .delete_message(message.chat.id, message.message_id)
+                    .await
+                    .unwrap_or_else(|e| error!("Error while deleting message: {e}"));
+            }
         } else {
             error!("Cannot send reply, because message is None");
         }
 
-        // TODO: hide search results message
-        let _ = self.delete_message_use_case;
-
         Ok(())
     }
 
-    fn render_keyboard(&self, reply: &Reply, chat_type: &ChatType) -> CommonKeyboardMarkup {
+    fn render_keyboard(&self, reply: &Reply, chat_type: &ChatType) -> Option<CommonKeyboardMarkup> {
         match (reply, chat_type) {
             (
                 Reply::ScheduleSearchResults {
                     schedule_name: _,
                     results,
+                    results_contains_person,
                 },
                 _,
-            ) => CommonKeyboardMarkup::Inline(InlineKeyboardMarkup {
+            ) => Some(self.render_search_results_keyboard(results, *results_contains_person)),
+            _ => None,
+        }
+    }
+
+    fn render_search_results_keyboard(
+        &self,
+        results: &[String],
+        results_contains_person: bool,
+    ) -> CommonKeyboardMarkup {
+        if results_contains_person {
+            return CommonKeyboardMarkup::Inline(InlineKeyboardMarkup {
                 inline_keyboard: results
                     .iter()
-                    .map(|text| vec![inline_button!(text, text)])
+                    .map(|text| vec![button!(text, text)])
                     .collect(),
-            }),
-            _ => KEYBOARD_EMPTY.to_owned(),
+            });
         }
+
+        let mut buttons: Vec<Vec<InlineKeyboardButton>> = vec![];
+        let mut iter = results.iter();
+        let mut i = 0;
+
+        while i < results.len() - 1 {
+            if let (Some(btn1), Some(btn2)) = (iter.next(), iter.next()) {
+                buttons.push(vec![button!(btn1, btn1), button!(btn2, btn2)]);
+            }
+            i += 2;
+        }
+        if let Some(btn) = iter.next() {
+            buttons.push(vec![button!(btn, btn)]);
+        }
+        CommonKeyboardMarkup::Inline(InlineKeyboardMarkup {
+            inline_keyboard: buttons,
+        })
     }
 }

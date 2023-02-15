@@ -66,6 +66,7 @@ impl PeerRepository {
             include_str!("../../sql/update_peer.pgsql"),
             id = peer.id,
             selected_schedule = peer.selected_schedule,
+            selected_schedule_type = peer.selected_schedule_type,
             selecting_schedule = peer.selecting_schedule,
         );
         client
