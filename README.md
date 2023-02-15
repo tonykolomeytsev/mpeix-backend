@@ -1,5 +1,5 @@
 # 🦀 mpeix-backend (v3)
-![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/tonykolomeytsev/mpeix-backend?label=version) 
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/tonykolomeytsev/mpeix-backend?color=%23587FC7&label=version)
 [![Build status](https://github.com/tonykolomeytsev/mpeix-backend/actions/workflows/rust-master.yaml/badge.svg?branch=master)](https://github.com/tonykolomeytsev/mpeix-backend/actions/workflows/rust-master.yaml)
 
 Backend implementation for [**mpeix**](https://github.com/tonykolomeytsev/mpeiapp) written entirely in Rust. The previous two implementations were written in Kotlin, worked well but consumed too much RAM on my cheap server.
