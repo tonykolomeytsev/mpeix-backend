@@ -71,4 +71,4 @@ jobs:
           to: ${{ secrets.TELEGRAM_BOT_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           format: markdown
-          message: "🚧 **mpeix-backend ${{ env.RELEASE_VERSION }}** has been successfully deployed on the test server"
+          message: "🚧 *mpeix-backend ${{ env.RELEASE_VERSION }}* has been successfully deployed on the test server"

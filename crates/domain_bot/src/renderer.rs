@@ -148,12 +148,12 @@ fn render_upcoming_events(
 fn render_time_prediction(time_prediction: &TimePrediction, buf: &mut String) {
     match time_prediction {
         TimePrediction::WithinOneDay(duration) => {
-            buf.push_str("Ближайшая пара начнется через ");
+            buf.push_str("Ближайшая пара начнется ");
             render_duration(duration, buf)
         }
         TimePrediction::WithinAWeek { date, duration } => {
             if duration.num_hours() < 24 {
-                buf.push_str("Ближайшая пара начнется через ");
+                buf.push_str("Ближайшая пара начнется ");
                 render_duration(duration, buf)
             } else {
                 buf.push_str("Ближайшие пары ");
@@ -327,14 +327,21 @@ fn render_duration(duration: &chrono::Duration, buf: &mut String) {
     let h = duration.num_hours();
     let m = duration.num_minutes() % 60;
     match (h, m) {
-        (h, m) if h > 0 && m > 0 => {
+        (h, 0) if h > 0 => {
+            buf.push_str("через ");
+            render_hours(h as i8, buf);
+        }
+        (0, m) if m > 0 => {
+            buf.push_str("через ");
+            render_minutes(m as i8, buf);
+        }
+        (0, 0) => buf.push_str("в течение минуты"),
+        (h, m) => {
+            buf.push_str("через ");
             render_hours(h as i8, buf);
             buf.push(' ');
             render_minutes(m as i8, buf);
         }
-        (h, 0) if h > 0 => render_hours(h as i8, buf),
-        (0, m) if m > 0 => render_minutes(m as i8, buf),
-        _ => (),
     }
 }
 
