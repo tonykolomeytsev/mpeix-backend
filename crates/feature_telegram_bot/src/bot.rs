@@ -52,14 +52,16 @@ impl FeatureTelegramBot {
             secret == self.config.secret,
             CommonError::user("Request has invalid secret key")
         );
-        let (text, message) = if let Some(cq) = update.callback_query {
-            (cq.data, cq.message)
+        let (text, message, is_callback) = if let Some(cq) = update.callback_query {
+            (cq.data, cq.message, true)
         } else {
             (
                 update.message.as_ref().and_then(|it| it.text.to_owned()),
                 update.message,
+                false,
             )
         };
+        dbg!(("callback query: ", &text, &message, is_callback));
 
         if let Some(message) = message {
             let reply = if let Some(text) = text {
@@ -79,6 +81,15 @@ impl FeatureTelegramBot {
                 .reply(&text, message.chat.id, keyboard)
                 .await
                 .with_context(|| "Error while sending reply to telegram")?;
+
+            if is_callback {
+                self.delete_message_use_case
+                    .delete_message(message.chat.id, message.message_id)
+                    .await
+                    .unwrap_or_else(|e| {
+                        dbg!(("error while deleting message: ", e));
+                    });
+            }
         } else {
             error!("Cannot send reply, because message is None");
         }

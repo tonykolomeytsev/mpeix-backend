@@ -344,7 +344,7 @@ fn render_minutes(m: i8, buf: &mut String) {
         return;
     }
     match m % 10 {
-        1 => write!(buf, "{m} минута"),
+        1 => write!(buf, "{m} минуту"),
         2..=4 => write!(buf, "{m} минуты"),
         _ => write!(buf, "{m} минут"),
     }

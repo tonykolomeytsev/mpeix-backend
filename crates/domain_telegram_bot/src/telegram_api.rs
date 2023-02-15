@@ -109,6 +109,7 @@ impl TelegramApi {
             .with_context(|| "Error while executing a request to telegram backend")?;
 
         if response.status().is_success() {
+            dbg!((response.status(), response.text().await));
             Ok(())
         } else {
             let status = response.status();
