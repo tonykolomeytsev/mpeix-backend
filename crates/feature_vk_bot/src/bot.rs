@@ -131,7 +131,6 @@ impl FeatureVkBot {
             (Reply::UnknownMessageType | Reply::UnknownCommand, _) => {
                 Some(KEYBOARD_INLINE_HELP.to_owned())
             }
-            (_, MessagePeerType::GroupChat) => None,
             (
                 Reply::ScheduleSearchResults {
                     schedule_name: _,
@@ -140,6 +139,7 @@ impl FeatureVkBot {
                 },
                 _,
             ) => Some(self.render_search_results_keyboard(results, *results_contains_person)),
+            (_, MessagePeerType::GroupChat) => None,
             _ => Some(KEYBOARD_DEFAULT.to_owned()),
         }
     }
