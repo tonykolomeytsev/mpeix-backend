@@ -3,7 +3,6 @@ use std::num::NonZeroUsize;
 
 use chrono::{DateTime, Duration, Local};
 use lru::LruCache;
-use serde::{Deserialize, Serialize};
 
 /// # InMemoryCache
 ///
@@ -52,12 +51,12 @@ pub struct InMemoryCache<K: Eq + Hash, V> {
 /// # InMemoryCache.Entry
 ///
 /// The `Entry` wraps stored value and holds info about creation and access time.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Entry<V> {
-    value: V,
-    created_at: DateTime<Local>,
-    accessed_at: DateTime<Local>,
-    hits: u32,
+    pub value: V,
+    pub created_at: DateTime<Local>,
+    pub accessed_at: DateTime<Local>,
+    pub hits: u32,
 }
 
 impl<V> Entry<V> {

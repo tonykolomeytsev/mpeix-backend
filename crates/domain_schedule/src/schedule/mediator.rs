@@ -8,6 +8,8 @@ use common_persistent_cache::PersistentCache;
 use domain_schedule_models::dto::v1::Schedule;
 use tokio::sync::Mutex;
 
+use super::compat::{writing, ReadingPersistentEntry, WritingPersistentEntry};
+
 pub struct CacheMediator<'a> {
     in_memory_cache: &'a Mutex<InMemoryCache<InMemoryCacheKey, Schedule>>,
     persistent_cache: &'a Mutex<PersistentCache>,
@@ -54,11 +56,11 @@ impl<'a> CacheMediator<'a> {
             .persistent_cache
             .lock()
             .await
-            .get::<String, Entry<Schedule>>(key.to_string())
+            .get::<String, ReadingPersistentEntry>(key.to_string())
             .await
             .map_err(|e| anyhow!(CommonError::internal(e)))?
         {
-            self.push_to_lru(key, entry).await?;
+            self.push_to_lru(key, entry.into()).await?;
         }
         Ok(())
     }
@@ -81,7 +83,7 @@ impl<'a> CacheMediator<'a> {
             self.persistent_cache
                 .lock()
                 .await
-                .insert::<String, Entry<Schedule>>(lru_key.to_string(), lru_entry)
+                .insert::<String, WritingPersistentEntry>(lru_key.to_string(), &writing(&lru_entry))
                 .await
                 .map_err(|e| anyhow!(CommonError::internal(e)))?;
         }
@@ -94,7 +96,7 @@ impl<'a> CacheMediator<'a> {
         self.persistent_cache
             .lock()
             .await
-            .insert::<String, Entry<Schedule>>(key.to_string(), entry.to_owned())
+            .insert::<String, WritingPersistentEntry>(key.to_string(), &writing(&entry))
             .await
             .map_err(|e| anyhow!(CommonError::internal(e)))?;
 

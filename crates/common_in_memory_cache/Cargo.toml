@@ -5,6 +5,5 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
-chrono = { workspace = true, features = ["serde"] }
+chrono = { workspace = true }
 lru = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
