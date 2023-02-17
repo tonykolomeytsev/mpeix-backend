@@ -107,7 +107,7 @@ impl<'a> CacheMediator<'a> {
 impl ToString for InMemoryCacheKey {
     fn to_string(&self) -> String {
         let year = &self.week_start.year();
-        let r#type = &self.r#type;
+        let r#type = &self.r#type.to_lowercase();
         let name = &self.name.to_uppercase();
 
         format!(
