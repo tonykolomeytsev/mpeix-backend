@@ -271,6 +271,9 @@ pub struct InitDomainScheduleUseCase(pub(crate) Arc<ScheduleSearchRepository>);
 
 impl InitDomainScheduleUseCase {
     pub async fn init(&self) -> anyhow::Result<()> {
-        self.0.init_schedule_search_results_db().await
+        self.0
+            .init_schedule_search_results_db()
+            .await
+            .with_context(|| "Database initialization error")
     }
 }

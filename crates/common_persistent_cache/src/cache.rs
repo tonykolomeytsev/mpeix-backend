@@ -46,7 +46,7 @@ impl PersistentCache {
     /// Panics if cannot serialize `value` (see [serde_json::to_string]).
     ///
     /// **Note:** This method creates all directories from `key`, if don't exist.
-    pub async fn insert<K, V>(&mut self, key: K, value: V) -> Result<(), Error>
+    pub async fn insert<K, V>(&mut self, key: K, value: &V) -> Result<(), Error>
     where
         K: AsRef<Path>,
         V: Serialize,
@@ -59,7 +59,7 @@ impl PersistentCache {
         }
         let mut file = File::create(cache_entry_path).await?;
         let serialized_value =
-            serde_json::to_string(&value).expect("Error while serializing internal model");
+            serde_json::to_string(value).expect("Error while serializing internal model");
         file.write_all(serialized_value.as_bytes()).await?;
         Ok(())
     }
