@@ -1,9 +1,9 @@
-name: Deploy beta-version to DEV server
+name: Deploy to prod
 
 on:
   push:
     tags:
-      - "beta/*"
+      - "release/*"
 
 jobs:
   build:
