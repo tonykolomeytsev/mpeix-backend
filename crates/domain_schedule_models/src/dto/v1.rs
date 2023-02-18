@@ -37,7 +37,7 @@ impl FromStr for ScheduleType {
     type Err = ParseScheduleTypeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
+        match &s.to_lowercase() {
             "group" => Ok(Self::Group),
             "person" => Ok(Self::Person),
             "room" => Ok(Self::Room),
