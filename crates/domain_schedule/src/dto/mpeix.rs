@@ -71,14 +71,16 @@ impl Display for ScheduleName {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct ScheduleSearchQuery(String);
 
+const MIN_QUERY_LENGTH: usize = 2;
+
 impl ScheduleSearchQuery {
     /// Create valid search query from string.
     pub fn new(query: String) -> anyhow::Result<Self> {
         let length = query.chars().count();
-        if length < 3 {
-            bail!(CommonError::user(
-                "The search query must be 3 characters or more"
-            ));
+        if length < MIN_QUERY_LENGTH {
+            bail!(CommonError::user(format!(
+                "The search query must be {MIN_QUERY_LENGTH} characters or more"
+            )));
         }
         if length > 50 {
             bail!(CommonError::user("Too long search query"));
@@ -86,10 +88,10 @@ impl ScheduleSearchQuery {
         let query = SPACES_PATTERN.replace_all(query.trim(), " ");
 
         let length = query.chars().count();
-        if length < 3 {
-            bail!(CommonError::user(
-                "The search query without trailing and leading spaces must be 3 characters or more"
-            ));
+        if length < MIN_QUERY_LENGTH {
+            bail!(CommonError::user(format!(
+                "The search query without trailing and leading spaces must be {MIN_QUERY_LENGTH} characters or more"
+            )));
         }
         Ok(Self(query.to_string()))
     }
