@@ -12,7 +12,7 @@ pub enum RenderTargetPlatform {
 /// Turn the [Reply] response model into the text of the message, for further sending to social networks.
 pub fn render_message(reply: &Reply, platform: RenderTargetPlatform) -> String {
     match reply {
-        Reply::StartGreetings => include_str!("../res/msg_cannot_find_schedule.txt").to_owned(),
+        Reply::StartGreetings => include_str!("../res/msg_start_greetings.txt").to_owned(),
         Reply::AlreadyStarted { schedule_name: _ } => {
             include_str!("../res/msg_already_started.txt").to_owned()
         }
