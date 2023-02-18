@@ -60,21 +60,27 @@ struct SearchQuery {
     r#type: Option<String>,
 }
 
+#[derive(Serialize)]
+struct SearchResponse {
+    items: Vec<ScheduleSearchResult>,
+}
+
 #[actix_web::get("v1/search")]
 async fn search_schedule_v1(
     query: Query<SearchQuery>,
     state: Data<AppSchedule>,
-) -> Result<Json<Vec<ScheduleSearchResult>>, AppScheduleError> {
+) -> Result<impl Responder, AppScheduleError> {
     let r#type = match &query.r#type {
         Some(r#type) => Some(r#type.parse::<ScheduleType>()?),
         None => None,
     };
-    Ok(Json(
-        state
+
+    Ok(Json(SearchResponse {
+        items: state
             .feature_schedule
             .search_schedule(query.query.clone(), r#type)
             .await?,
-    ))
+    }))
 }
 
 fn get_app_version(req: &HttpRequest) -> Option<AppVersion> {
