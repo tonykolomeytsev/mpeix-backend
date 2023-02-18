@@ -144,8 +144,8 @@ mod tests {
 
     #[test]
     fn test_invalid_search_query() {
-        assert!(ScheduleSearchQuery::new("Ку".to_string()).is_err());
-        assert!(ScheduleSearchQuery::new("  Ку  ".to_string()).is_err());
+        assert!(ScheduleSearchQuery::new("К".to_string()).is_err());
+        assert!(ScheduleSearchQuery::new("  К  ".to_string()).is_err());
         assert!(ScheduleSearchQuery::new(
             "123456789_123456789_123456789_123456789_123456789_1".to_string()
         )
