@@ -16,8 +16,7 @@ use super::{
 
 pub struct ScheduleRepository {
     api: MpeiApi,
-    in_memory_cache: Mutex<InMemoryCache<InMemoryCacheKey, Schedule>>,
-    persistent_cache: Mutex<PersistentCache>,
+    mediator: Mutex<CacheMediator>,
 }
 
 impl Default for ScheduleRepository {
@@ -29,12 +28,12 @@ impl Default for ScheduleRepository {
 
         Self {
             api: MpeiApi::default(),
-            in_memory_cache: Mutex::new(
-                InMemoryCache::with_capacity(cache_capacity)
+            mediator: Mutex::new(CacheMediator {
+                in_memory_cache: InMemoryCache::with_capacity(cache_capacity)
                     .max_hits(cache_max_hits)
                     .expires_after_creation(chrono::Duration::hours(cache_lifetife)),
-            ),
-            persistent_cache: Mutex::new(PersistentCache::new(cache_dir.into())),
+                persistent_cache: PersistentCache::new(cache_dir.into()),
+            }),
         }
     }
 }
@@ -48,14 +47,15 @@ impl ScheduleRepository {
         ignore_expiration: bool,
     ) -> anyhow::Result<Option<Schedule>> {
         debug!("Trying to get schedule from cache...");
-        let mut mediator = CacheMediator::new(&self.in_memory_cache, &self.persistent_cache);
         let key = InMemoryCacheKey {
             name: name.as_string(),
             r#type: r#type.to_string(),
             week_start,
         };
 
-        mediator
+        self.mediator
+            .lock()
+            .await
             .get(&key, ignore_expiration)
             .await
             .with_context(|| "Error while getting schedule from cache via CacheMediator")
@@ -69,14 +69,15 @@ impl ScheduleRepository {
         schedule: Schedule,
     ) -> anyhow::Result<()> {
         debug!("Inserting schedule to cache...");
-        let mut mediator = CacheMediator::new(&self.in_memory_cache, &self.persistent_cache);
         let key = InMemoryCacheKey {
             name: name.as_string(),
             r#type: r#type.to_string(),
             week_start,
         };
 
-        mediator
+        self.mediator
+            .lock()
+            .await
             .insert(key, schedule)
             .await
             .with_context(|| "Error while inserting schedule to cache via CacheMediator")
