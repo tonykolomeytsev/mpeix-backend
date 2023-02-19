@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use domain_mobile::AppVersion;
 use domain_schedule::usecases::{GetScheduleIdUseCase, GetScheduleUseCase, SearchScheduleUseCase};
-use domain_schedule_models::dto::v1::{ClassesType, Schedule, ScheduleSearchResult, ScheduleType};
+use domain_schedule_models::{ClassesType, Schedule, ScheduleSearchResult, ScheduleType};
 
 pub struct FeatureSchedule(
     pub(crate) Arc<GetScheduleIdUseCase>,

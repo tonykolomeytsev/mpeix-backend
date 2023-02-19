@@ -5,7 +5,7 @@ use actix_web::{
 use anyhow::anyhow;
 use common_errors::errors::CommonError;
 use domain_mobile::AppVersion;
-use domain_schedule_models::dto::v1::{
+use domain_schedule_models::{
     ParseScheduleTypeError, Schedule, ScheduleSearchResult, ScheduleType,
 };
 use serde::{Deserialize, Serialize};
@@ -71,7 +71,7 @@ async fn search_schedule_v1(
     state: Data<AppSchedule>,
 ) -> Result<impl Responder, AppScheduleError> {
     let r#type = match &query.r#type {
-        Some(r#type) => Some(r#type.parse::<ScheduleType>()?),
+        Some(r#type) => Some(r#type.to_lowercase().parse::<ScheduleType>()?),
         None => None,
     };
 

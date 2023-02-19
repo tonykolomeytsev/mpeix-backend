@@ -5,7 +5,7 @@ use chrono::{Datelike, NaiveDate};
 use common_errors::errors::CommonError;
 use common_in_memory_cache::{Entry, InMemoryCache};
 use common_persistent_cache::PersistentCache;
-use domain_schedule_models::dto::v1::Schedule;
+use domain_schedule_models::Schedule;
 
 use super::compat::{writing, ReadingPersistentEntry, WritingPersistentEntry};
 

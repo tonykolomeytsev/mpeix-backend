@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::{Datelike, NaiveDate, Timelike};
-use domain_schedule_models::dto::v1::{
+use domain_schedule_models::{
     Classes, ClassesTime, ClassesType, Day, Schedule, ScheduleType, Week,
 };
 

@@ -1,4 +1,4 @@
-use domain_schedule_models::dto::v1::{ScheduleSearchResult, ScheduleType};
+use domain_schedule_models::{ScheduleSearchResult, ScheduleType};
 
 use crate::mpeix_api::MpeixApi;
 

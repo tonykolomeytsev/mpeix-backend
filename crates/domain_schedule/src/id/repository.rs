@@ -4,7 +4,7 @@ use anyhow::bail;
 use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
 use common_rust::env;
-use domain_schedule_models::dto::v1::ScheduleType;
+use domain_schedule_models::ScheduleType;
 use lazy_static::lazy_static;
 use log::debug;
 use regex::Regex;

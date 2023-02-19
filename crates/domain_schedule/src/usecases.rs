@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, ensure, Context};
 use chrono::{Local, Weekday};
 use common_errors::errors::CommonError;
-use domain_schedule_models::dto::v1::{Schedule, ScheduleSearchResult, ScheduleType};
+use domain_schedule_models::{Schedule, ScheduleSearchResult, ScheduleType};
 use lazy_static::lazy_static;
 use log::{debug, info};
 

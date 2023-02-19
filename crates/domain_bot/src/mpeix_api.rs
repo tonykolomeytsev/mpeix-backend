@@ -2,7 +2,7 @@ use std::env;
 
 use anyhow::{anyhow, Context};
 use common_errors::errors::CommonError;
-use domain_schedule_models::dto::v1::{Schedule, ScheduleSearchResult, ScheduleType};
+use domain_schedule_models::{Schedule, ScheduleSearchResult, ScheduleType};
 use reqwest::{redirect::Policy, Client, ClientBuilder};
 use serde::Deserialize;
 

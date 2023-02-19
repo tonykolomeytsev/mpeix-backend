@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use domain_schedule_models::dto::v1::{Classes, Day, ScheduleType, Week};
+use domain_schedule_models::{Classes, Day, ScheduleType, Week};
 
 /// Representation of database row from table 'peer'
 pub struct Peer {

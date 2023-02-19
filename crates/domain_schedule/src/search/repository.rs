@@ -4,7 +4,7 @@ use anyhow::{bail, Context};
 use common_in_memory_cache::InMemoryCache;
 use common_rust::env;
 use deadpool_postgres::Pool;
-use domain_schedule_models::dto::v1::{ScheduleSearchResult, ScheduleType};
+use domain_schedule_models::{ScheduleSearchResult, ScheduleType};
 use log::info;
 use tokio::sync::Mutex;
 use tokio_postgres::Row;

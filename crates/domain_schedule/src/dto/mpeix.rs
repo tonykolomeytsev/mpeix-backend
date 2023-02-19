@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use anyhow::bail;
 use common_errors::errors::CommonError;
-use domain_schedule_models::dto::v1::ScheduleType;
+use domain_schedule_models::ScheduleType;
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -111,7 +111,7 @@ impl Display for ScheduleSearchQuery {
 
 #[cfg(test)]
 mod tests {
-    use domain_schedule_models::dto::v1::ScheduleType;
+    use domain_schedule_models::ScheduleType;
 
     use super::{ScheduleName, ScheduleSearchQuery};
 

@@ -3,7 +3,7 @@ use std::fmt::Display;
 use anyhow::{anyhow, Context};
 use chrono::NaiveDate;
 use common_errors::errors::CommonError;
-use domain_schedule_models::dto::v1::ScheduleType;
+use domain_schedule_models::ScheduleType;
 use log::info;
 use reqwest::{redirect::Policy, Client, ClientBuilder, IntoUrl};
 use serde::{de::DeserializeOwned, Serialize};

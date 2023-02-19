@@ -1,6 +1,6 @@
 use chrono::{DateTime, Local};
 use common_in_memory_cache::Entry;
-use domain_schedule_models::dto::v1::Schedule;
+use domain_schedule_models::Schedule;
 use serde::{Deserialize, Serialize};
 
 /// Low-cost wrapper for Entry<Schedule> for safe reading from old cache entries,

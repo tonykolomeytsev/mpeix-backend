@@ -1,5 +1,5 @@
 use common_errors::errors::CommonError;
-use domain_schedule_models::dto::v1::{ScheduleSearchResult, ScheduleType};
+use domain_schedule_models::{ScheduleSearchResult, ScheduleType};
 use lazy_static::lazy_static;
 use regex::Regex;
 

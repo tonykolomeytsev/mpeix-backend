@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Context};
 use deadpool_postgres::Pool;
-use domain_schedule_models::dto::v1::ScheduleType;
+use domain_schedule_models::ScheduleType;
 use log::info;
 use tokio_postgres::Row;
 

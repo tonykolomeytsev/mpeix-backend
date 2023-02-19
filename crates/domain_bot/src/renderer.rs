@@ -1,5 +1,5 @@
 use chrono::{Datelike, Weekday};
-use domain_schedule_models::dto::v1::{Classes, Day, ScheduleType, Week};
+use domain_schedule_models::{Classes, Day, ScheduleType, Week};
 
 use crate::models::{Reply, TimePrediction, UpcomingEventsPrediction};
 use std::fmt::Write;

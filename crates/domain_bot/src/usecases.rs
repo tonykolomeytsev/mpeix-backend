@@ -3,7 +3,7 @@ use std::{cmp::Ordering, sync::Arc};
 use anyhow::{anyhow, Context};
 use chrono::{Datelike, Days, Local};
 use common_errors::errors::CommonError;
-use domain_schedule_models::dto::v1::{Classes, Day, ScheduleType};
+use domain_schedule_models::{Classes, Day, ScheduleType};
 use lazy_static::lazy_static;
 use regex::Regex;
 

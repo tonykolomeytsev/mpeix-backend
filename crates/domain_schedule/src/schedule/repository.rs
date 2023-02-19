@@ -3,7 +3,7 @@ use chrono::{Days, NaiveDate};
 use common_in_memory_cache::InMemoryCache;
 use common_persistent_cache::PersistentCache;
 use common_rust::env;
-use domain_schedule_models::dto::v1::{Schedule, ScheduleType};
+use domain_schedule_models::{Schedule, ScheduleType};
 use log::debug;
 use tokio::sync::Mutex;
 
