@@ -90,7 +90,7 @@ impl GetScheduleUseCase {
             )
             .await?
         {
-            info!("Got schedule from cache");
+            debug!("Got schedule from cache");
             {
                 // fix schedule week_of_semester according to new schedule shift rules
                 self.fix_schedule_shift_if_needed(
@@ -128,7 +128,7 @@ impl GetScheduleUseCase {
                 .get_schedule_from_cache(name.to_owned(), r#type.to_owned(), week_start, true)
                 .await?
             {
-                info!("Got expired schedule from cache (remote unavailable)");
+                debug!("Got expired schedule from cache (remote unavailable)");
                 {
                     // fix schedule week_of_semester according to new schedule shift rules
                     self.fix_schedule_shift_if_needed(
@@ -154,7 +154,7 @@ impl GetScheduleUseCase {
                     remote.as_ref().unwrap().to_owned(),
                 )
                 .await?;
-            info!("Got schedule from remote");
+            debug!("Got schedule from remote");
         }
 
         // if we have not even expired cached value, return error about remote request
@@ -222,7 +222,7 @@ impl SearchScheduleUseCase {
             .get_results_from_cache(query.to_owned(), r#type.to_owned())
             .await
         {
-            info!("Got schedule search result from cache");
+            debug!("Got schedule search result from cache");
             return Ok(cached_value);
         }
 

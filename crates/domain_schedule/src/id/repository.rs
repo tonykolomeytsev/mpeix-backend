@@ -6,7 +6,7 @@ use common_in_memory_cache::InMemoryCache;
 use common_rust::env;
 use domain_schedule_models::dto::v1::ScheduleType;
 use lazy_static::lazy_static;
-use log::{debug, info};
+use log::debug;
 use regex::Regex;
 use tokio::sync::Mutex;
 
@@ -65,7 +65,7 @@ impl ScheduleIdRepository {
             name: name.to_string(),
         };
         if let Some(value) = self.cache.lock().await.get(&cache_key) {
-            info!("Got schedule id from cache");
+            debug!("Got schedule id from cache");
             return Ok(value.0);
         };
 
@@ -75,7 +75,7 @@ impl ScheduleIdRepository {
             .await?
         {
             Some(search_result) if self.fuzzy_equals(&search_result.label, &cache_key.name) => {
-                info!("Got schedule id from remote");
+                debug!("Got schedule id from remote");
                 // Put value to cache
                 self.cache
                     .lock()
