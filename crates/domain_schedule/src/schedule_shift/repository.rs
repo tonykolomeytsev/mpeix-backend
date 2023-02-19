@@ -5,6 +5,7 @@ use chrono::{Duration, NaiveDate};
 use common_in_memory_cache::InMemoryCache;
 use common_rust::env;
 use domain_schedule_shift::ScheduleShift;
+use log::debug;
 use tokio::sync::Mutex;
 
 use crate::time::{NaiveDateExt, WeekOfSemester};
@@ -31,6 +32,7 @@ impl ScheduleShiftRepository {
         &self,
         week_start: &NaiveDate,
     ) -> anyhow::Result<WeekOfSemester> {
+        debug!("Getting schedule shift...");
         let mut cache = self.cache.lock().await;
         if cache.get(&()).is_none() {
             if self.config_path.exists() {

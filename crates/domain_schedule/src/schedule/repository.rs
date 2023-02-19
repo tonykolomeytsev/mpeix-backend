@@ -4,6 +4,7 @@ use common_in_memory_cache::InMemoryCache;
 use common_persistent_cache::PersistentCache;
 use common_rust::env;
 use domain_schedule_models::dto::v1::{Schedule, ScheduleType};
+use log::debug;
 use tokio::sync::Mutex;
 
 use crate::{dto::mpeix::ScheduleName, mpei_api::MpeiApi, time::WeekOfSemester};
@@ -46,6 +47,7 @@ impl ScheduleRepository {
         week_start: NaiveDate,
         ignore_expiration: bool,
     ) -> anyhow::Result<Option<Schedule>> {
+        debug!("Trying to get schedule from cache...");
         let mut mediator = CacheMediator::new(&self.in_memory_cache, &self.persistent_cache);
         let key = InMemoryCacheKey {
             name: name.as_string(),
@@ -66,6 +68,7 @@ impl ScheduleRepository {
         week_start: NaiveDate,
         schedule: Schedule,
     ) -> anyhow::Result<()> {
+        debug!("Inserting schedule to cache...");
         let mut mediator = CacheMediator::new(&self.in_memory_cache, &self.persistent_cache);
         let key = InMemoryCacheKey {
             name: name.as_string(),
@@ -87,6 +90,7 @@ impl ScheduleRepository {
         week_start: NaiveDate,
         week_of_semester: WeekOfSemester,
     ) -> anyhow::Result<Schedule> {
+        debug!("Getting schedule from remote...");
         let week_end = week_start
             .checked_add_days(Days::new(6))
             .expect("Week end date always reachable");

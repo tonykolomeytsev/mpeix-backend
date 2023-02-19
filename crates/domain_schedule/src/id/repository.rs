@@ -6,7 +6,7 @@ use common_in_memory_cache::InMemoryCache;
 use common_rust::env;
 use domain_schedule_models::dto::v1::ScheduleType;
 use lazy_static::lazy_static;
-use log::info;
+use log::{debug, info};
 use regex::Regex;
 use tokio::sync::Mutex;
 
@@ -59,6 +59,7 @@ impl ScheduleIdRepository {
         name: ValidScheduleName,
         r#type: ScheduleType,
     ) -> anyhow::Result<i64> {
+        debug!("Trying to get schedule id from cache...");
         let cache_key = ScheduleName {
             r#type: r#type.to_owned(),
             name: name.to_string(),
@@ -68,6 +69,7 @@ impl ScheduleIdRepository {
             return Ok(value.0);
         };
 
+        debug!("Getting schedule id from remote...");
         match self
             .get_id_from_remote(name.to_owned(), r#type.to_owned())
             .await?

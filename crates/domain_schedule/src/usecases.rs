@@ -5,7 +5,7 @@ use chrono::{Local, Weekday};
 use common_errors::errors::CommonError;
 use domain_schedule_models::dto::v1::{Schedule, ScheduleSearchResult, ScheduleType};
 use lazy_static::lazy_static;
-use log::info;
+use log::{debug, info};
 
 use crate::{
     dto::mpeix::{ScheduleName, ScheduleSearchQuery},
@@ -66,6 +66,7 @@ impl GetScheduleUseCase {
         r#type: ScheduleType,
         offset: i32,
     ) -> anyhow::Result<Schedule> {
+        debug!("GetScheduleUseCase: stage #1 started...");
         ensure!(offset < *MAX_OFFSET, CommonError::user("Too large offset"));
         ensure!(offset > *MIN_OFFSET, CommonError::user("Too small offset"));
 
@@ -78,6 +79,7 @@ impl GetScheduleUseCase {
         let week_of_semester = self.2.get_week_of_semester(&week_start).await?;
         let ignore_expiration = week_start.is_past_week();
 
+        debug!("GetScheduleUseCase: stage #2 started...");
         if let Some(mut schedule) = self
             .1
             .get_schedule_from_cache(
@@ -102,8 +104,10 @@ impl GetScheduleUseCase {
             return Ok(schedule);
         }
 
+        debug!("GetScheduleUseCase: stage #3 started...");
         let schedule_id = self.0.get_id(name.to_owned(), r#type.to_owned()).await?;
 
+        debug!("GetScheduleUseCase: stage #4 started...");
         let remote = self
             .1
             .get_schedule_from_remote(
@@ -115,6 +119,7 @@ impl GetScheduleUseCase {
             )
             .await;
 
+        debug!("GetScheduleUseCase: stage #5 started...");
         // if we cannot get value from remote and didn't disable expiration policy at the beginning,
         // try to disable expiration policy and look for cached value again
         if remote.is_err() && !ignore_expiration {
@@ -138,6 +143,7 @@ impl GetScheduleUseCase {
             }
         }
 
+        debug!("GetScheduleUseCase: stage #6 started...");
         if remote.is_ok() {
             // put new remote value into the cache
             self.1
@@ -161,6 +167,7 @@ impl GetScheduleUseCase {
         week_of_semester: &WeekOfSemester,
         name: ScheduleName,
     ) -> anyhow::Result<()> {
+        debug!("Checking if the schedule needs to be corrected shift...");
         let mut week = schedule
             .weeks
             .first_mut()

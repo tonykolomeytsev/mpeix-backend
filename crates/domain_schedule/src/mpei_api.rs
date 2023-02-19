@@ -1,7 +1,10 @@
+use std::fmt::Display;
+
 use anyhow::{anyhow, Context};
 use chrono::NaiveDate;
 use common_errors::errors::CommonError;
 use domain_schedule_models::dto::v1::ScheduleType;
+use log::info;
 use reqwest::{redirect::Policy, Client, ClientBuilder, IntoUrl};
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -18,6 +21,7 @@ impl Default for MpeiApi {
                 .redirect(Policy::none())
                 .timeout(std::time::Duration::from_secs(15))
                 .connect_timeout(std::time::Duration::from_secs(3))
+                .pool_max_idle_per_host(0)
                 .build()
                 .expect("Something went wrong when building HttClient"),
         )
@@ -56,10 +60,11 @@ impl MpeiApi {
 
     async fn get<U, Q, T>(&self, url: U, query: &Q) -> anyhow::Result<T>
     where
-        U: IntoUrl,
+        U: IntoUrl + Display,
         Q: Serialize + ?Sized,
         T: DeserializeOwned,
     {
+        info!("-> GET {url}");
         self.0
             .get(url)
             .query(query)
