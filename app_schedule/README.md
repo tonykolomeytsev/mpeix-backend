@@ -27,3 +27,5 @@ Microservice responsible for working with the schedules of groups, teachers and 
 - Schedule shift rules:
   - `SCHEDULE_SHIFT_CONFIG_PATH` <sup>`domain_schedule`</sup> — path to config with "schedule shift rules". 
     By default, the built-in default config will be used, which can be found here: [default_schedule_shift.toml](https://github.com/tonykolomeytsev/mpeix-backend/blob/master/domain_schedule_shift/res/default_schedule_shift.toml)
+- Remote API rules:
+  - `GATEWAY_CONNECT_TIMEOUT` <sup>`domain_schedule`</sup> — connect tiomeout for gateway requests. Default is `1500` ms.

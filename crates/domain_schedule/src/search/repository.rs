@@ -28,9 +28,10 @@ impl ScheduleSearchRepository {
     pub fn new(db_pool: Arc<Pool>) -> Self {
         let cache_capacity = env::get_parsed_or("SCHEDULE_SEARCH_CACHE_CAPACITY", 3000);
         let cache_lifetife = env::get_parsed_or("SCHEDULE_SEARCH_CACHE_LIFETIME_MINUTES", 5);
+        let connect_timeout = env::get_parsed_or("GATEWAY_CONNECT_TIMEOUT", 1500);
 
         Self {
-            api: MpeiApi::default(),
+            api: MpeiApi::with_timeout_ms(connect_timeout),
             db_pool,
             in_memory_cache: Mutex::new(
                 InMemoryCache::with_capacity(cache_capacity)

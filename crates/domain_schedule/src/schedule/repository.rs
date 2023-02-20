@@ -25,9 +25,10 @@ impl Default for ScheduleRepository {
         let cache_max_hits = env::get_parsed_or("SCHEDULE_CACHE_MAX_HITS", 10);
         let cache_lifetife = env::get_parsed_or("SCHEDULE_CACHE_LIFETIME_HOURS", 6);
         let cache_dir = env::get_or("SCHEDULE_CACHE_DIR", "./cache");
+        let connect_timeout = env::get_parsed_or("GATEWAY_CONNECT_TIMEOUT", 1500);
 
         Self {
-            api: MpeiApi::default(),
+            api: MpeiApi::with_timeout_ms(connect_timeout),
             mediator: Mutex::new(CacheMediator {
                 in_memory_cache: InMemoryCache::with_capacity(cache_capacity)
                     .max_hits(cache_max_hits)

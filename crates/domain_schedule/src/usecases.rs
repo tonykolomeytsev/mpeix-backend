@@ -66,7 +66,7 @@ impl GetScheduleUseCase {
         r#type: ScheduleType,
         offset: i32,
     ) -> anyhow::Result<Schedule> {
-        debug!("GetScheduleUseCase: stage #1 started...");
+        debug!("GetScheduleUseCase(name='{name}', type='{type}', offset={offset})");
         ensure!(offset < *MAX_OFFSET, CommonError::user("Too large offset"));
         ensure!(offset > *MIN_OFFSET, CommonError::user("Too small offset"));
 
@@ -79,7 +79,6 @@ impl GetScheduleUseCase {
         let week_of_semester = self.2.get_week_of_semester(&week_start).await?;
         let ignore_expiration = week_start.is_past_week();
 
-        debug!("GetScheduleUseCase: stage #2 started...");
         if let Some(mut schedule) = self
             .1
             .get_schedule_from_cache(
@@ -104,12 +103,19 @@ impl GetScheduleUseCase {
             return Ok(schedule);
         }
 
-        debug!("GetScheduleUseCase: stage #3 started...");
-        let schedule_id = self.0.get_id(name.to_owned(), r#type.to_owned()).await;
+        // Trying to get schedule id from remote
+        // do not return error in case of error
+        let schedule_id = self
+            .0
+            .get_id(name.to_owned(), r#type.to_owned())
+            .await
+            .with_context(|| "Error while getting schedule id from remote");
 
-        debug!("GetScheduleUseCase: stage #4 started...");
-        let remote = if let Ok(schedule_id) = schedule_id {
-            self.1
+        // get schedule from remote by its id, if previous step was successful,
+        // or just remember error to process it in next steps
+        let remote = match schedule_id {
+            Ok(schedule_id) => self
+                .1
                 .get_schedule_from_remote(
                     schedule_id,
                     name.to_owned(),
@@ -118,19 +124,17 @@ impl GetScheduleUseCase {
                     week_of_semester.to_owned(),
                 )
                 .await
+                .with_context(|| "Error while getting schedule from remote")
                 .map_err(|e| {
-                    warn!("ScheduleRepository returned error: {e}");
+                    warn!("{e}");
                     anyhow!(e)
-                })
-        } else {
-            warn!(
-                "ScheduleIdRepositury returned error: {}",
-                schedule_id.unwrap_err()
-            );
-            Err(anyhow!("Schedule id error"))
+                }),
+            Err(e) => {
+                warn!("{e}");
+                Err(anyhow!(e))
+            }
         };
 
-        debug!("GetScheduleUseCase: stage #5 started...");
         // if we cannot get value from remote and didn't disable expiration policy at the beginning,
         // try to disable expiration policy and look for cached value again
         if remote.is_err() && !ignore_expiration {
@@ -139,7 +143,7 @@ impl GetScheduleUseCase {
                 .get_schedule_from_cache(name.to_owned(), r#type.to_owned(), week_start, true)
                 .await?
             {
-                debug!("Got expired schedule from cache (remote unavailable)");
+                debug!("Got expired schedule from cache (because remote is unavailable)");
                 {
                     // fix schedule week_of_semester according to new schedule shift rules
                     self.fix_schedule_shift_if_needed(
@@ -154,7 +158,8 @@ impl GetScheduleUseCase {
             }
         }
 
-        debug!("GetScheduleUseCase: stage #6 started...");
+        // If we successfully got new value from remote,
+        // put it into the cache
         if remote.is_ok() {
             // put new remote value into the cache
             self.1

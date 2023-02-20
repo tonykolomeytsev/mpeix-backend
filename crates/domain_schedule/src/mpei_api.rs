@@ -12,12 +12,6 @@ use crate::dto::mpei::MpeiClasses;
 
 pub struct MpeiApi(Client);
 
-impl Default for MpeiApi {
-    fn default() -> Self {
-        Self::with_timeout_ms(3000)
-    }
-}
-
 impl MpeiApi {
     pub fn with_timeout_ms(timeout: u64) -> Self {
         Self(
