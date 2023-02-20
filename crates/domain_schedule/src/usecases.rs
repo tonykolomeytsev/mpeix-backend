@@ -105,19 +105,23 @@ impl GetScheduleUseCase {
         }
 
         debug!("GetScheduleUseCase: stage #3 started...");
-        let schedule_id = self.0.get_id(name.to_owned(), r#type.to_owned()).await?;
+        let schedule_id = self.0.get_id(name.to_owned(), r#type.to_owned()).await;
 
         debug!("GetScheduleUseCase: stage #4 started...");
-        let remote = self
-            .1
-            .get_schedule_from_remote(
-                schedule_id,
-                name.to_owned(),
-                r#type.to_owned(),
-                week_start,
-                week_of_semester.to_owned(),
-            )
-            .await;
+        let remote = if let Ok(schedule_id) = schedule_id {
+            self.1
+                .get_schedule_from_remote(
+                    schedule_id,
+                    name.to_owned(),
+                    r#type.to_owned(),
+                    week_start,
+                    week_of_semester.to_owned(),
+                )
+                .await
+                .map_err(|e| anyhow!(e))
+        } else {
+            Err(anyhow!("Schedule id error"))
+        };
 
         debug!("GetScheduleUseCase: stage #5 started...");
         // if we cannot get value from remote and didn't disable expiration policy at the beginning,
