@@ -5,7 +5,7 @@ use chrono::{Local, Weekday};
 use common_errors::errors::CommonError;
 use domain_schedule_models::{Schedule, ScheduleSearchResult, ScheduleType};
 use lazy_static::lazy_static;
-use log::{debug, info};
+use log::{debug, info, warn};
 
 use crate::{
     dto::mpeix::{ScheduleName, ScheduleSearchQuery},
@@ -118,8 +118,15 @@ impl GetScheduleUseCase {
                     week_of_semester.to_owned(),
                 )
                 .await
-                .map_err(|e| anyhow!(e))
+                .map_err(|e| {
+                    warn!("ScheduleRepository returned error: {e}");
+                    anyhow!(e)
+                })
         } else {
+            warn!(
+                "ScheduleIdRepositury returned error: {}",
+                schedule_id.unwrap_err()
+            );
             Err(anyhow!("Schedule id error"))
         };
 
