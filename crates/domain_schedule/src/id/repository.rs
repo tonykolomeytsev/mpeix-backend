@@ -43,7 +43,7 @@ impl Default for ScheduleIdRepository {
         let cache_lifetife = env::get_parsed_or("SCHEDULE_ID_CACHE_LIFETIME_HOURS", 12);
 
         Self {
-            api: MpeiApi::default(),
+            api: MpeiApi::with_timeout_ms(1500),
             cache: Mutex::new(
                 InMemoryCache::with_capacity(cache_capacity)
                     .max_hits(cache_max_hits)
