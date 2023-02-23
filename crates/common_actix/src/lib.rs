@@ -34,7 +34,7 @@ macro_rules! define_app_error {
             HttpResponse,
         };
         use anyhow::anyhow;
-        use common_errors::errors::CommonError;
+        use common_errors::errors::{CommonError, CommonErrorExt};
         use std::fmt::{Debug, Display};
 
         pub struct $name(anyhow::Error);
@@ -66,14 +66,12 @@ macro_rules! define_app_error {
             }
 
             fn status_code(&self) -> StatusCode {
-                for err in self.0.chain() {
-                    if let Some(common_err) = err.downcast_ref::<CommonError>() {
-                        return match common_err {
-                            CommonError::GatewayError(_) => StatusCode::BAD_GATEWAY,
-                            CommonError::InternalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                            CommonError::UserError(_) => StatusCode::BAD_REQUEST,
-                        };
-                    }
+                if let Some(common_err) = self.0.as_common_error() {
+                    return match common_err {
+                        CommonError::GatewayError(_) => StatusCode::BAD_GATEWAY,
+                        CommonError::InternalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                        CommonError::UserError(_) => StatusCode::BAD_REQUEST,
+                    };
                 }
                 StatusCode::INTERNAL_SERVER_ERROR
             }
