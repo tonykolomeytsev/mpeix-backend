@@ -43,3 +43,14 @@ impl Display for CommonError {
 }
 
 impl Error for CommonError {}
+
+pub trait CommonErrorExt {
+    fn as_common_error(&self) -> Option<&CommonError>;
+}
+
+impl CommonErrorExt for anyhow::Error {
+    fn as_common_error(&self) -> Option<&CommonError> {
+        self.chain()
+            .find_map(|err| err.downcast_ref::<CommonError>())
+    }
+}

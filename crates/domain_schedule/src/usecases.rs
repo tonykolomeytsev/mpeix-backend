@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use anyhow::{anyhow, ensure, Context};
-use chrono::{Local, Weekday};
-use common_errors::errors::CommonError;
+use chrono::{Local, NaiveDate, Weekday};
+use common_errors::errors::{CommonError, CommonErrorExt};
+use domain_schedule_cooldown::ScheduleCooldownRepository;
 use domain_schedule_models::{Schedule, ScheduleSearchResult, ScheduleType};
 use lazy_static::lazy_static;
 use log::{debug, info, warn};
@@ -51,11 +52,12 @@ lazy_static! {
 /// This UseCase uses injected singleton instances of [ScheduleIdRepository],
 /// [ScheduleRepository] and [ScheduleShiftRepository].
 /// Check [crate::di] module for details.
-pub struct GetScheduleUseCase(
-    pub(crate) Arc<ScheduleIdRepository>,
-    pub(crate) Arc<ScheduleRepository>,
-    pub(crate) Arc<ScheduleShiftRepository>,
-);
+pub struct GetScheduleUseCase {
+    pub(crate) schedule_id_repository: Arc<ScheduleIdRepository>,
+    pub(crate) schedule_repository: Arc<ScheduleRepository>,
+    pub(crate) schedule_shift_repository: Arc<ScheduleShiftRepository>,
+    pub(crate) schedule_cooldown_repository: Arc<ScheduleCooldownRepository>,
+}
 
 impl GetScheduleUseCase {
     /// Get [Schedule] model by schedule `name`, `type`, and `offset`.
@@ -76,84 +78,50 @@ impl GetScheduleUseCase {
             .map(|dt| dt.date_naive())
             .map(|dt| dt.week(Weekday::Mon).first_day())
             .ok_or_else(|| anyhow!(CommonError::user("Invalid week offset")))?;
-        let week_of_semester = self.2.get_week_of_semester(&week_start).await?;
-        let ignore_expiration = week_start.is_past_week();
+        let week_of_semester = self
+            .schedule_shift_repository
+            .get_week_of_semester(&week_start)
+            .await?;
+        // Always ignore expiration policy for past weeks
+        // and also in case of active "cooldown"
+        let ignore_expiration = week_start.is_past_week()
+            || self.schedule_cooldown_repository.is_cooldown_active().await;
 
-        if let Some(mut schedule) = self
-            .1
+        // try to get schedule from cache first
+        if let Some(schedule) = self
             .get_schedule_from_cache(
-                name.to_owned(),
-                r#type.to_owned(),
+                &name,
+                &r#type,
                 week_start,
+                &week_of_semester,
                 ignore_expiration,
             )
             .await?
         {
-            debug!("Got schedule from cache");
-            {
-                // fix schedule week_of_semester according to new schedule shift rules
-                self.fix_schedule_shift_if_needed(
-                    &mut schedule,
-                    &week_of_semester,
-                    name.to_owned(),
-                )
-                .await
-                .with_context(|| "Error while fixing schedule shift")?;
-            }
             return Ok(schedule);
         }
 
-        // Trying to get schedule id from remote
-        // do not return error in case of error
-        let schedule_id = self
-            .0
-            .get_id(name.to_owned(), r#type.to_owned())
-            .await
-            .with_context(|| "Error while getting schedule id from remote");
+        // Trying to get schedule id from remote, do not return error in case of error
+        // remember error to process it in next steps
+        let remote = self
+            .get_schedule_from_remote(&name, &r#type, week_start, &week_of_semester)
+            .await;
 
-        // get schedule from remote by its id, if previous step was successful,
-        // or just remember error to process it in next steps
-        let remote = match schedule_id {
-            Ok(schedule_id) => self
-                .1
-                .get_schedule_from_remote(
-                    schedule_id,
-                    name.to_owned(),
-                    r#type.to_owned(),
-                    week_start,
-                    week_of_semester.to_owned(),
-                )
-                .await
-                .with_context(|| "Error while getting schedule from remote")
-                .map_err(|e| {
-                    warn!("{e}");
-                    anyhow!(e)
-                }),
-            Err(e) => {
-                warn!("{e}");
-                Err(anyhow!(e))
+        if let Err(e) = &remote {
+            warn!("{e}"); // full error description is in anyhow context
+            if let Some(CommonError::GatewayError(_)) = e.as_common_error() {
+                warn!("Cooldown will be activated...");
+                self.schedule_cooldown_repository.activate().await;
             }
-        };
+        }
 
         // if we cannot get value from remote and didn't disable expiration policy at the beginning,
         // try to disable expiration policy and look for cached value again
         if remote.is_err() && !ignore_expiration {
-            if let Some(mut schedule) = self
-                .1
-                .get_schedule_from_cache(name.to_owned(), r#type.to_owned(), week_start, true)
+            if let Some(schedule) = self
+                .get_schedule_from_cache(&name, &r#type, week_start, &week_of_semester, true)
                 .await?
             {
-                debug!("Got expired schedule from cache (because remote is unavailable)");
-                {
-                    // fix schedule week_of_semester according to new schedule shift rules
-                    self.fix_schedule_shift_if_needed(
-                        &mut schedule,
-                        &week_of_semester,
-                        name.to_owned(),
-                    )
-                    .await
-                    .with_context(|| "Error while fixing schedule shift")?;
-                }
                 return Ok(schedule);
             }
         }
@@ -162,7 +130,7 @@ impl GetScheduleUseCase {
         // put it into the cache
         if remote.is_ok() {
             // put new remote value into the cache
-            self.1
+            self.schedule_repository
                 .insert_schedule_to_cache(
                     name,
                     r#type,
@@ -175,6 +143,67 @@ impl GetScheduleUseCase {
 
         // if we have not even expired cached value, return error about remote request
         remote
+    }
+
+    async fn get_schedule_from_remote(
+        &self,
+        name: &ScheduleName,
+        r#type: &ScheduleType,
+        week_start: NaiveDate,
+        week_of_semester: &WeekOfSemester,
+    ) -> anyhow::Result<Schedule> {
+        // Trying to get schedule id from remote
+        let schedule_id = self
+            .schedule_id_repository
+            .get_id(name.to_owned(), r#type.to_owned())
+            .await
+            .with_context(|| "Error while getting schedule id from remote")?;
+
+        // get schedule from remote by its id, if previous step was successful
+        self.schedule_repository
+            .get_schedule_from_remote(
+                schedule_id,
+                name.to_owned(),
+                r#type.to_owned(),
+                week_start,
+                week_of_semester.to_owned(),
+            )
+            .await
+            .with_context(|| "Error while getting schedule from remote")
+    }
+
+    async fn get_schedule_from_cache(
+        &self,
+        name: &ScheduleName,
+        r#type: &ScheduleType,
+        week_start: NaiveDate,
+        week_of_semester: &WeekOfSemester,
+        ignore_expiration: bool,
+    ) -> anyhow::Result<Option<Schedule>> {
+        if let Some(mut schedule) = self
+            .schedule_repository
+            .get_schedule_from_cache(
+                name.to_owned(),
+                r#type.to_owned(),
+                week_start,
+                ignore_expiration,
+            )
+            .await?
+        {
+            debug!("Got schedule from cache (ignore_expiration={ignore_expiration})");
+            {
+                // fix schedule week_of_semester according to new schedule shift rules
+                self.fix_schedule_shift_if_needed(
+                    &mut schedule,
+                    &week_of_semester,
+                    name.to_owned(),
+                )
+                .await
+                .with_context(|| "Error while fixing schedule shift")?;
+            }
+            return Ok(Some(schedule));
+        }
+        Ok(None)
     }
 
     async fn fix_schedule_shift_if_needed(
@@ -196,7 +225,7 @@ impl GetScheduleUseCase {
 
         if true_week_of_semester != week.week_of_semester {
             week.week_of_semester = true_week_of_semester;
-            self.1
+            self.schedule_repository
                 .insert_schedule_to_cache(
                     name,
                     schedule.r#type.clone(),
