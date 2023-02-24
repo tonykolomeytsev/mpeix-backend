@@ -252,7 +252,7 @@ checksum = "2cb2f989d18dd141ab8ae82f64d1a8cdd37e0840f73a406896cf5e99502fab61"
 
 [[package]]
 name = "app_schedule"
-version = "3.0.22"
+version = "3.0.23"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -261,6 +261,7 @@ dependencies = [
  "common_errors",
  "domain_mobile",
  "domain_schedule",
+ "domain_schedule_cooldown",
  "domain_schedule_models",
  "env_logger",
  "feature_schedule",
@@ -271,7 +272,7 @@ dependencies = [
 
 [[package]]
 name = "app_telegram_bot"
-version = "3.0.22"
+version = "3.0.23"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -288,7 +289,7 @@ dependencies = [
 
 [[package]]
 name = "app_vk_bot"
-version = "3.0.22"
+version = "3.0.23"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -314,6 +315,28 @@ dependencies = [
  "memchr",
  "pin-project-lite",
  "tokio",
+]
+
+[[package]]
+name = "async-stream"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad445822218ce64be7a341abfb0b1ea43b5c23aa83902542a4542e78309d8e5e"
+dependencies = [
+ "async-stream-impl",
+ "futures-core",
+ "pin-project-lite",
+]
+
+[[package]]
+name = "async-stream-impl"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4655ae1a7b0cdf149156f780c5bf3f1352bc53cbd9e0a361a7ef7b22947e965"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -473,6 +496,9 @@ dependencies = [
 [[package]]
 name = "common_errors"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+]
 
 [[package]]
 name = "common_in_memory_cache"
@@ -695,6 +721,7 @@ dependencies = [
  "common_persistent_cache",
  "common_rust",
  "deadpool-postgres",
+ "domain_schedule_cooldown",
  "domain_schedule_models",
  "domain_schedule_shift",
  "env_logger",
@@ -706,6 +733,18 @@ dependencies = [
  "serde",
  "tokio",
  "tokio-postgres",
+]
+
+[[package]]
+name = "domain_schedule_cooldown"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "common_errors",
+ "common_rust",
+ "tokio",
+ "tokio-test",
 ]
 
 [[package]]
@@ -2013,6 +2052,30 @@ dependencies = [
  "socket2",
  "tokio",
  "tokio-util",
+]
+
+[[package]]
+name = "tokio-stream"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fb52b74f05dbf495a8fba459fdc331812b96aa086d9eb78101fa0d4569c3313"
+dependencies = [
+ "futures-core",
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
+name = "tokio-test"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53474327ae5e166530d17f2d956afcb4f8a004de581b3cae10f12006bc8163e3"
+dependencies = [
+ "async-stream",
+ "bytes",
+ "futures-core",
+ "tokio",
+ "tokio-stream",
 ]
 
 [[package]]
