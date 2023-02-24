@@ -27,5 +27,7 @@ Microservice responsible for working with the schedules of groups, teachers and 
 - Schedule shift rules:
   - `SCHEDULE_SHIFT_CONFIG_PATH` <sup>`domain_schedule`</sup> — path to config with "schedule shift rules". 
     By default, the built-in default config will be used, which can be found here: [default_schedule_shift.toml](https://github.com/tonykolomeytsev/mpeix-backend/blob/master/domain_schedule_shift/res/default_schedule_shift.toml)
+- Schedule cooldown rules:
+  - `SCHEDULE_COOLDOWN_DURATION_MIN` <sup>`domain_schedule_cooldown`</sup> — The time for which the cooldown is activated after an error on the server side of the university. Default is `1` minute.
 - Remote API rules:
   - `GATEWAY_CONNECT_TIMEOUT` <sup>`domain_schedule`</sup> — connect tiomeout for gateway requests. Default is `1500` ms.
