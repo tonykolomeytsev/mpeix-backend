@@ -7,7 +7,6 @@ use domain_schedule_cooldown::ScheduleCooldownRepository;
 use domain_schedule_models::{Schedule, ScheduleSearchResult, ScheduleType};
 use lazy_static::lazy_static;
 use log::{debug, info, warn};
-use tokio::sync::Mutex;
 
 use crate::{
     dto::mpeix::{ScheduleName, ScheduleSearchQuery},
@@ -58,7 +57,6 @@ pub struct GetScheduleUseCase {
     pub(crate) schedule_repository: Arc<ScheduleRepository>,
     pub(crate) schedule_shift_repository: Arc<ScheduleShiftRepository>,
     pub(crate) schedule_cooldown_repository: Arc<ScheduleCooldownRepository>,
-    pub(crate) _lock: Mutex<()>,
 }
 
 impl GetScheduleUseCase {

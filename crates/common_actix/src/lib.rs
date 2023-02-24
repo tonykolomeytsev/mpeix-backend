@@ -66,14 +66,12 @@ macro_rules! define_app_error {
             }
 
             fn status_code(&self) -> StatusCode {
-                if let Some(common_err) = self.0.as_common_error() {
-                    return match common_err {
-                        CommonError::GatewayError(_) => StatusCode::BAD_GATEWAY,
-                        CommonError::InternalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                        CommonError::UserError(_) => StatusCode::BAD_REQUEST,
-                    };
+                match self.0.as_common_error() {
+                    Some(CommonError::GatewayError(_)) => StatusCode::BAD_GATEWAY,
+                    Some(CommonError::InternalError(_)) => StatusCode::INTERNAL_SERVER_ERROR,
+                    Some(CommonError::UserError(_)) => StatusCode::BAD_REQUEST,
+                    None => StatusCode::INTERNAL_SERVER_ERROR,
                 }
-                StatusCode::INTERNAL_SERVER_ERROR
             }
         }
     };
