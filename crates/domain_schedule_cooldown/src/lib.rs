@@ -1,6 +1,6 @@
 use chrono::{DateTime, Duration, Local};
 use common_rust::env;
-pub use tokio::sync::Mutex;
+use tokio::sync::Mutex;
 
 /// Provides "cooldown" functionality in case of errors on MPEI server.
 /// Counts the time during which it is impossible to reconnect to the server that returned the error.

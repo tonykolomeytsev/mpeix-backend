@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use domain_schedule_cooldown::ScheduleCooldownRepository;
+use tokio::sync::Mutex;
 
 use crate::{
     id::repository::ScheduleIdRepository,
@@ -30,6 +31,7 @@ impl GetScheduleUseCase {
             schedule_repository,
             schedule_shift_repository,
             schedule_cooldown_repository,
+            _lock: Mutex::new(()),
         }
     }
 }
