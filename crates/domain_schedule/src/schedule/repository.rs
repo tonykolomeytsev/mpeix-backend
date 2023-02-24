@@ -22,7 +22,7 @@ pub struct ScheduleRepository {
 impl Default for ScheduleRepository {
     fn default() -> Self {
         let cache_capacity = env::get_parsed_or("SCHEDULE_CACHE_CAPACITY", 500);
-        let cache_max_hits = env::get_parsed_or("SCHEDULE_CACHE_MAX_HITS", 10);
+        let cache_max_hits = env::get_parsed_or("SCHEDULE_CACHE_MAX_HITS", 20);
         let cache_lifetife = env::get_parsed_or("SCHEDULE_CACHE_LIFETIME_HOURS", 6);
         let cache_dir = env::get_or("SCHEDULE_CACHE_DIR", "./cache");
         let connect_timeout = env::get_parsed_or("GATEWAY_CONNECT_TIMEOUT", 1500);

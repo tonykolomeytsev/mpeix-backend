@@ -14,7 +14,7 @@ Microservice responsible for working with the schedules of groups, teachers and 
   - `POSTGRES_PORT` - database port. Default is `5432`.
 - Schedule cache <sup>`domain_schedule_cache`</sup>:
   - `SCHEDULE_CACHE_CAPACITY` — in-memory LRU cache capacity. Default is `500` items.
-  - `SCHEDULE_CACHE_MAX_HITS` — cache expiration policy by hits. Default is `10` hits.
+  - `SCHEDULE_CACHE_MAX_HITS` — cache expiration policy by hits. Default is `20` hits.
   - `SCHEDULE_CACHE_LIFETIME_HOURS` — cache expiration policy by creation date. Default is `6` hours.
   - `SCHEDULE_CACHE_DIR` — dir to store schedule cache files. Default is `./cache`.
 - Schedule Id cache <sup>`domain_schedule_cache`</sup>:
