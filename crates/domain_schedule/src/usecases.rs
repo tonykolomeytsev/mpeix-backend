@@ -110,7 +110,7 @@ impl GetScheduleUseCase {
         if let Err(e) = &remote {
             warn!("{e}"); // full error description is in anyhow context
             if let Some(CommonError::GatewayError(_)) = e.as_common_error() {
-                warn!("Cooldown will be activated...");
+                warn!("Activating cooldown for schedule: {e}");
                 self.schedule_cooldown_repository.activate().await;
             }
         }
@@ -253,7 +253,10 @@ impl GetScheduleUseCase {
 /// necessary value, we made request to the MPEI backend and put results of the request to
 /// the database (add new entries, update old entries). Even if the request fails, we do search
 /// in the database and return best mathes.
-pub struct SearchScheduleUseCase(pub(crate) Arc<ScheduleSearchRepository>);
+pub struct SearchScheduleUseCase {
+    pub(crate) schedule_search_repository: Arc<ScheduleSearchRepository>,
+    pub(crate) schedule_cooldown_repository: Arc<ScheduleCooldownRepository>,
+}
 
 impl SearchScheduleUseCase {
     pub async fn search(
@@ -263,7 +266,7 @@ impl SearchScheduleUseCase {
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
         let query = ScheduleSearchQuery::new(query)?;
         if let Some(cached_value) = self
-            .0
+            .schedule_search_repository
             .get_results_from_cache(query.to_owned(), r#type.to_owned())
             .await
         {
@@ -271,34 +274,29 @@ impl SearchScheduleUseCase {
             return Ok(cached_value);
         }
 
-        let remote_results = if let Some(r#type) = &r#type {
-            self.0.get_results_from_remote(&query, r#type).await
-        } else {
-            let mut output = Vec::<ScheduleSearchResult>::new();
-            let mut groups = self
-                .0
-                .get_results_from_remote(&query, &ScheduleType::Group)
+        let is_cooldown_active = self.schedule_cooldown_repository.is_cooldown_active().await;
+
+        if !is_cooldown_active {
+            let remote_results = self
+                .get_results_from_remote(&query, r#type.to_owned())
                 .await;
-            let mut persons = self
-                .0
-                .get_results_from_remote(&query, &ScheduleType::Person)
-                .await;
-            if let Ok(groups) = &mut groups {
-                output.append(groups);
-            }
-            if let Ok(persons) = &mut persons {
-                output.append(persons);
-            }
-            Ok(output)
-        };
-        if let Ok(results) = remote_results {
-            if !results.is_empty() {
-                self.0.insert_results_to_db(results).await?;
+            match remote_results {
+                Ok(results) => {
+                    if !results.is_empty() {
+                        self.schedule_search_repository
+                            .insert_results_to_db(results)
+                            .await?;
+                    }
+                }
+                Err(e) => {
+                    warn!("Activating cooldown for schedule search: {e}");
+                    self.schedule_cooldown_repository.activate().await;
+                }
             }
         }
 
         let mut db_results = self
-            .0
+            .schedule_search_repository
             .get_results_from_db(&query, r#type.to_owned())
             .await?;
 
@@ -309,11 +307,40 @@ impl SearchScheduleUseCase {
             idx_a.cmp(&idx_b)
         });
 
-        self.0
+        self.schedule_search_repository
             .insert_results_to_cache(query, r#type, db_results.clone())
             .await;
 
         Ok(db_results)
+    }
+
+    async fn get_results_from_remote(
+        &self,
+        query: &ScheduleSearchQuery,
+        r#type: Option<ScheduleType>,
+    ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
+        if let Some(r#type) = &r#type {
+            self.schedule_search_repository
+                .get_results_from_remote(query, r#type)
+                .await
+        } else {
+            let mut output = Vec::<ScheduleSearchResult>::new();
+            let mut groups = self
+                .schedule_search_repository
+                .get_results_from_remote(query, &ScheduleType::Group)
+                .await;
+            let mut persons = self
+                .schedule_search_repository
+                .get_results_from_remote(query, &ScheduleType::Person)
+                .await;
+            if let Ok(groups) = &mut groups {
+                output.append(groups);
+            }
+            if let Ok(persons) = &mut persons {
+                output.append(persons);
+            }
+            Ok(output)
+        }
     }
 }
 

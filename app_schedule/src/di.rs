@@ -26,7 +26,6 @@ impl AppComponent {
         let schedule_repository = Arc::new(ScheduleRepository::default());
         let schedule_shift_repository = Arc::new(ScheduleShiftRepository::default());
         let schedule_search_repository = Arc::new(ScheduleSearchRepository::new(db_pool));
-        let schedule_cooldown_repository = Arc::new(ScheduleCooldownRepository::default());
 
         // Use-cases
         let get_schedule_id_use_case =
@@ -35,10 +34,11 @@ impl AppComponent {
             schedule_id_repository,
             schedule_repository,
             schedule_shift_repository,
-            schedule_cooldown_repository,
+            Arc::new(ScheduleCooldownRepository::default()),
         ));
         let search_schedule_use_case = Arc::new(SearchScheduleUseCase::new(
             schedule_search_repository.clone(),
+            Arc::new(ScheduleCooldownRepository::default()),
         ));
         let init_domain_schedule_use_case =
             InitDomainScheduleUseCase::new(schedule_search_repository);

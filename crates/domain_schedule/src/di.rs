@@ -35,8 +35,14 @@ impl GetScheduleUseCase {
 }
 
 impl SearchScheduleUseCase {
-    pub fn new(schedule_search_repository: Arc<ScheduleSearchRepository>) -> Self {
-        Self(schedule_search_repository)
+    pub fn new(
+        schedule_search_repository: Arc<ScheduleSearchRepository>,
+        schedule_cooldown_repository: Arc<ScheduleCooldownRepository>,
+    ) -> Self {
+        Self {
+            schedule_search_repository,
+            schedule_cooldown_repository,
+        }
     }
 }
 
