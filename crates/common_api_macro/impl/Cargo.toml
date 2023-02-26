@@ -1,0 +1,13 @@
+[package]
+name = "common_api_macro_impl"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }

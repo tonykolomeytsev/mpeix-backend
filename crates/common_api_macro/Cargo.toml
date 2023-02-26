@@ -1,0 +1,14 @@
+[package]
+name = "common_api_macro"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
+
+[features]
+default = ["reqwest"]
+reqwest = ["dep:reqwest"]
+
+[dependencies]
+common_api_macro_impl = { path = "impl" }
+reqwest = { workspace = true, optional = true }
+serde = { workspace = true }

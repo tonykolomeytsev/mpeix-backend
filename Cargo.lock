@@ -484,6 +484,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "common_api_macro"
+version = "0.1.0"
+dependencies = [
+ "common_api_macro_impl",
+ "reqwest",
+ "serde",
+]
+
+[[package]]
+name = "common_api_macro_impl"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "common_database"
 version = "0.1.0"
 dependencies = [
@@ -716,6 +734,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "common_api_macro",
  "common_errors",
  "common_in_memory_cache",
  "common_persistent_cache",
