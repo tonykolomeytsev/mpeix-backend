@@ -8,6 +8,7 @@ authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 proc-macro = true
 
 [dependencies]
+common_api_macro_models = { path = "../models" }
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
 syn = { workspace = true }

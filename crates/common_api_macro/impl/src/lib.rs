@@ -11,7 +11,12 @@ pub fn common_api(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn get(attr: TokenStream, item: TokenStream) -> TokenStream {
-    method::method("get", attr, item)
+    method::method(common_api_macro_models::Method::Get, attr, item)
+}
+
+#[proc_macro_attribute]
+pub fn post(attr: TokenStream, item: TokenStream) -> TokenStream {
+    method::method(common_api_macro_models::Method::Post, attr, item)
 }
 
 #[proc_macro_attribute]

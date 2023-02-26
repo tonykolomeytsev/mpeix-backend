@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use common_api_macro_models::Method;
 use proc_macro2::{Ident, Span};
 use quote::{quote, ToTokens};
 use syn::{
@@ -10,7 +11,7 @@ use syn::{
 use crate::query::{query_key, query_value};
 
 pub fn method(
-    method: &str,
+    method: Method,
     attr: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
@@ -145,7 +146,7 @@ fn get_query_rename_rules(attrs: Vec<Attribute>) -> HashMap<String, String> {
 }
 
 fn create_fn_block(
-    method: &str,
+    method: Method,
     endpoint_url: &str,
     args: Args,
     query_rename_rules: &HashMap<String, String>,
@@ -182,7 +183,10 @@ fn create_fn_block(
     };
 
     let full_url_lit = LitStr::new(&format!("{{base_url}}{endpoint_url}"), Span::call_site());
-    let method = LitStr::new(method, Span::call_site());
+    let method = match method {
+        Method::Get => quote! { ::common_api_macro::Method::Get },
+        Method::Post => quote! { ::common_api_macro::Method::Post },
+    };
     let body = if let Some(body) = args.body {
         let ident = ident(&body);
         quote! { ::std::option::Option::Some(#ident) }

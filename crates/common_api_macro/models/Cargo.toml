@@ -1,0 +1,5 @@
+[package]
+name = "common_api_macro_models"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]

@@ -10,5 +10,7 @@ reqwest = ["dep:reqwest"]
 
 [dependencies]
 common_api_macro_impl = { path = "impl" }
+common_api_macro_models = { path = "models" }
+
 reqwest = { workspace = true, optional = true }
 serde = { workspace = true }

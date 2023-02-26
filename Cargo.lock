@@ -488,6 +488,7 @@ name = "common_api_macro"
 version = "0.1.0"
 dependencies = [
  "common_api_macro_impl",
+ "common_api_macro_models",
  "reqwest",
  "serde",
 ]
@@ -496,10 +497,15 @@ dependencies = [
 name = "common_api_macro_impl"
 version = "0.1.0"
 dependencies = [
+ "common_api_macro_models",
  "proc-macro2",
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "common_api_macro_models"
+version = "0.1.0"
 
 [[package]]
 name = "common_database"
