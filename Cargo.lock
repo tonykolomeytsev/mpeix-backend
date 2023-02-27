@@ -1708,7 +1708,6 @@ dependencies = [
 name = "restix"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "reqwest",
  "restix_impl",
  "restix_macro",
