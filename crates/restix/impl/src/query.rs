@@ -1,16 +1,14 @@
+use proc_macro2::TokenStream;
 use syn::{ExprAssign, ItemFn, PatType, TraitItemMethod};
 
-pub fn query(
-    attr: proc_macro::TokenStream,
-    item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    let assn = syn::parse_macro_input!(attr as ExprAssign);
+pub fn query(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let assn = syn::parse2::<ExprAssign>(attr).unwrap();
     let left = query_key(&assn);
     let right = query_value(&assn);
     let _ = right;
-    let fn_inputs = syn::parse::<ItemFn>(item.clone())
+    let fn_inputs = syn::parse2::<ItemFn>(item.clone())
         .map(|it| it.sig.inputs)
-        .or_else(|_| syn::parse::<TraitItemMethod>(item.clone()).map(|it| it.sig.inputs))
+        .or_else(|_| syn::parse2::<TraitItemMethod>(item.clone()).map(|it| it.sig.inputs))
         .expect("Method inputs");
 
     for fn_arg in fn_inputs.into_iter() {

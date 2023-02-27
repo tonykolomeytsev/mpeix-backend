@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
 pub use client::*;
-pub use common_api_macro_impl::*;
-pub use common_api_macro_models::*;
+pub use restix_impl::*;
+pub use restix_macro::*;
 use serde::Serialize;
 
 pub type Result<T> = std::result::Result<T, Error>;

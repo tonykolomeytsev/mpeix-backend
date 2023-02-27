@@ -484,30 +484,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "common_api_macro"
-version = "0.1.0"
-dependencies = [
- "common_api_macro_impl",
- "common_api_macro_models",
- "reqwest",
- "serde",
-]
-
-[[package]]
-name = "common_api_macro_impl"
-version = "0.1.0"
-dependencies = [
- "common_api_macro_models",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "common_api_macro_models"
-version = "0.1.0"
-
-[[package]]
 name = "common_database"
 version = "0.1.0"
 dependencies = [
@@ -740,7 +716,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
- "common_api_macro",
  "common_errors",
  "common_in_memory_cache",
  "common_persistent_cache",
@@ -755,6 +730,7 @@ dependencies = [
  "num-traits",
  "regex",
  "reqwest",
+ "restix",
  "serde",
  "tokio",
  "tokio-postgres",
@@ -1589,6 +1565,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1699,6 +1699,35 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "winreg",
+]
+
+[[package]]
+name = "restix"
+version = "0.1.0"
+dependencies = [
+ "reqwest",
+ "restix_impl",
+ "restix_macro",
+ "serde",
+]
+
+[[package]]
+name = "restix_impl"
+version = "0.1.0"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "restix_macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "restix_impl",
 ]
 
 [[package]]

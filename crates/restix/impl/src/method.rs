@@ -1,27 +1,25 @@
 use std::collections::HashMap;
 
-use common_api_macro_models::Method;
-use proc_macro2::{Ident, Span};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{
     Attribute, Block, ExprAssign, ExprParen, FnArg, ImplItemMethod, ItemFn, LitStr, Pat, Path,
     Receiver, Signature, TraitItemMethod, Type,
 };
 
-use crate::query::{query_key, query_value};
+use crate::{
+    query::{query_key, query_value},
+    Method,
+};
 
-pub fn method(
-    method: Method,
-    attr: proc_macro::TokenStream,
-    item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
+pub fn method(method: Method, attr: TokenStream, item: TokenStream) -> TokenStream {
     let endpoint_url = get_endpoint_url(attr);
     let fn_sig = get_fn_signature(&item);
     let args = get_arguments(&fn_sig);
     let fn_attrs = get_fn_attributes(&item);
     let query_rename_rules = get_query_rename_rules(fn_attrs);
 
-    let mut method_body = syn::parse::<ImplItemMethod>(item).unwrap();
+    let mut method_body = syn::parse2::<ImplItemMethod>(item).unwrap();
     method_body.block = create_fn_block(method, &endpoint_url, args, &query_rename_rules);
 
     quote! {
@@ -30,8 +28,8 @@ pub fn method(
     .into()
 }
 
-fn get_endpoint_url(attr: proc_macro::TokenStream) -> String {
-    let endpoint_url = syn::parse::<LitStr>(attr).expect("Expected url string literal");
+fn get_endpoint_url(attr: TokenStream) -> String {
+    let endpoint_url = syn::parse2::<LitStr>(attr).expect("Expected url string literal");
     let endpoint_url = endpoint_url.value();
     if !endpoint_url.starts_with("/") {
         panic!("Url part should start with a '/'");
@@ -39,17 +37,17 @@ fn get_endpoint_url(attr: proc_macro::TokenStream) -> String {
     endpoint_url
 }
 
-fn get_fn_signature(item: &proc_macro::TokenStream) -> Signature {
-    syn::parse::<ItemFn>(item.clone())
+fn get_fn_signature(item: &TokenStream) -> Signature {
+    syn::parse2::<ItemFn>(item.clone())
         .map(|it| it.sig)
-        .or_else(|_| syn::parse::<TraitItemMethod>(item.clone()).map(|it| it.sig))
+        .or_else(|_| syn::parse2::<TraitItemMethod>(item.clone()).map(|it| it.sig))
         .expect("Cannot get method signature. Maybe you use this macro attr in wrong context")
 }
 
-fn get_fn_attributes(item: &proc_macro::TokenStream) -> Vec<Attribute> {
-    syn::parse::<ItemFn>(item.clone())
+fn get_fn_attributes(item: &TokenStream) -> Vec<Attribute> {
+    syn::parse2::<ItemFn>(item.clone())
         .map(|it| it.attrs)
-        .or_else(|_| syn::parse::<TraitItemMethod>(item.clone()).map(|it| it.attrs))
+        .or_else(|_| syn::parse2::<TraitItemMethod>(item.clone()).map(|it| it.attrs))
         .expect("Cannot get methodattributes. Maybe you use this macro attr in wrong context")
 }
 
@@ -184,14 +182,14 @@ fn create_fn_block(
 
     let full_url_lit = LitStr::new(&format!("{{base_url}}{endpoint_url}"), Span::call_site());
     let method = match method {
-        Method::Get => quote! { ::common_api_macro::Method::Get },
-        Method::Post => quote! { ::common_api_macro::Method::Post },
+        Method::Get => quote! { ::restix::Method::Get },
+        Method::Post => quote! { ::restix::Method::Post },
     };
     let body = if let Some(body) = args.body {
         let ident = ident(&body);
         quote! { ::std::option::Option::Some(#ident) }
     } else {
-        quote! { ::std::option::Option::<::common_api_macro::Body<()>>::None }
+        quote! { ::std::option::Option::<::restix::Body<()>>::None }
     };
 
     let block = quote! {

@@ -99,7 +99,7 @@ impl ScheduleRepository {
 
         let schedule_response = self
             .api
-            .get_schedule(r#type.to_owned(), schedule_id, &week_start, &week_end)
+            .schedule(r#type.to_owned(), schedule_id, &week_start, &week_end)
             .await?;
 
         Ok(map_schedule_models(

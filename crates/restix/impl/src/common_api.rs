@@ -1,16 +1,12 @@
-use proc_macro::TokenStream;
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
     token::Async, Block, Expr, ExprAssign, ExprLit, ExprPath, ImplItem, ImplItemMethod, ItemImpl,
     ItemStruct, ItemTrait, Lit, LitStr, Signature, Visibility,
 };
 
-pub fn common_api(
-    attr: proc_macro::TokenStream,
-    item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    let trait_def = syn::parse_macro_input!(item as ItemTrait);
+pub fn common_api(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let trait_def = syn::parse2::<ItemTrait>(item).unwrap();
     let struct_def = create_struct_def(&trait_def);
     let base_url = get_base_url_if_exists(attr);
     let impl_trait_for_struct = create_impl_struct_stubs(&trait_def, &struct_def);
@@ -29,7 +25,7 @@ fn create_struct_def(trait_def: &ItemTrait) -> ItemStruct {
     let struct_ident = &trait_def.ident;
     let struct_def = quote! {
         pub struct #struct_ident {
-            client: ::common_api_macro::HttpClient,
+            client: ::restix::HttpClient,
             base_url: ::std::string::String,
         }
     };
@@ -90,7 +86,7 @@ fn create_impl_constructor(trait_def: &ItemTrait, base_url: Option<String>) -> I
         // create constructor without `base_url` argument
         let base_url = LitStr::new(&base_url, Span::call_site());
         syn::parse2::<ImplItemMethod>(quote! {
-            pub fn new(client: ::common_api_macro::HttpClient) -> #struct_ident {
+            pub fn new(client: ::restix::HttpClient) -> #struct_ident {
                 return #struct_ident {
                     client,
                     base_url: #base_url.to_owned(),
@@ -128,7 +124,7 @@ fn get_base_url_if_exists(attr: TokenStream) -> Option<String> {
     if attr.is_empty() {
         return None;
     }
-    let assignment = syn::parse::<ExprAssign>(attr).expect("Expected 'base_url = \"...\"'");
+    let assignment = syn::parse2::<ExprAssign>(attr).expect("Expected 'base_url = \"...\"'");
     if let Expr::Path(ExprPath { path, .. }) = *assignment.left {
         if path.is_ident("base_url") {
             if let Expr::Lit(ExprLit { lit, .. }) = *assignment.right {

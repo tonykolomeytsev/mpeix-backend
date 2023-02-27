@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::{bail, Context};
+use common_api_macro::StringExt;
 use common_in_memory_cache::InMemoryCache;
 use common_rust::env;
 use deadpool_postgres::Pool;
@@ -69,8 +70,12 @@ impl ScheduleSearchRepository {
         query: &ScheduleSearchQuery,
         r#type: &ScheduleType,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
-        map_search_models(self.api.search(query.as_ref(), r#type).await?)
-            .with_context(|| "Error while mapping response from MPEI backend")
+        map_search_models(
+            self.api
+                .search(query.to_string().as_query(), r#type.to_string().as_query())
+                .await?,
+        )
+        .with_context(|| "Error while mapping response from MPEI backend")
     }
 
     pub async fn init_schedule_search_results_db(&self) -> anyhow::Result<()> {

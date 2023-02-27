@@ -1,14 +1,11 @@
 [package]
-name = "common_api_macro_impl"
+name = "restix_impl"
 version = "0.1.0"
 edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
-[lib]
-proc-macro = true
-
 [dependencies]
-common_api_macro_models = { path = "../models" }
+proc-macro-error = { workspace = true }
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
 syn = { workspace = true }

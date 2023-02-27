@@ -1,5 +1,5 @@
 [package]
-name = "common_api_macro"
+name = "restix"
 version = "0.1.0"
 edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
@@ -9,8 +9,8 @@ default = ["reqwest"]
 reqwest = ["dep:reqwest"]
 
 [dependencies]
-common_api_macro_impl = { path = "impl" }
-common_api_macro_models = { path = "models" }
+restix_impl = { path = "impl" }
+restix_macro = { path = "macro" }
 
 reqwest = { workspace = true, optional = true }
 serde = { workspace = true }
