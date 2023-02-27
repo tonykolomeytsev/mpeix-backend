@@ -6,6 +6,12 @@ pub use restix_macro::*;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(self.inner())
+    }
+}
+
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "HttpClient error: {}", self.inner())
@@ -14,6 +20,7 @@ impl Display for Error {
 
 #[cfg(feature = "reqwest")]
 mod client {
+    #[derive(Debug)]
     pub struct Error(reqwest::Error);
 
     impl Error {

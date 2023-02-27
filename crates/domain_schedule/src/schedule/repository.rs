@@ -26,7 +26,6 @@ impl ScheduleRepository {
         let cache_max_hits = env::get_parsed_or("SCHEDULE_CACHE_MAX_HITS", 20);
         let cache_lifetife = env::get_parsed_or("SCHEDULE_CACHE_LIFETIME_HOURS", 6);
         let cache_dir = env::get_or("SCHEDULE_CACHE_DIR", "./cache");
-        let connect_timeout = env::get_parsed_or("GATEWAY_CONNECT_TIMEOUT", 1500);
 
         Self {
             api: MpeiApi::new(client),
@@ -101,7 +100,7 @@ impl ScheduleRepository {
         let schedule_response = self
             .api
             .schedule(
-                r#type,
+                &r#type,
                 schedule_id,
                 week_start.format("%Y.%m.%d").to_string(),
                 week_end.format("%Y.%m.%d").to_string(),

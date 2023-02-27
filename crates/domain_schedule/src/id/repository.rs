@@ -40,7 +40,6 @@ impl ScheduleIdRepository {
         let cache_capacity = env::get_parsed_or("SCHEDULE_ID_CACHE_CAPACITY", 3000);
         let cache_max_hits = env::get_parsed_or("SCHEDULE_ID_CACHE_MAX_HITS", 10);
         let cache_lifetife = env::get_parsed_or("SCHEDULE_ID_CACHE_LIFETIME_HOURS", 12);
-        let connect_timeout = env::get_parsed_or("GATEWAY_CONNECT_TIMEOUT", 1500);
 
         Self {
             api: MpeiApi::new(client),
@@ -95,7 +94,7 @@ impl ScheduleIdRepository {
         name: ValidScheduleName,
         r#type: ScheduleType,
     ) -> anyhow::Result<Option<MpeiSearchResult>> {
-        let mut search_results = self.api.search(name, r#type.to_string()).await?;
+        let search_results = self.api.search(name, r#type.to_string()).await?;
         Ok(search_results.into_iter().last())
     }
 

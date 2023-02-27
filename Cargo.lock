@@ -259,6 +259,7 @@ dependencies = [
  "common_actix",
  "common_database",
  "common_errors",
+ "common_rust",
  "domain_mobile",
  "domain_schedule",
  "domain_schedule_cooldown",
@@ -266,6 +267,8 @@ dependencies = [
  "env_logger",
  "feature_schedule",
  "log",
+ "reqwest",
+ "restix",
  "serde",
  "tokio",
 ]
