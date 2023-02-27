@@ -1,7 +1,10 @@
-pub mod common_api;
-pub mod method;
-pub mod query;
+mod api;
+mod method;
 
+pub use api::*;
+pub use method::*;
+
+#[derive(Debug)]
 pub enum Method {
     Get,
     Post,

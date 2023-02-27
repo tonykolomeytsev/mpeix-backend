@@ -5,12 +5,14 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [features]
-default = ["reqwest"]
+default = ["reqwest", "anyhow"]
 reqwest = ["dep:reqwest"]
+anyhow = ["dep:anyhow"]
 
 [dependencies]
 restix_impl = { path = "impl" }
 restix_macro = { path = "macro" }
 
+anyhow = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 serde = { workspace = true }

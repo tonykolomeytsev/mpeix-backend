@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use anyhow::{bail, Context};
-use common_api_macro::StringExt;
 use common_in_memory_cache::InMemoryCache;
 use common_rust::env;
 use deadpool_postgres::Pool;
 use domain_schedule_models::{ScheduleSearchResult, ScheduleType};
 use log::info;
+use restix::HttpClient;
 use tokio::sync::Mutex;
 use tokio_postgres::Row;
 
@@ -26,13 +26,13 @@ pub struct ScheduleSearchRepository {
 struct TypedSearchQuery(ScheduleSearchQuery, Option<ScheduleType>);
 
 impl ScheduleSearchRepository {
-    pub fn new(db_pool: Arc<Pool>) -> Self {
+    pub fn new(db_pool: Arc<Pool>, client: HttpClient) -> Self {
         let cache_capacity = env::get_parsed_or("SCHEDULE_SEARCH_CACHE_CAPACITY", 3000);
         let cache_lifetife = env::get_parsed_or("SCHEDULE_SEARCH_CACHE_LIFETIME_MINUTES", 5);
         let connect_timeout = env::get_parsed_or("GATEWAY_CONNECT_TIMEOUT", 1500);
 
         Self {
-            api: MpeiApi::with_timeout_ms(connect_timeout),
+            api: MpeiApi::new(client),
             db_pool,
             in_memory_cache: Mutex::new(
                 InMemoryCache::with_capacity(cache_capacity)
@@ -70,12 +70,8 @@ impl ScheduleSearchRepository {
         query: &ScheduleSearchQuery,
         r#type: &ScheduleType,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
-        map_search_models(
-            self.api
-                .search(query.to_string().as_query(), r#type.to_string().as_query())
-                .await?,
-        )
-        .with_context(|| "Error while mapping response from MPEI backend")
+        map_search_models(self.api.search(query, r#type.to_string()).await?)
+            .with_context(|| "Error while mapping response from MPEI backend")
     }
 
     pub async fn init_schedule_search_results_db(&self) -> anyhow::Result<()> {

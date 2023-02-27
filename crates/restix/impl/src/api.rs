@@ -5,7 +5,7 @@ use syn::{
     ItemStruct, ItemTrait, Lit, LitStr, Signature, Visibility,
 };
 
-pub fn common_api(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn api(attr: TokenStream, item: TokenStream) -> TokenStream {
     let trait_def = syn::parse2::<ItemTrait>(item).unwrap();
     let struct_def = create_struct_def(&trait_def);
     let base_url = get_base_url_if_exists(attr);

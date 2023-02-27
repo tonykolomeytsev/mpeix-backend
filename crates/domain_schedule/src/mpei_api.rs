@@ -1,15 +1,21 @@
-use restix::{common_api, get, query, Path, Query};
+use restix::{api, get};
 
 use crate::dto::mpei::{MpeiClasses, MpeiSearchResult};
 
-#[common_api(base_url = "http://ts.mpei.ru/api")]
+#[api(base_url = "http://ts.mpei.ru/api")]
 pub trait MpeiApi {
     #[get("/search")]
     #[query(query = "term")]
-    async fn search(&self, query: Query, r#type: Query) -> restix::Result<Vec<MpeiSearchResult>>;
+    async fn search(&self, query: Query, r#type: Query) -> Vec<MpeiSearchResult>;
 
-    #[get("/schedule/{type}/{schedule_id}")]
-    async fn schedule(&self, r#type: Path, schedule_id: Path) -> restix::Result<Vec<MpeiClasses>>;
+    #[get("/schedule/{type}/{id}")]
+    async fn schedule(
+        &self,
+        r#type: Path,
+        id: Path,
+        start: Query,
+        finish: Query,
+    ) -> Vec<MpeiClasses>;
 }
 
 // pub fn with_timeout_ms(timeout: u64) -> Self {

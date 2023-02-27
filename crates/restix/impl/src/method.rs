@@ -1,232 +1,389 @@
 use std::collections::HashMap;
 
 use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro_error::{abort, ResultExt};
 use quote::{quote, ToTokens};
 use syn::{
-    Attribute, Block, ExprAssign, ExprParen, FnArg, ImplItemMethod, ItemFn, LitStr, Pat, Path,
-    Receiver, Signature, TraitItemMethod, Type,
+    Expr, ExprAssign, ExprParen, FnArg, ImplItemMethod, Lit, LitStr, Pat, PatType, ReturnType, Type,
 };
 
-use crate::{
-    query::{query_key, query_value},
-    Method,
-};
+use crate::Method;
+
+#[derive(Debug)]
+struct MethodIR {
+    method: Method,
+    fn_name: String,
+    endpoint_url: String,
+    queries: Option<Vec<String>>,
+    query_rename: Option<HashMap<String, String>>,
+    paths: Option<Vec<String>>,
+    body: Option<String>,
+    fn_args: Vec<FnArgIR>,
+    fn_return_type: Type,
+}
+
+impl MethodIR {
+    fn new(method: Method) -> Self {
+        Self {
+            method,
+            fn_name: String::new(),
+            endpoint_url: String::new(),
+            queries: None,
+            query_rename: None,
+            paths: None,
+            body: None,
+            fn_args: vec![],
+            fn_return_type: syn::parse2(quote!(!)).unwrap(),
+        }
+    }
+}
+
+#[derive(Debug)]
+enum FnArgIR {
+    Receiver,
+    Typed { name: String, r#type: ArgTypeIR },
+}
+
+#[derive(Debug)]
+enum ArgTypeIR {
+    Query(usize),
+    Path(usize),
+    Body,
+}
+
+impl ArgTypeIR {
+    fn as_ident(&self) -> Ident {
+        match self {
+            Self::Query(i) => format!("Query{i}").as_ident(),
+            Self::Path(i) => format!("Path{i}").as_ident(),
+            Self::Body => "Body".as_ident(),
+        }
+    }
+}
 
 pub fn method(method: Method, attr: TokenStream, item: TokenStream) -> TokenStream {
-    let endpoint_url = get_endpoint_url(attr);
-    let fn_sig = get_fn_signature(&item);
-    let args = get_arguments(&fn_sig);
-    let fn_attrs = get_fn_attributes(&item);
-    let query_rename_rules = get_query_rename_rules(fn_attrs);
-
-    let mut method_body = syn::parse2::<ImplItemMethod>(item).unwrap();
-    method_body.block = create_fn_block(method, &endpoint_url, args, &query_rename_rules);
-
-    quote! {
-        #method_body
-    }
-    .into()
+    // Parsing
+    let fn_definition = syn::parse2::<ImplItemMethod>(item)
+        .expect_or_abort("Method attributes should only be used for trait methods definition");
+    let mut ir = MethodIR::new(method);
+    parse_attr_endpoint_url(attr, &mut ir);
+    parse_fn_name(&fn_definition, &mut ir);
+    parse_fn_signature(&fn_definition, &mut ir);
+    parse_attr_query(&fn_definition, &mut ir);
+    // Codegen
+    codegen_fn_impl(ir)
 }
 
-fn get_endpoint_url(attr: TokenStream) -> String {
-    let endpoint_url = syn::parse2::<LitStr>(attr).expect("Expected url string literal");
-    let endpoint_url = endpoint_url.value();
+fn parse_attr_endpoint_url(attr: TokenStream, ir: &mut MethodIR) {
+    let attr_arg = syn::parse2::<LitStr>(attr).expect_or_abort("Expected string endpoint url");
+    let endpoint_url = attr_arg.value();
     if !endpoint_url.starts_with("/") {
-        panic!("Url part should start with a '/'");
+        abort!(attr_arg, "Endpoint url should start with a '/'")
     }
-    endpoint_url
+    ir.endpoint_url = endpoint_url
 }
 
-fn get_fn_signature(item: &TokenStream) -> Signature {
-    syn::parse2::<ItemFn>(item.clone())
-        .map(|it| it.sig)
-        .or_else(|_| syn::parse2::<TraitItemMethod>(item.clone()).map(|it| it.sig))
-        .expect("Cannot get method signature. Maybe you use this macro attr in wrong context")
-}
-
-fn get_fn_attributes(item: &TokenStream) -> Vec<Attribute> {
-    syn::parse2::<ItemFn>(item.clone())
-        .map(|it| it.attrs)
-        .or_else(|_| syn::parse2::<TraitItemMethod>(item.clone()).map(|it| it.attrs))
-        .expect("Cannot get methodattributes. Maybe you use this macro attr in wrong context")
-}
-
-struct Args {
-    paths: Vec<String>,
-    queries: Vec<String>,
-    body: Option<String>,
-}
-
-fn get_arguments(sig: &Signature) -> Args {
-    let mut i: usize = 0;
-    let mut args = Args {
-        paths: vec![],
-        queries: vec![],
-        body: None,
-    };
-    // inspect arg types
-    for arg in &sig.inputs {
-        match arg {
-            FnArg::Receiver(receiver) => inspect_receiver(receiver, &i),
-            FnArg::Typed(pat_type) => {
-                assert!(i > 0, "&self should be the first paramter");
-                let arg_name = if let Pat::Ident(ident) = &*pat_type.pat {
-                    ident.ident.to_string()
-                } else {
-                    panic!("Only identifier arguments are supported");
-                };
-                if let Type::Path(path) = &*pat_type.ty {
-                    inspect_type(&path.path, arg_name, &mut args);
-                } else {
-                    panic!(
-                        "Argument `{arg_name}` has unsupported type.\nMust be one of the following types: Path, Query, Body"
-                    )
-                }
-            }
-        }
-        i += 1;
-    }
-    args
-}
-
-fn inspect_receiver(receiver: &Receiver, i: &usize) {
-    assert!(i == &0, "&self should be the first paramter");
-    assert!(
-        receiver.mutability.is_none(),
-        "Parameter &self should be immutable"
-    );
-    assert!(
-        receiver.reference.is_some(),
-        "Parameter &self should be a reference"
-    );
-}
-
-fn inspect_type(path: &Path, arg_name: String, args: &mut Args) {
-    let ident =
-        if path.segments.len() == 2 && path.segments[0].ident.to_string() == "common_api_macro" {
-            Some(path.segments[1].ident.to_owned())
-        } else if path.segments.len() == 1 {
-            Some(path.segments[0].ident.to_owned())
-        } else {
-            None
-        };
-    match ident.map(|it| it.to_string()).as_deref() {
-        Some("Path") => args.paths.push(arg_name),
-        Some("Query") => args.queries.push(arg_name),
-        Some("Body") => {
-            if args.body.is_none() {
-                args.body = Some(arg_name)
-            } else {
-                panic!("Request can have only one body");
-            }
-        }
-        _ => panic!(
-            "Argument `{arg_name}` has unsupported type.\nMust be one of the following types: Path, Query, Body"
-        )
-    }
-}
-
-fn get_query_rename_rules(attrs: Vec<Attribute>) -> HashMap<String, String> {
-    let mut rename_rules = HashMap::<String, String>::new();
-    for attr in attrs {
-        let attr_ident = attr.path.get_ident().map(|it| it.to_string());
-        if let Some("query") = attr_ident.as_deref() {
-            let assn = syn::parse2::<ExprParen>(attr.tokens)
-                .expect("Expected `key = \"value\"` in query attribute");
-            let assn = syn::parse2::<ExprAssign>(assn.expr.to_token_stream())
-                .expect("Expected `key = \"value\"` in query attribute");
-            let left = query_key(&assn);
-            let right = query_value(&assn);
-            rename_rules.insert(left, right);
-        }
-    }
-    rename_rules
-}
-
-fn create_fn_block(
-    method: Method,
-    endpoint_url: &str,
-    args: Args,
-    query_rename_rules: &HashMap<String, String>,
-) -> Block {
-    // Create path substitutions for further use in `format!()` macro
-    let paths = args
-        .paths
-        .into_iter()
-        .map(|it| {
-            let key = Ident::new(it.unraw(), Span::call_site());
-            let value = ident(&it);
-            quote! { #key=#value }
+fn parse_attr_query(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
+    let fn_arg_names = fn_definition
+        .sig
+        .inputs
+        .iter()
+        .filter_map(|fn_arg| match fn_arg {
+            FnArg::Typed(pat_type) => Some(pat_type.to_owned()),
+            _ => None,
+        })
+        .filter_map(|pat_type| match *pat_type.pat {
+            Pat::Ident(ident) => Some(ident.ident.to_string()),
+            _ => None,
         })
         .collect::<Vec<_>>();
 
-    // Create query substitutions for further use as `client.execute` argument
-    let queries = if args.queries.is_empty() {
-        quote! { ::std::option::Option::None }
-    } else {
-        let queries = args
-            .queries
-            .into_iter()
-            .map(|it| {
-                let key = if let Some(key) = query_rename_rules.get(&it) {
-                    LitStr::new(key.unraw(), Span::call_site())
-                } else {
-                    LitStr::new(&it.unraw(), Span::call_site())
-                };
-                let value = ident(&it);
-                quote! { (#key, #value.as_ref()) }
-            })
-            .collect::<Vec<_>>();
-        quote! { ::std::option::Option::Some(::std::vec![#( #queries ),*]) }
-    };
+    for attr in &fn_definition.attrs {
+        let attr_ident = attr.path.get_ident().map(|it| it.to_string());
+        if let Some("query") = attr_ident.as_deref() {
+            let assn = syn::parse2::<ExprParen>(attr.tokens.to_owned())
+                .and_then(|paren| syn::parse2::<ExprAssign>(paren.expr.to_token_stream()))
+                .unwrap_or_else(|_| {
+                    abort!(
+                        attr,
+                        "Expected `old_q_name = \"new_q_name\"` in query attribute"
+                    )
+                });
 
-    let full_url_lit = LitStr::new(&format!("{{base_url}}{endpoint_url}"), Span::call_site());
-    let method = match method {
-        Method::Get => quote! { ::restix::Method::Get },
-        Method::Post => quote! { ::restix::Method::Post },
-    };
-    let body = if let Some(body) = args.body {
-        let ident = ident(&body);
-        quote! { ::std::option::Option::Some(#ident) }
-    } else {
-        quote! { ::std::option::Option::<::restix::Body<()>>::None }
-    };
-
-    let block = quote! {
-        fn stub()
-        {
-            let full_url = ::std::format!(
-                #full_url_lit,
-                base_url = &self.base_url,
-                #( #paths ),*
-            );
-
-            self.client.execute(
-                #method,
-                &full_url,
-                #queries,
-                #body,
-            ).await
+            let left = parse_attr_query_key(&assn);
+            let right = parse_attr_query_value(&assn);
+            if !fn_arg_names.contains(&left) {
+                abort!(assn, "Cannot find argument with name `{}`", left)
+            }
+            ir.query_rename
+                .get_or_insert_with(|| HashMap::new())
+                .insert(left, right);
         }
-    };
-    *syn::parse2::<ItemFn>(block)
-        .expect("Statement expected")
-        .block
-}
-
-fn ident(name: &str) -> Ident {
-    if name.starts_with("r#") {
-        Ident::new_raw(name.unraw(), Span::call_site())
-    } else {
-        Ident::new(name, Span::call_site())
     }
 }
 
-trait Unraw {
+fn parse_attr_query_key(assn: &ExprAssign) -> String {
+    match assn.left.as_ref() {
+        Expr::Path(expr) => Some(expr),
+        _ => None,
+    }
+    .and_then(|expr| match expr.path.get_ident() {
+        Some(ident) => Some(ident.to_string()),
+        _ => None,
+    })
+    .unwrap_or_else(|| abort!(assn, "Left part of query attribute should be identifier"))
+}
+
+fn parse_attr_query_value(assn: &ExprAssign) -> String {
+    match assn.right.as_ref() {
+        Expr::Lit(expr) => Some(expr),
+        _ => None,
+    }
+    .and_then(|expr| match &expr.lit {
+        Lit::Str(s) => Some(s.value()),
+        _ => None,
+    })
+    .unwrap_or_else(|| {
+        abort!(
+            assn,
+            "Right part of query attribute should be string literal"
+        )
+    })
+}
+
+fn parse_fn_name(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
+    ir.fn_name = fn_definition.sig.ident.to_string()
+}
+
+fn parse_fn_signature(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
+    parse_fn_args(fn_definition, ir);
+    parse_fn_return_type(fn_definition, ir);
+}
+
+fn parse_fn_args(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
+    let mut i = 0;
+    for arg in &fn_definition.sig.inputs {
+        match arg {
+            FnArg::Receiver(r) => match (i == 0, &r.mutability, &r.reference) {
+                (false, _, _) => abort!(r, "First parameter should be &self parameter"),
+                (_, Some(_), _) => abort!(r, "Parameter &self should be immutable"),
+                (_, _, None) => abort!(r, "Parameter &self should be a reference"),
+                _ => ir.fn_args.push(FnArgIR::Receiver),
+            },
+            FnArg::Typed(pat_type) => {
+                if i == 0 {
+                    abort!(pat_type, "First parameter should be &self parameter");
+                } else {
+                    parse_typed_arg(pat_type, ir, &i);
+                }
+            }
+        }
+        i += 1
+    }
+}
+
+fn parse_fn_return_type(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
+    ir.fn_return_type = match &fn_definition.sig.output {
+        ReturnType::Default => syn::parse2(quote!(())).unwrap(),
+        ReturnType::Type(_, t) => *t.to_owned(),
+    }
+}
+
+fn parse_typed_arg(pat_type: &PatType, ir: &mut MethodIR, i: &usize) {
+    let arg_name = match &*pat_type.pat {
+        Pat::Ident(ident) => ident.ident.to_string(),
+        _ => abort!(pat_type, "Only identifier arguments are supported"),
+    };
+    let arg_type = match &*pat_type.ty {
+        Type::Path(path) => Some(path.path.to_owned()),
+        _ => None,
+    }
+    .and_then(|path| {
+        if path.segments.len() == 1 {
+            Some(path.segments[0].ident.to_owned())
+        } else {
+            None
+        }
+    })
+    .map(|ident| ident.to_string());
+
+    match arg_type.as_deref() {
+        Some("Path") => {
+            ir.fn_args.push(FnArgIR::Typed {
+                name: arg_name.to_owned(),
+                r#type: ArgTypeIR::Path(*i),
+            });
+            ir.paths.get_or_insert_with(|| vec![]).push(arg_name);
+        }
+        Some("Query") => {
+            ir.fn_args.push(FnArgIR::Typed {
+                name: arg_name.to_owned(),
+                r#type: ArgTypeIR::Query(*i),
+            });
+            ir.queries.get_or_insert_with(|| vec![]).push(arg_name);
+        }
+        Some("Body") => {
+            if ir.body.is_none() {
+                ir.fn_args.push(FnArgIR::Typed {
+                    name: arg_name.to_owned(),
+                    r#type: ArgTypeIR::Body,
+                });
+                ir.body = Some(arg_name)
+            } else {
+                abort!(pat_type, "Request can have only one body");
+            }
+        }
+        _ => abort!(
+            pat_type,
+            "Parameter type must be one of the following types: Path, Query, Body"
+        ),
+    }
+}
+
+fn codegen_fn_impl(ir: MethodIR) -> TokenStream {
+    let fn_name = ir.fn_name.as_ident();
+    let (type_definitions, type_bounds) = codegen_type_bounds(&ir);
+    let args = codegen_fn_args(&ir);
+    let fn_return_type = &ir.fn_return_type;
+    let fn_code_block = codegen_fn_code_block(&ir);
+
+    quote! {
+        pub async fn #fn_name #type_definitions ( #args ) -> ::restix::Result<#fn_return_type>
+        #type_bounds {
+            #fn_code_block
+        }
+    }
+}
+
+fn codegen_type_bounds(ir: &MethodIR) -> (TokenStream, TokenStream) {
+    let mut type_definitions = vec![];
+    let mut type_bounds = vec![];
+    for arg in &ir.fn_args {
+        if let FnArgIR::Typed { r#type, .. } = arg {
+            let type_ident = r#type.as_ident();
+            match r#type {
+                ArgTypeIR::Query(_) => type_bounds
+                    .push(quote!(#type_ident: ::core::convert::AsRef<::std::primitive::str>)),
+                ArgTypeIR::Path(_) => type_bounds.push(quote!(#type_ident: ::std::fmt::Display)),
+                ArgTypeIR::Body => type_bounds.push(quote!(#type_ident: ::serde::Serialize)),
+            }
+            type_definitions.push(quote!(#type_ident));
+        }
+    }
+
+    if !type_bounds.is_empty() {
+        (
+            quote!(<#( #type_definitions ),*>),
+            quote! {
+                where #( #type_bounds ),*
+            },
+        )
+    } else {
+        (quote!(), quote!())
+    }
+}
+
+fn codegen_fn_args(ir: &MethodIR) -> TokenStream {
+    let args = ir.fn_args.iter().map(|arg| match arg {
+        FnArgIR::Receiver => quote!(&self),
+        FnArgIR::Typed { name, r#type } => {
+            let name = name.as_ident();
+            let r#type = r#type.as_ident();
+            quote!(#name: #r#type)
+        }
+    });
+    quote! { #( #args ),* }
+}
+
+fn codegen_fn_code_block(ir: &MethodIR) -> TokenStream {
+    let format_url = codegen_format_url(ir);
+    let client_execution = codegen_client_execution(ir);
+    quote! {
+        #format_url
+        #client_execution
+    }
+}
+
+fn codegen_format_url(ir: &MethodIR) -> TokenStream {
+    let paths = match &ir.paths {
+        None => vec![],
+        Some(paths) => paths
+            .iter()
+            .map(|path| {
+                let key = path.unraw().as_ident();
+                let value = path.as_ident();
+                quote!(#key = #value)
+            })
+            .collect(),
+    };
+    let full_url = format!("{{base_url}}{}", ir.endpoint_url);
+    quote! {
+        let full_url = ::std::format!(
+            #full_url,
+            base_url = &self.base_url,
+            #( #paths ),*
+        );
+    }
+}
+
+fn codegen_client_execution(ir: &MethodIR) -> TokenStream {
+    let method = match &ir.method {
+        Method::Get => quote!(::restix::Method::Get),
+        Method::Post => quote!(::restix::Method::Post),
+    };
+    let queries = match &ir.queries {
+        None => vec![],
+        Some(queries) => queries
+            .iter()
+            .map(|query| {
+                let renaming = ir.query_rename.as_ref().and_then(|map| map.get(query));
+                let key = match &renaming {
+                    Some(new_query) => new_query.unraw(),
+                    None => query.unraw(),
+                };
+                let ident = query.as_ident();
+                quote! { (#key, #ident.as_ref()) }
+            })
+            .collect(),
+    };
+    let queries = if queries.is_empty() {
+        quote! { ::std::option::Option::None }
+    } else {
+        quote! { ::std::option::Option::Some(::std::vec![#( #queries ),*]) }
+    };
+    let body = if let Some(body) = &ir.body {
+        let ident = body.as_ident();
+        quote! { ::std::option::Option::Some(#ident) }
+    } else {
+        quote! { ::std::option::Option::<()>::None }
+    };
+    quote! {
+        self.client.execute(
+            #method,
+            &full_url,
+            #queries,
+            #body,
+        ).await
+    }
+}
+
+trait StringExt {
+    fn as_ident(&self) -> Ident;
     fn unraw(&self) -> &str;
 }
 
-impl<S: AsRef<str>> Unraw for S {
+impl<S: AsRef<str>> StringExt for S {
+    fn as_ident(&self) -> Ident {
+        if self.as_ref().starts_with("r#") {
+            syn::parse_str(self.as_ref()).expect_or_abort(&format!(
+                "Something went wrong when parsing identifier `{}`",
+                self.as_ref()
+            ))
+        } else {
+            Ident::new(self.as_ref(), Span::call_site())
+        }
+    }
+
     fn unraw(&self) -> &str {
         self.as_ref().trim_start_matches("r#")
     }
