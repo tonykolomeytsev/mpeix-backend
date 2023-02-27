@@ -6,7 +6,7 @@ use domain_schedule_models::ScheduleType;
 use lazy_static::lazy_static;
 use log::debug;
 use regex::Regex;
-use restix::HttpClient;
+use restix::Client;
 use tokio::sync::Mutex;
 
 use crate::{
@@ -36,7 +36,7 @@ struct ScheduleName {
 struct ScheduleId(i64);
 
 impl ScheduleIdRepository {
-    pub fn new(client: HttpClient) -> Self {
+    pub fn new(client: Client) -> Self {
         let cache_capacity = env::get_parsed_or("SCHEDULE_ID_CACHE_CAPACITY", 3000);
         let cache_max_hits = env::get_parsed_or("SCHEDULE_ID_CACHE_MAX_HITS", 10);
         let cache_lifetife = env::get_parsed_or("SCHEDULE_ID_CACHE_LIFETIME_HOURS", 12);

@@ -1,143 +1,161 @@
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
+use proc_macro_error::{abort, ResultExt};
 use quote::quote;
 use syn::{
-    token::Async, Block, Expr, ExprAssign, ExprLit, ExprPath, ImplItem, ImplItemMethod, ItemImpl,
-    ItemStruct, ItemTrait, Lit, LitStr, Signature, Visibility,
+    token::Async, Block, ExprAssign, ImplItem, ImplItemMethod, ItemTrait, Signature, TraitItem,
+    TraitItemMethod, Visibility,
 };
 
+use crate::commons::{parse_assign_left_ident, parse_assign_right_litstr, StringExt};
+
+#[derive(Debug)]
+struct ApiIR {
+    api_name: String,
+    base_url: Option<String>,
+    methods: Vec<TraitItemMethod>,
+    visibility: Visibility,
+}
+impl ApiIR {
+    fn new() -> Self {
+        Self {
+            api_name: String::new(),
+            base_url: None,
+            methods: vec![],
+            visibility: Visibility::Inherited,
+        }
+    }
+}
+
 pub fn api(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let trait_def = syn::parse2::<ItemTrait>(item).unwrap();
-    let struct_def = create_struct_def(&trait_def);
-    let base_url = get_base_url_if_exists(attr);
-    let impl_trait_for_struct = create_impl_struct_stubs(&trait_def, &struct_def);
-    let impl_constructor = create_impl_constructor(&trait_def, base_url);
+    // Parsing
+    let trait_definition = syn::parse2::<ItemTrait>(item)
+        .expect_or_abort("Proc macro `api` can be applied only to trait definition");
+    let mut ir = ApiIR::new();
+    parse_trait_name(&trait_definition, &mut ir);
+    parse_base_url(attr, &mut ir);
+    parse_trait_signature(&trait_definition, &mut ir);
+    // Codegen
+    let struct_definition = codegen_struct(&ir);
+    let struct_impl = codegen_struct_impl(&ir);
 
     quote! {
-        #struct_def
-        #impl_constructor
-        #impl_trait_for_struct
+        #struct_definition
+        #struct_impl
     }
     .into()
 }
 
-/// Create `struct SomeApi { ... }` with feature dependent `common_api_macro::HttpClient`.
-fn create_struct_def(trait_def: &ItemTrait) -> ItemStruct {
-    let struct_ident = &trait_def.ident;
-    let struct_def = quote! {
-        pub struct #struct_ident {
-            client: ::restix::HttpClient,
-            base_url: ::std::string::String,
-        }
-    };
-    syn::parse::<ItemStruct>(struct_def.into()).unwrap()
+fn parse_trait_name(trait_definition: &ItemTrait, ir: &mut ApiIR) {
+    ir.api_name = trait_definition.ident.to_string();
 }
 
-/// Create `impl SomeApi { ... }` block and copy here methods from the trait.
-fn create_impl_struct_stubs(trait_def: &ItemTrait, struct_def: &ItemStruct) -> ItemImpl {
-    let struct_ident = &struct_def.ident;
-    let methods = create_stub_methods(&trait_def);
-    let implementation = quote! {
-        impl #struct_ident {
-            #( #methods )*
-        }
-    };
-    syn::parse::<ItemImpl>(implementation.into()).unwrap()
+fn parse_base_url(attr: TokenStream, ir: &mut ApiIR) {
+    if attr.is_empty() {
+        return;
+    }
+    let assn =
+        syn::parse2::<ExprAssign>(attr).expect_or_abort("Expected `#[api(base_url = \"...\")]`");
+    let base_url_ident = parse_assign_left_ident(&assn, || "Expected `base_url` identifier");
+    if base_url_ident.to_string() != "base_url" {
+        abort!(base_url_ident, "Expected `base_url` identifier");
+    }
+    let base_url_litstr =
+        parse_assign_right_litstr(&assn, || "Expected base url value (string literal)");
+    let base_url = base_url_litstr.value();
+    if base_url.ends_with("/") {
+        abort!(
+            base_url_litstr,
+            "Remove trailing '/' from `base_url` string"
+        );
+    }
+    ir.base_url = Some(base_url)
 }
 
-/// Copy methods from trait with the same signature, but make them `pub async`.
-/// Copied methods has empty implementation with `todo!()` call for further processsing
-/// with `get`/`post`/etc.. macro attributes.
-fn create_stub_methods(trait_def: &ItemTrait) -> Vec<ImplItem> {
-    let tobo_block = syn::parse2::<Block>(quote! { { todo!() } }).unwrap();
-    let pub_vis = syn::parse2::<Visibility>(quote! { pub }).unwrap();
-
-    trait_def
+fn parse_trait_signature(trait_definition: &ItemTrait, ir: &mut ApiIR) {
+    ir.methods = trait_definition
         .items
         .iter()
-        .filter_map(|it| match it {
-            syn::TraitItem::Method(m) => Some(m),
+        .filter_map(|item| match item {
+            TraitItem::Method(method) => Some(method.to_owned()),
             _ => None,
         })
-        .map(|method| {
-            let func = ImplItem::Method(ImplItemMethod {
-                attrs: method.attrs.to_owned(),
-                vis: pub_vis.to_owned(),
-                defaultness: None,
-                sig: Signature {
-                    asyncness: Some(Async {
-                        span: Span::call_site(),
-                    }),
-                    ..method.sig.to_owned()
-                },
-                block: tobo_block.to_owned(),
-            });
-            func
-        })
-        .collect::<Vec<ImplItem>>()
+        .collect::<Vec<_>>();
+    ir.visibility = trait_definition.vis.to_owned();
 }
 
-/// Create constructor for the `*Api` struct.
-///
-/// If argument `base_url` is specified in macro attribute `#[common_api]`,
-/// then the argument does not need to be passed to the constructor `*Api::new()`.
-fn create_impl_constructor(trait_def: &ItemTrait, base_url: Option<String>) -> ItemImpl {
-    let struct_ident = &trait_def.ident;
-    let constructor = if let Some(base_url) = base_url {
-        // create constructor without `base_url` argument
-        let base_url = LitStr::new(&base_url, Span::call_site());
-        syn::parse2::<ImplItemMethod>(quote! {
-            pub fn new(client: ::restix::HttpClient) -> #struct_ident {
-                return #struct_ident {
+fn codegen_struct(ir: &ApiIR) -> TokenStream {
+    let vis = &ir.visibility;
+    let name = ir.api_name.as_ident();
+    quote! {
+        #vis struct #name {
+            client: ::restix::Client,
+            base_url: ::std::string::String,
+        }
+    }
+}
+
+fn codegen_struct_impl(ir: &ApiIR) -> TokenStream {
+    let name = ir.api_name.as_ident();
+    let methods = codegen_struct_impl_methods(ir);
+    let constructor = codegen_struct_impl_constructor(ir);
+
+    quote! {
+        impl #name {
+            #constructor
+            #methods
+        }
+    }
+}
+
+fn codegen_struct_impl_constructor(ir: &ApiIR) -> TokenStream {
+    let name = &ir.api_name.as_ident();
+    if let Some(base_url) = &ir.base_url {
+        quote! {
+            pub fn new(client: ::restix::Client) -> #name {
+                return #name {
                     client,
                     base_url: #base_url.to_owned(),
                 }
             }
-        })
+        }
     } else {
         // create constructor with `base_url` argument
-        syn::parse2::<ImplItemMethod>(quote! {
+        quote! {
             pub fn new(
-                client: ::common_api_macro::HttpClient,
+                client: ::restix::Client,
                 base_url: ::std::string::String,
-            ) -> #struct_ident {
-                return #struct_ident {
+            ) -> #name {
+                return #name {
                     client,
                     base_url,
                 }
             }
-        })
-    }
-    .unwrap();
-
-    let implementation = quote! {
-        impl #struct_ident {
-            #constructor
         }
-    };
-
-    syn::parse2::<ItemImpl>(implementation).unwrap()
+    }
 }
 
-/// Check for `base_url` argument in the macro: `#[common_api(base_url = "...")]`
-/// If `base_url` exists, pass it as argument to the struct constructor.
-fn get_base_url_if_exists(attr: TokenStream) -> Option<String> {
-    if attr.is_empty() {
-        return None;
+fn codegen_struct_impl_methods(ir: &ApiIR) -> TokenStream {
+    let vis: Visibility = syn::parse_quote!(pub);
+    let block: Block = syn::parse_quote!({ todo!() });
+    let asyncness: Async = syn::parse_quote!(async);
+
+    let methods = ir
+        .methods
+        .iter()
+        .map(|method| {
+            ImplItem::Method(ImplItemMethod {
+                attrs: method.attrs.to_owned(),
+                vis: vis.to_owned(),
+                defaultness: None,
+                sig: Signature {
+                    asyncness: Some(asyncness),
+                    ..method.sig.to_owned()
+                },
+                block: block.to_owned(),
+            })
+        })
+        .collect::<Vec<_>>();
+    quote! {
+        #( #methods )*
     }
-    let assignment = syn::parse2::<ExprAssign>(attr).expect("Expected 'base_url = \"...\"'");
-    if let Expr::Path(ExprPath { path, .. }) = *assignment.left {
-        if path.is_ident("base_url") {
-            if let Expr::Lit(ExprLit { lit, .. }) = *assignment.right {
-                if let Lit::Str(lit_str) = lit {
-                    let base_url = lit_str.token().to_string();
-                    let base_url = base_url.trim_matches('"');
-                    if base_url.ends_with("/") {
-                        panic!("base_url shouldn't end with a '/'");
-                    }
-                    return Some(base_url.to_owned());
-                }
-            }
-        }
-    }
-    panic!("Expected 'base_url = \"...\"'");
 }

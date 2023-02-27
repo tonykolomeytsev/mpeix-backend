@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::{Ident, TokenStream};
 use proc_macro_error::{abort, ResultExt};
 use quote::{quote, ToTokens};
-use syn::{
-    Expr, ExprAssign, ExprParen, FnArg, ImplItemMethod, Lit, LitStr, Pat, PatType, ReturnType, Type,
-};
+use syn::{ExprAssign, ExprParen, FnArg, ImplItemMethod, LitStr, Pat, PatType, ReturnType, Type};
 
-use crate::Method;
+use crate::{
+    commons::{parse_assign_left_ident, parse_assign_right_litstr, StringExt},
+    Method,
+};
 
 #[derive(Debug)]
 struct MethodIR {
@@ -106,49 +107,30 @@ fn parse_attr_query(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
                 .unwrap_or_else(|_| {
                     abort!(
                         attr,
-                        "Expected `old_q_name = \"new_q_name\"` in query attribute"
+                        "Expected `old_name = \"new_name\"` in query attribute"
                     )
                 });
 
-            let left = parse_attr_query_key(&assn);
-            let right = parse_attr_query_value(&assn);
-            if !fn_arg_names.contains(&left) {
-                abort!(assn, "Cannot find argument with name `{}`", left)
+            let query_ident =
+                parse_assign_left_ident(&assn, || "Expected identifier (fn argument name)");
+            let query_litstr =
+                parse_assign_right_litstr(&assn, || "Expected new name value (string literal)");
+
+            if !fn_arg_names.contains(&query_ident.to_string()) {
+                abort!(
+                    query_ident,
+                    "Cannot find argument with name `{}`",
+                    &query_ident
+                )
+            }
+            if query_litstr.value().trim().is_empty() {
+                abort!(query_litstr, "Invalid new name value");
             }
             ir.query_rename
                 .get_or_insert_with(|| HashMap::new())
-                .insert(left, right);
+                .insert(query_ident.to_string(), query_litstr.value());
         }
     }
-}
-
-fn parse_attr_query_key(assn: &ExprAssign) -> String {
-    match assn.left.as_ref() {
-        Expr::Path(expr) => Some(expr),
-        _ => None,
-    }
-    .and_then(|expr| match expr.path.get_ident() {
-        Some(ident) => Some(ident.to_string()),
-        _ => None,
-    })
-    .unwrap_or_else(|| abort!(assn, "Left part of query attribute should be identifier"))
-}
-
-fn parse_attr_query_value(assn: &ExprAssign) -> String {
-    match assn.right.as_ref() {
-        Expr::Lit(expr) => Some(expr),
-        _ => None,
-    }
-    .and_then(|expr| match &expr.lit {
-        Lit::Str(s) => Some(s.value()),
-        _ => None,
-    })
-    .unwrap_or_else(|| {
-        abort!(
-            assn,
-            "Right part of query attribute should be string literal"
-        )
-    })
 }
 
 fn parse_fn_name(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
@@ -364,27 +346,5 @@ fn codegen_client_execution(ir: &MethodIR) -> TokenStream {
             #queries,
             #body,
         ).await
-    }
-}
-
-trait StringExt {
-    fn as_ident(&self) -> Ident;
-    fn unraw(&self) -> &str;
-}
-
-impl<S: AsRef<str>> StringExt for S {
-    fn as_ident(&self) -> Ident {
-        if self.as_ref().starts_with("r#") {
-            syn::parse_str(self.as_ref()).expect_or_abort(&format!(
-                "Something went wrong when parsing identifier `{}`",
-                self.as_ref()
-            ))
-        } else {
-            Ident::new(self.as_ref(), Span::call_site())
-        }
-    }
-
-    fn unraw(&self) -> &str {
-        self.as_ref().trim_start_matches("r#")
     }
 }

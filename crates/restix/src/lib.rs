@@ -18,8 +18,43 @@ impl Display for Error {
     }
 }
 
+#[derive(Clone, Default)]
+pub struct Client(NativeClient);
+
+impl Client {
+    pub fn builder() -> ClientBuilder {
+        ClientBuilder::new()
+    }
+}
+
+pub struct ClientBuilder {
+    client: Option<NativeClient>,
+}
+
+impl ClientBuilder {
+    pub fn new() -> Self {
+        Self { client: None }
+    }
+
+    pub fn client(mut self, client: NativeClient) -> Self {
+        self.client = Some(client);
+        self
+    }
+
+    pub fn build(self) -> Client {
+        Client(self.client.unwrap_or_default())
+    }
+}
+
+pub trait RequestMiddleware {
+    fn on_request(&self, builder: NativeRequestBuilder);
+}
+
 #[cfg(feature = "reqwest")]
 mod client {
+    pub(crate) type NativeClient = reqwest::Client;
+    pub(crate) type NativeRequestBuilder = reqwest::RequestBuilder;
+
     #[derive(Debug)]
     pub struct Error(reqwest::Error);
 
@@ -29,16 +64,7 @@ mod client {
         }
     }
 
-    #[derive(Clone)]
-    pub struct HttpClient(reqwest::Client);
-
-    impl HttpClient {
-        pub fn new(client: reqwest::Client) -> Self {
-            Self(client)
-        }
-    }
-
-    impl HttpClient {
+    impl crate::Client {
         pub async fn execute<'a, B, R>(
             &self,
             method: crate::Method,

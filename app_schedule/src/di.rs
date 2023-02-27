@@ -13,8 +13,7 @@ use domain_schedule::{
 };
 use domain_schedule_cooldown::ScheduleCooldownRepository;
 use feature_schedule::v1::FeatureSchedule;
-use reqwest::{redirect::Policy, ClientBuilder};
-use restix::HttpClient;
+use reqwest::redirect::Policy;
 
 use crate::AppSchedule;
 
@@ -59,18 +58,20 @@ impl AppComponent {
     }
 }
 
-fn create_http_client() -> HttpClient {
+fn create_http_client() -> restix::Client {
     let connect_timeout = env::get_parsed_or("GATEWAY_CONNECT_TIMEOUT", 1500);
 
-    HttpClient::new(
-        ClientBuilder::new()
-            .gzip(true)
-            .deflate(true)
-            .redirect(Policy::none())
-            .timeout(std::time::Duration::from_secs(15))
-            .connect_timeout(std::time::Duration::from_millis(connect_timeout))
-            .pool_max_idle_per_host(3)
-            .build()
-            .expect("Something went wrong when building HttClient"),
-    )
+    restix::ClientBuilder::new()
+        .client(
+            reqwest::ClientBuilder::new()
+                .gzip(true)
+                .deflate(true)
+                .redirect(Policy::none())
+                .timeout(std::time::Duration::from_secs(15))
+                .connect_timeout(std::time::Duration::from_millis(connect_timeout))
+                .pool_max_idle_per_host(3)
+                .build()
+                .expect("Something went wrong when building HttClient"),
+        )
+        .build()
 }

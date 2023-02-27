@@ -17,17 +17,3 @@ pub trait MpeiApi {
         finish: Query,
     ) -> Vec<MpeiClasses>;
 }
-
-// pub fn with_timeout_ms(timeout: u64) -> Self {
-//     Self(
-//         ClientBuilder::new()
-//             .gzip(true)
-//             .deflate(true)
-//             .redirect(Policy::none())
-//             .timeout(std::time::Duration::from_secs(15))
-//             .connect_timeout(std::time::Duration::from_millis(timeout))
-//             .pool_max_idle_per_host(3)
-//             .build()
-//             .expect("Something went wrong when building HttClient"),
-//     )
-// }
