@@ -31,7 +31,7 @@ impl ScheduleCooldownRepository {
     /// Check if cooldown timer still active or not
     pub async fn is_cooldown_active(&self) -> bool {
         let last_error_time = self.last_error_time.lock().await;
-        last_error_time.is_some() && !self.is_expired(&*last_error_time, &self.cooldown_duration)
+        last_error_time.is_some() && !self.is_expired(&last_error_time, &self.cooldown_duration)
     }
 
     /// Taken from `commin_in_memory_cache`
@@ -53,26 +53,32 @@ mod tests {
 
     #[test]
     fn test_activate_and_check_active() {
-        let mut repo = ScheduleCooldownRepository::default();
-        repo.cooldown_duration = Duration::minutes(1);
+        let repo = ScheduleCooldownRepository {
+            cooldown_duration: Duration::minutes(1),
+            ..Default::default()
+        };
         tokio_test::block_on(repo.activate());
-        assert_eq!(true, tokio_test::block_on(repo.is_cooldown_active()));
+        assert!(tokio_test::block_on(repo.is_cooldown_active()));
     }
 
     #[test]
     fn test_cooldown_is_inactive_without_activating() {
-        let mut repo = ScheduleCooldownRepository::default();
-        repo.cooldown_duration = Duration::minutes(1);
-        assert_eq!(false, tokio_test::block_on(repo.is_cooldown_active()));
+        let repo = ScheduleCooldownRepository {
+            cooldown_duration: Duration::minutes(1),
+            ..Default::default()
+        };
+        assert!(!tokio_test::block_on(repo.is_cooldown_active()));
     }
 
     #[test]
     fn test_activate_and_check_inactive() {
-        let mut repo = ScheduleCooldownRepository::default();
-        repo.cooldown_duration = Duration::minutes(1);
+        let mut repo = ScheduleCooldownRepository {
+            cooldown_duration: Duration::minutes(1),
+            ..Default::default()
+        };
         // kinda activate now
         repo.last_error_time = Mutex::new(Some(Local::now()));
-        assert_eq!(true, tokio_test::block_on(repo.is_cooldown_active()));
+        assert!(tokio_test::block_on(repo.is_cooldown_active()));
 
         // kinda activate half a minute ago
         repo.last_error_time = Mutex::new(Some(
@@ -80,7 +86,7 @@ mod tests {
                 .checked_sub_signed(Duration::seconds(30))
                 .unwrap(),
         ));
-        assert_eq!(true, tokio_test::block_on(repo.is_cooldown_active()));
+        assert!(tokio_test::block_on(repo.is_cooldown_active()));
 
         // kinda activate minute ago
         repo.last_error_time = Mutex::new(Some(
@@ -88,6 +94,6 @@ mod tests {
                 .checked_sub_signed(Duration::minutes(1))
                 .unwrap(),
         ));
-        assert_eq!(false, tokio_test::block_on(repo.is_cooldown_active()))
+        assert!(!tokio_test::block_on(repo.is_cooldown_active()))
     }
 }
