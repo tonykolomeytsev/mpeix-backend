@@ -193,13 +193,9 @@ impl GetScheduleUseCase {
             debug!("Got schedule from cache (ignore_expiration={ignore_expiration})");
             {
                 // fix schedule week_of_semester according to new schedule shift rules
-                self.fix_schedule_shift_if_needed(
-                    &mut schedule,
-                    &week_of_semester,
-                    name.to_owned(),
-                )
-                .await
-                .with_context(|| "Error while fixing schedule shift")?;
+                self.fix_schedule_shift_if_needed(&mut schedule, week_of_semester, name.to_owned())
+                    .await
+                    .with_context(|| "Error while fixing schedule shift")?;
             }
             return Ok(Some(schedule));
         }
