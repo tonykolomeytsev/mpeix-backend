@@ -42,7 +42,6 @@ pub fn api(attr: TokenStream, item: TokenStream) -> TokenStream {
         #struct_definition
         #struct_impl
     }
-    .into()
 }
 
 fn parse_trait_name(trait_definition: &ItemTrait, ir: &mut ApiIR) {
@@ -56,13 +55,13 @@ fn parse_base_url(attr: TokenStream, ir: &mut ApiIR) {
     let assn =
         syn::parse2::<ExprAssign>(attr).expect_or_abort("Expected `#[api(base_url = \"...\")]`");
     let base_url_ident = parse_assign_left_ident(&assn, || "Expected `base_url` identifier");
-    if base_url_ident.to_string() != "base_url" {
+    if *base_url_ident != "base_url" {
         abort!(base_url_ident, "Expected `base_url` identifier");
     }
     let base_url_litstr =
         parse_assign_right_litstr(&assn, || "Expected base url value (string literal)");
     let base_url = base_url_litstr.value();
-    if base_url.ends_with("/") {
+    if base_url.ends_with('/') {
         abort!(
             base_url_litstr,
             "Remove trailing '/' from `base_url` string"

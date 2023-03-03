@@ -78,7 +78,7 @@ pub fn method(method: Method, attr: TokenStream, item: TokenStream) -> TokenStre
 fn parse_attr_endpoint_url(attr: TokenStream, ir: &mut MethodIR) {
     let attr_arg = syn::parse2::<LitStr>(attr).expect_or_abort("Expected string endpoint url");
     let endpoint_url = attr_arg.value();
-    if !endpoint_url.starts_with("/") {
+    if !endpoint_url.starts_with('/') {
         abort!(attr_arg, "Endpoint url should start with a '/'")
     }
     ir.endpoint_url = endpoint_url
@@ -127,7 +127,7 @@ fn parse_attr_query(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
                 abort!(query_litstr, "Invalid new name value");
             }
             ir.query_rename
-                .get_or_insert_with(|| HashMap::new())
+                .get_or_insert_with(HashMap::new)
                 .insert(query_ident.to_string(), query_litstr.value());
         }
     }
@@ -143,8 +143,7 @@ fn parse_fn_signature(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
 }
 
 fn parse_fn_args(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
-    let mut i = 0;
-    for arg in &fn_definition.sig.inputs {
+    for (i, arg) in (&fn_definition.sig.inputs).into_iter().enumerate() {
         match arg {
             FnArg::Receiver(r) => match (i == 0, &r.mutability, &r.reference) {
                 (false, _, _) => abort!(r, "First parameter should be &self parameter"),
@@ -160,7 +159,6 @@ fn parse_fn_args(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
                 }
             }
         }
-        i += 1
     }
 }
 
@@ -195,14 +193,14 @@ fn parse_typed_arg(pat_type: &PatType, ir: &mut MethodIR, i: &usize) {
                 name: arg_name.to_owned(),
                 r#type: ArgTypeIR::Path(*i),
             });
-            ir.paths.get_or_insert_with(|| vec![]).push(arg_name);
+            ir.paths.get_or_insert_with(Vec::new).push(arg_name);
         }
         Some("Query") => {
             ir.fn_args.push(FnArgIR::Typed {
                 name: arg_name.to_owned(),
                 r#type: ArgTypeIR::Query(*i),
             });
-            ir.queries.get_or_insert_with(|| vec![]).push(arg_name);
+            ir.queries.get_or_insert_with(Vec::new).push(arg_name);
         }
         Some("Body") => {
             if ir.body.is_none() {
