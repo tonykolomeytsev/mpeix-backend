@@ -34,6 +34,6 @@ pub mod env {
     /// Get environment variable value if exists,
     /// or panic with readable description.
     pub fn required(key: &str) -> String {
-        std::env::var(key).expect(&format!("Environment variable {key} not provided"))
+        std::env::var(key).unwrap_or_else(|_| panic!("Environment variable {key} not provided"))
     }
 }
