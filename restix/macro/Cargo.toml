@@ -6,6 +6,7 @@ authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [lib]
 proc-macro = true
+doctest = false
 
 [dependencies]
 restix_impl = { path = "../impl" }
