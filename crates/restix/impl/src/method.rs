@@ -3,22 +3,19 @@ use std::{collections::HashMap, fmt::Debug};
 use proc_macro2::{Ident, TokenStream};
 use proc_macro_error::{abort, ResultExt};
 use quote::{quote, ToTokens};
-use syn::{ExprAssign, ExprParen, FnArg, ImplItemMethod, LitStr, Pat, PatType, ReturnType, Type};
-
-use crate::{
-    commons::{parse_assign_left_ident, parse_assign_right_litstr, StringExt},
-    Method,
+use syn::{
+    parse::Parse, ExprAssign, ExprParen, FnArg, ImplItemMethod, LitStr, Pat, PatType, ReturnType,
+    Type,
 };
+
+use crate::{commons::StringExt, Method};
 
 /// Intermediate representation of an Method definition.
 struct MethodIR {
     method: Method,
     fn_name: String,
     endpoint_url: String,
-    queries: Option<Vec<String>>,
-    query_rename: Option<HashMap<String, String>>,
-    paths: Option<Vec<String>>,
-    body: Option<String>,
+    query_rename: HashMap<String, String>,
     fn_args: Vec<FnArgIR>,
     fn_return_type: FnReturnTypeIR,
 }
@@ -29,11 +26,8 @@ impl MethodIR {
             method,
             fn_name: String::new(),
             endpoint_url: String::new(),
-            queries: None,
-            query_rename: None,
-            paths: None,
-            body: None,
-            fn_args: vec![],
+            query_rename: HashMap::with_capacity(0),
+            fn_args: Vec::with_capacity(0),
             fn_return_type: FnReturnTypeIR::Typed(syn::parse2(quote!(!)).unwrap()),
         }
     }
@@ -42,7 +36,58 @@ impl MethodIR {
 #[derive(Debug)]
 enum FnArgIR {
     Receiver,
-    Typed { name: String, r#type: ArgTypeIR },
+    Typed {
+        name: String,
+        r#type: ArgTypeIR,
+        optional: bool,
+    },
+}
+
+macro_rules! fn_arg_as {
+    ($n:ident -> $p:pat) => {
+        fn $n(&self) -> Option<&String> {
+            match self {
+                Self::Typed {
+                    name, r#type: $p, ..
+                } => Some(name),
+                _ => None,
+            }
+        }
+    };
+}
+
+impl FnArgIR {
+    fn path(name: String, num: usize) -> FnArgIR {
+        FnArgIR::Typed {
+            name,
+            r#type: ArgTypeIR::Path(num),
+            optional: false,
+        }
+    }
+
+    fn query(name: String, num: usize, optional: bool) -> FnArgIR {
+        FnArgIR::Typed {
+            name,
+            r#type: ArgTypeIR::Query(num),
+            optional,
+        }
+    }
+
+    fn body(name: String) -> FnArgIR {
+        FnArgIR::Typed {
+            name,
+            r#type: ArgTypeIR::Body,
+            optional: false,
+        }
+    }
+
+    fn is_optional(&self) -> bool {
+        matches!(self, FnArgIR::Typed { optional: true, .. })
+    }
+
+    fn_arg_as!(as_path -> ArgTypeIR::Path(_));
+    fn_arg_as!(as_query -> ArgTypeIR::Query(_));
+    fn_arg_as!(as_body -> ArgTypeIR::Body);
 }
 
 #[derive(Debug)]
@@ -65,6 +110,21 @@ impl ArgTypeIR {
 enum FnReturnTypeIR {
     RawResponse,
     Typed(Type),
+}
+
+struct AttrQueryIR {
+    old_name: Ident,
+    new_name: LitStr,
+}
+
+impl Parse for AttrQueryIR {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let assn: ExprAssign = syn::parse2(input.parse::<ExprParen>()?.expr.to_token_stream())?;
+        Ok(AttrQueryIR {
+            old_name: syn::parse2(assn.left.to_token_stream())?,
+            new_name: syn::parse2(assn.right.to_token_stream())?,
+        })
+    }
 }
 
 pub fn method(method: Method, attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -109,19 +169,9 @@ fn parse_attr_query(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
     for attr in &fn_definition.attrs {
         let attr_ident = attr.path.get_ident().map(|it| it.to_string());
         if let Some("query") = attr_ident.as_deref() {
-            let assn = syn::parse2::<ExprParen>(attr.tokens.to_owned())
-                .and_then(|paren| syn::parse2::<ExprAssign>(paren.expr.to_token_stream()))
-                .unwrap_or_else(|_| {
-                    abort!(
-                        attr,
-                        "Expected `old_name = \"new_name\"` in query attribute"
-                    )
-                });
-
-            let query_ident =
-                parse_assign_left_ident(&assn, || "Expected identifier (fn argument name)");
-            let query_litstr =
-                parse_assign_right_litstr(&assn, || "Expected new name value (string literal)");
+            let attr_query_ir: AttrQueryIR = syn::parse2(attr.tokens.to_owned()).unwrap_or_abort();
+            let query_ident = attr_query_ir.old_name;
+            let query_litstr = attr_query_ir.new_name;
 
             if !fn_arg_names.contains(&query_ident.to_string()) {
                 abort!(
@@ -134,7 +184,6 @@ fn parse_attr_query(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
                 abort!(query_litstr, "Invalid new name value");
             }
             ir.query_rename
-                .get_or_insert_with(HashMap::new)
                 .insert(query_ident.to_string(), query_litstr.value());
         }
     }
@@ -187,50 +236,34 @@ fn parse_typed_arg(
         _ => abort!(pat_type, "Only identifier arguments are supported"),
     };
     let arg_type = match &*pat_type.ty {
-        Type::Path(path) => Some(path.path.to_owned()),
-        _ => None,
-    }
-    .and_then(|path| {
-        if path.segments.len() == 1 {
-            Some(path.segments[0].ident.to_owned())
-        } else {
-            None
-        }
-    })
-    .map(|ident| ident.to_string());
-
-    match arg_type.as_deref() {
-        Some("Path") => {
-            ir.fn_args.push(FnArgIR::Typed {
-                name: arg_name.to_owned(),
-                r#type: ArgTypeIR::Path(*path_number),
-            });
-            ir.paths.get_or_insert_with(Vec::new).push(arg_name);
-            *path_number += 1;
-        }
-        Some("Query") => {
-            ir.fn_args.push(FnArgIR::Typed {
-                name: arg_name.to_owned(),
-                r#type: ArgTypeIR::Query(*query_number),
-            });
-            ir.queries.get_or_insert_with(Vec::new).push(arg_name);
-            *query_number += 1;
-        }
-        Some("Body") => {
-            if ir.body.is_none() {
-                ir.fn_args.push(FnArgIR::Typed {
-                    name: arg_name.to_owned(),
-                    r#type: ArgTypeIR::Body,
-                });
-                ir.body = Some(arg_name)
-            } else {
-                abort!(pat_type, "Request can have only one body");
-            }
-        }
+        Type::Path(type_path) => type_path.to_owned(),
         _ => abort!(
             pat_type,
-            "Parameter type must be one of the following types: Path, Query, Body"
+            "Parameter type must be one of the following types: Path, Query, Option<Query>, Body"
         ),
+    };
+
+    if arg_type == syn::parse_quote!(Path) {
+        ir.fn_args.push(FnArgIR::path(arg_name, *path_number));
+        *path_number += 1;
+    } else if arg_type == syn::parse_quote!(Query) {
+        ir.fn_args
+            .push(FnArgIR::query(arg_name, *query_number, false));
+        *query_number += 1;
+    } else if arg_type == syn::parse_quote!(Option<Query>) {
+        ir.fn_args
+            .push(FnArgIR::query(arg_name, *query_number, true));
+        *query_number += 1;
+    } else if arg_type == syn::parse_quote!(Body) {
+        match ir.fn_args.iter().find_map(FnArgIR::as_body) {
+            Some(_) => abort!(pat_type, "Request can have only one body"),
+            None => ir.fn_args.push(FnArgIR::body(arg_name)),
+        }
+    } else {
+        abort!(
+            pat_type,
+            "Parameter type must be one of the following types: Path, Query, Option<Query>, Body"
+        )
     }
 }
 
@@ -303,10 +336,18 @@ fn codegen_type_bounds(ir: &MethodIR) -> (TokenStream, TokenStream) {
 fn codegen_fn_args(ir: &MethodIR) -> TokenStream {
     let args = ir.fn_args.iter().map(|arg| match arg {
         FnArgIR::Receiver => quote!(&self),
-        FnArgIR::Typed { name, r#type } => {
+        FnArgIR::Typed {
+            name,
+            r#type,
+            optional,
+        } => {
             let name = name.as_ident();
             let r#type = r#type.as_ident();
-            quote!(#name: #r#type)
+            if *optional {
+                quote!(#name: ::std::option::Option<#r#type>)
+            } else {
+                quote!(#name: #r#type)
+            }
         }
     });
     quote! { #( #args ),* }
@@ -324,17 +365,16 @@ fn codegen_fn_code_block(ir: &MethodIR) -> TokenStream {
 
 /// Generate `let full_url = format!(...)` statement
 fn codegen_format_url(ir: &MethodIR) -> TokenStream {
-    let paths = match &ir.paths {
-        None => vec![],
-        Some(paths) => paths
-            .iter()
-            .map(|path| {
-                let key = path.unraw().as_ident();
-                let value = path.as_ident();
-                quote!(#key = #value)
-            })
-            .collect(),
-    };
+    let paths = &ir
+        .fn_args
+        .iter()
+        .filter_map(FnArgIR::as_path)
+        .map(|path| {
+            let key = path.unraw().as_ident();
+            let value = path.as_ident();
+            quote!(#key = #value)
+        })
+        .collect::<Vec<_>>();
     let full_url = format!("{{base_url}}{}", ir.endpoint_url);
     quote! {
         let full_url = ::std::format!(
@@ -351,27 +391,43 @@ fn codegen_client_execution(ir: &MethodIR) -> TokenStream {
         Method::Get => quote!(::restix::Method::Get),
         Method::Post => quote!(::restix::Method::Post),
     };
-    let queries = match &ir.queries {
-        None => vec![],
-        Some(queries) => queries
-            .iter()
-            .map(|query| {
-                let renaming = ir.query_rename.as_ref().and_then(|map| map.get(query));
-                let key = match &renaming {
-                    Some(new_query) => new_query.unraw(),
-                    None => query.unraw(),
-                };
-                let ident = query.as_ident();
-                quote! { (#key, #ident.as_ref()) }
-            })
-            .collect(),
-    };
-    let queries = if queries.is_empty() {
-        quote! { ::std::option::Option::None }
-    } else {
-        quote! { ::std::option::Option::Some(::std::vec![#( #queries ),*]) }
-    };
-    let body = if let Some(body) = &ir.body {
+    let queries = &ir
+        .fn_args
+        .iter()
+        .filter(|arg| !arg.is_optional())
+        .filter_map(FnArgIR::as_query)
+        .map(|query| {
+            let renaming = ir.query_rename.get(query);
+            let key = match &renaming {
+                Some(new_query) => new_query.unraw(),
+                None => query.unraw(),
+            };
+            let ident = query.as_ident();
+            quote! { (#key, #ident.as_ref()) }
+        })
+        .collect::<Vec<_>>();
+
+    let opt_queries = &ir
+        .fn_args
+        .iter()
+        .filter(|arg| arg.is_optional())
+        .filter_map(FnArgIR::as_query)
+        .map(|query| {
+            let renaming = ir.query_rename.get(query);
+            let key = match &renaming {
+                Some(new_query) => new_query.unraw(),
+                None => query.unraw(),
+            };
+            let ident = query.as_ident();
+            quote! {
+                if let ::std::option::Option::Some(q) = #ident.as_ref() {
+                    queries.push( (#key, q.as_ref()) );
+                }
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let body = if let Some(body) = ir.fn_args.iter().find_map(FnArgIR::as_body) {
         let ident = body.as_ident();
         quote! { ::std::option::Option::Some(#ident) }
     } else {
@@ -383,10 +439,14 @@ fn codegen_client_execution(ir: &MethodIR) -> TokenStream {
     };
 
     quote! {
+        let mut queries = ::std::vec![#( #queries ),*];
+
+        #( #opt_queries )*
+
         self.client.#execute_fn(
             #method,
             &full_url,
-            #queries,
+            queries,
             #body,
         ).await
     }

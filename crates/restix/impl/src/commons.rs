@@ -1,33 +1,5 @@
 use proc_macro2::{Ident, Span};
-use proc_macro_error::{abort, ResultExt};
-use syn::{Expr, ExprAssign, Lit, LitStr};
-
-pub(crate) fn parse_assign_left_ident<'a, F: FnOnce() -> &'a str>(
-    assn: &'a ExprAssign,
-    err_msg: F,
-) -> &'a Ident {
-    match assn.left.as_ref() {
-        Expr::Path(expr) => Some(expr),
-        _ => None,
-    }
-    .and_then(|expr| expr.path.get_ident())
-    .unwrap_or_else(|| abort!(assn.left, err_msg()))
-}
-
-pub(crate) fn parse_assign_right_litstr<'a, F: FnOnce() -> &'a str>(
-    assn: &'a ExprAssign,
-    err_msg: F,
-) -> &'a LitStr {
-    match assn.right.as_ref() {
-        Expr::Lit(expr) => Some(expr),
-        _ => None,
-    }
-    .and_then(|expr| match &expr.lit {
-        Lit::Str(s) => Some(s),
-        _ => None,
-    })
-    .unwrap_or_else(|| abort!(assn.right, err_msg()))
-}
+use proc_macro_error::ResultExt;
 
 pub trait StringExt {
     fn as_ident(&self) -> Ident;

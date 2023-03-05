@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
+    mpeix_api::MpeixApi,
     peer::repository::PeerRepository,
     schedule::repository::ScheduleRepository,
     search::repository::ScheduleSearchRepository,
@@ -8,6 +9,18 @@ use crate::{
         GenerateReplyUseCase, GetUpcomingEventsUseCase, InitDomainBotUseCase, TextToActionUseCase,
     },
 };
+
+impl ScheduleRepository {
+    pub fn new(api: MpeixApi) -> Self {
+        Self(api)
+    }
+}
+
+impl ScheduleSearchRepository {
+    pub fn new(api: MpeixApi) -> Self {
+        Self(api)
+    }
+}
 
 impl InitDomainBotUseCase {
     pub fn new(peer_repository: Arc<PeerRepository>) -> Self {

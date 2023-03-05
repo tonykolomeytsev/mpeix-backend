@@ -6,6 +6,7 @@ authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
 common_errors = { workspace = true }
+common_restix = { workspace = true }
 domain_schedule_models = { workspace = true }
 
 anyhow = { workspace = true }
@@ -16,6 +17,7 @@ lazy_static = { version = "1.4" }                                      # TODO: r
 log = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["gzip", "deflate", "json"] }
+restix = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true }
 tokio-postgres = { workspace = true }

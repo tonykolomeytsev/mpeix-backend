@@ -63,7 +63,7 @@ impl crate::Restix {
         &self,
         method: crate::Method,
         url: &str,
-        queries: Option<Vec<(&str, &str)>>,
+        queries: Vec<(&str, &str)>,
         body: Option<B>,
     ) -> crate::Result<reqwest::Response>
     where
@@ -74,10 +74,7 @@ impl crate::Restix {
             crate::Method::Post => reqwest::Method::POST,
         };
 
-        let mut builder = self.0.request(method, url);
-        if let Some(queries) = queries {
-            builder = builder.query(&queries)
-        }
+        let mut builder = self.0.request(method, url).query(&queries);
         if let Some(body) = body {
             builder = builder.json(&body)
         }
@@ -88,7 +85,7 @@ impl crate::Restix {
         &self,
         method: crate::Method,
         url: &str,
-        queries: Option<Vec<(&str, &str)>>,
+        queries: Vec<(&str, &str)>,
         body: Option<B>,
     ) -> crate::Result<R>
     where
