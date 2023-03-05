@@ -7,7 +7,7 @@ use crate::mpeix_api::MpeixApi;
 ///
 /// We do not need caching or other complex logic here, because it
 /// is implemented on the side of the `app_schedule` microservice.
-pub struct ScheduleRepository(MpeixApi);
+pub struct ScheduleRepository(pub(crate) MpeixApi);
 
 impl ScheduleRepository {
     pub async fn get_schedule(

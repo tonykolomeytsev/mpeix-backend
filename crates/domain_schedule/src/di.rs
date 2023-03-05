@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use common_di::di_constructor;
 use domain_schedule_cooldown::ScheduleCooldownRepository;
 
 use crate::{
@@ -12,42 +13,21 @@ use crate::{
     },
 };
 
-impl GetScheduleIdUseCase {
-    pub fn new(schedule_id_repository: Arc<ScheduleIdRepository>) -> Self {
-        Self(schedule_id_repository)
-    }
-}
-
-impl GetScheduleUseCase {
-    pub fn new(
+di_constructor! { GetScheduleIdUseCase(schedule_id_repository: Arc<ScheduleIdRepository>) }
+di_constructor! {
+    GetScheduleUseCase {
         schedule_id_repository: Arc<ScheduleIdRepository>,
         schedule_repository: Arc<ScheduleRepository>,
         schedule_shift_repository: Arc<ScheduleShiftRepository>,
-        schedule_cooldown_repository: Arc<ScheduleCooldownRepository>,
-    ) -> Self {
-        Self {
-            schedule_id_repository,
-            schedule_repository,
-            schedule_shift_repository,
-            schedule_cooldown_repository,
-        }
+        schedule_cooldown_repository: Arc<ScheduleCooldownRepository>
     }
 }
-
-impl SearchScheduleUseCase {
-    pub fn new(
+di_constructor! {
+    SearchScheduleUseCase {
         schedule_search_repository: Arc<ScheduleSearchRepository>,
-        schedule_cooldown_repository: Arc<ScheduleCooldownRepository>,
-    ) -> Self {
-        Self {
-            schedule_search_repository,
-            schedule_cooldown_repository,
-        }
+        schedule_cooldown_repository: Arc<ScheduleCooldownRepository>
     }
 }
-
-impl InitDomainScheduleUseCase {
-    pub fn new(schedule_search_repository: Arc<ScheduleSearchRepository>) -> Self {
-        Self(schedule_search_repository)
-    }
+di_constructor! {
+    InitDomainScheduleUseCase(schedule_search_repository: Arc<ScheduleSearchRepository>)
 }

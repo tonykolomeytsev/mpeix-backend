@@ -13,8 +13,8 @@ pub trait MpeixApi {
 }
 
 #[derive(Deserialize)]
-pub(crate) struct SearchResponse {
-    items: Vec<ScheduleSearchResult>,
+pub struct SearchResponse {
+    pub items: Vec<ScheduleSearchResult>,
 }
 
 // нужен inline маппер типов или что-то типа unwrap_response(items)

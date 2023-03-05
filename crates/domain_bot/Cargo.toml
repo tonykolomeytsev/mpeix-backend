@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
+common_di = { workspace = true }
 common_errors = { workspace = true }
 common_restix = { workspace = true }
 domain_schedule_models = { workspace = true }

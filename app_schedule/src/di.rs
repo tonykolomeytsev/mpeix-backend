@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use common_database::create_db_pool;
-use common_rust::env;
+use common_restix::create_restix_client;
 use domain_schedule::{
     id::repository::ScheduleIdRepository,
     mpei_api::MpeiApi,
@@ -14,7 +14,6 @@ use domain_schedule::{
 };
 use domain_schedule_cooldown::ScheduleCooldownRepository;
 use feature_schedule::v1::FeatureSchedule;
-use reqwest::redirect::Policy;
 
 use crate::AppSchedule;
 
@@ -24,7 +23,7 @@ impl AppComponent {
     pub fn create_app() -> AppSchedule {
         let db_pool = Arc::new(create_db_pool().expect("DI error while creating db pool"));
         let api = MpeiApi::builder()
-            .client(create_http_client())
+            .client(create_restix_client())
             .build()
             .expect("DI error while creating MpeiApi");
 
@@ -59,22 +58,4 @@ impl AppComponent {
             init_domain_schedule_use_case,
         }
     }
-}
-
-fn create_http_client() -> restix::Restix {
-    let connect_timeout = env::get_parsed_or("GATEWAY_CONNECT_TIMEOUT", 1500);
-
-    restix::RestixBuilder::new()
-        .client(
-            reqwest::ClientBuilder::new()
-                .gzip(true)
-                .deflate(true)
-                .redirect(Policy::none())
-                .timeout(std::time::Duration::from_secs(15))
-                .connect_timeout(std::time::Duration::from_millis(connect_timeout))
-                .pool_max_idle_per_host(3)
-                .build()
-                .expect("Something went wrong when building HttClient"),
-        )
-        .build()
 }

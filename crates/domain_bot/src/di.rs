@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use common_di::di_constructor;
+
 use crate::{
     mpeix_api::MpeixApi,
     peer::repository::PeerRepository,
@@ -10,44 +12,16 @@ use crate::{
     },
 };
 
-impl ScheduleRepository {
-    pub fn new(api: MpeixApi) -> Self {
-        Self(api)
-    }
-}
-
-impl ScheduleSearchRepository {
-    pub fn new(api: MpeixApi) -> Self {
-        Self(api)
-    }
-}
-
-impl InitDomainBotUseCase {
-    pub fn new(peer_repository: Arc<PeerRepository>) -> Self {
-        Self(peer_repository)
-    }
-}
-
-impl GetUpcomingEventsUseCase {
-    pub fn new(schedule_repository: Arc<ScheduleRepository>) -> Self {
-        Self(schedule_repository)
-    }
-}
-
-impl GenerateReplyUseCase {
-    pub fn new(
+di_constructor! { ScheduleRepository(api: MpeixApi) }
+di_constructor! { ScheduleSearchRepository(api: MpeixApi) }
+di_constructor! { InitDomainBotUseCase(peer_repository: Arc<PeerRepository>) }
+di_constructor! { GetUpcomingEventsUseCase(schedule_repository: Arc<ScheduleRepository>) }
+di_constructor! {
+    GenerateReplyUseCase(
         text_to_action_use_case: Arc<TextToActionUseCase>,
         peer_repository: Arc<PeerRepository>,
         schedule_repository: Arc<ScheduleRepository>,
         schedule_search_repository: Arc<ScheduleSearchRepository>,
-        get_upcoming_events_use_case: Arc<GetUpcomingEventsUseCase>,
-    ) -> Self {
-        Self(
-            text_to_action_use_case,
-            peer_repository,
-            schedule_repository,
-            schedule_search_repository,
-            get_upcoming_events_use_case,
-        )
-    }
+        get_upcoming_events_use_case: Arc<GetUpcomingEventsUseCase>
+    )
 }

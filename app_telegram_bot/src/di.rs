@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use common_database::create_db_pool;
+use common_restix::create_restix_client;
+use common_rust::env;
 use domain_bot::{
+    mpeix_api::MpeixApi,
     peer::repository::PeerRepository,
     schedule::repository::ScheduleRepository,
     search::repository::ScheduleSearchRepository,
@@ -19,10 +22,15 @@ use crate::AppTelegramBot;
 
 pub fn create_app() -> AppTelegramBot {
     let db_pool = Arc::new(create_db_pool().expect("DI error while creating db pool"));
+    let api = MpeixApi::builder()
+        .base_url(env::required("APP_SCHEDULE_BASE_URL"))
+        .client(create_restix_client())
+        .build()
+        .expect("DI error while creating MpeixApi");
 
     let peer_repository = Arc::new(PeerRepository::new(db_pool));
-    let schedule_repository = Arc::new(ScheduleRepository::default());
-    let schedule_search_repository = Arc::new(ScheduleSearchRepository::default());
+    let schedule_repository = Arc::new(ScheduleRepository::new(api.to_owned()));
+    let schedule_search_repository = Arc::new(ScheduleSearchRepository::new(api));
 
     let text_to_action_use_case = Arc::new(TextToActionUseCase::default());
     let get_upcoming_events_use_case =
