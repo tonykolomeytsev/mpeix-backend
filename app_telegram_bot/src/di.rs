@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use common_database::create_db_pool;
-use common_restix::create_restix_client;
+use common_restix::create_reqwest_client;
 use common_rust::env;
 use domain_bot::{
     mpeix_api::MpeixApi,
@@ -17,6 +17,7 @@ use domain_telegram_bot::{
     usecases::{DeleteMessageUseCase, ReplyToTelegramUseCase, SetWebhookUseCase},
 };
 use feature_telegram_bot::FeatureTelegramBot;
+use restix::Restix;
 
 use crate::AppTelegramBot;
 
@@ -24,7 +25,7 @@ pub fn create_app() -> AppTelegramBot {
     let db_pool = Arc::new(create_db_pool().expect("DI error while creating db pool"));
     let api = MpeixApi::builder()
         .base_url(env::required("APP_SCHEDULE_BASE_URL"))
-        .client(create_restix_client())
+        .client(Restix::builder().client(create_reqwest_client()).build())
         .build()
         .expect("DI error while creating MpeixApi");
 

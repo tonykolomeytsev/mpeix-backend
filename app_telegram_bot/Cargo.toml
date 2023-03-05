@@ -20,3 +20,4 @@ actix-web = { workspace = true }
 anyhow = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }
+restix = { workspace = true }

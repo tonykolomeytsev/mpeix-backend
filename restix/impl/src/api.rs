@@ -11,21 +11,9 @@ use crate::commons::StringExt;
 /// Intermediate representation of an Api trait definition.
 /// This structure is generated from the `#[api]` attribute macro.
 struct ApiIR {
-    api_name: String,
-    props: AttrPropertiesIR,
+    name: Ident,
     methods: Vec<TraitItemMethod>,
     visibility: Visibility,
-}
-
-impl Default for ApiIR {
-    fn default() -> Self {
-        Self {
-            api_name: String::new(),
-            props: AttrPropertiesIR::default(),
-            methods: vec![],
-            visibility: Visibility::Inherited,
-        }
-    }
 }
 
 #[derive(Default)]
@@ -33,8 +21,29 @@ struct AttrPropertiesIR {
     base_url: Option<LitStr>,
 }
 
+impl Parse for ApiIR {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let item_trait: ItemTrait = input.parse()?;
+        Ok(ApiIR {
+            name: item_trait.ident,
+            methods: item_trait
+                .items
+                .iter()
+                .filter_map(|item| match item {
+                    TraitItem::Method(method) => Some(method.to_owned()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>(),
+            visibility: item_trait.vis,
+        })
+    }
+}
+
 impl Parse for AttrPropertiesIR {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        if input.is_empty() {
+            return Ok(AttrPropertiesIR::default());
+        }
         let result: Punctuated<ExprAssign, Token![,]> = Punctuated::parse_terminated(input)?;
         let mut props = AttrPropertiesIR::default();
         for assn in result {
@@ -43,7 +52,7 @@ impl Parse for AttrPropertiesIR {
             match ident.to_string().as_str() {
                 "base_url" => props.base_url = Some(value),
                 id => {
-                    let message = format!("Unknown identifier: `{id}`");
+                    let message = format!("Unknown identifier `{id}`, expected `base_url`");
                     return Err(syn::Error::new(ident.span(), message));
                 }
             }
@@ -62,62 +71,37 @@ impl Parse for AttrPropertiesIR {
 /// `#[get("...")]`, `#[post("...")]`, and others.
 pub fn api(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Parsing
-    let trait_definition = syn::parse2::<ItemTrait>(item)
-        .expect_or_abort("Proc macro `api` can be applied only to trait definition");
-    let mut ir = ApiIR::default();
-    parse_trait_name(&trait_definition, &mut ir);
-    parse_trait_signature(&trait_definition, &mut ir);
-    parse_attr(attr, &mut ir);
+    let ir: ApiIR = syn::parse2(item).unwrap_or_abort();
+    let attr_props: AttrPropertiesIR = syn::parse2(attr).unwrap_or_abort();
+    // Analyzing
+    analyze_attr_props(&attr_props);
     // Codegen
     let struct_definition = codegen_struct(&ir);
-    let struct_builder_definition = codegen_struct_builder(&ir);
+    let builder_definition = codegen_struct_builder(&ir, &attr_props);
 
     quote! {
         #struct_definition
-        #struct_builder_definition
+        #builder_definition
     }
 }
 
-/// Parse name of the trait
-fn parse_trait_name(trait_definition: &ItemTrait, ir: &mut ApiIR) {
-    ir.api_name = trait_definition.ident.to_string();
-}
-
-/// Parse and validate `base_url = "...", map_err = "..."` expressions from the `#[api]` attribute macro
-fn parse_attr(attr: TokenStream, ir: &mut ApiIR) {
-    if attr.is_empty() {
-        return;
-    }
-    let props = syn::parse2::<AttrPropertiesIR>(attr)
-        .expect_or_abort("Expected `#[api(base_url = \"...\", map_err = \"...\")]`");
-    if let Some(base_url) = &props.base_url {
+fn analyze_attr_props(attr_props: &AttrPropertiesIR) {
+    if let Some(base_url) = &attr_props.base_url {
+        if base_url.value().is_empty() {
+            abort!(base_url, "`base_url` should not be empty");
+        }
         if base_url.value().ends_with('/') {
-            abort!(base_url, "Remove trailing '/' from `base_url` string");
+            abort!(base_url, "`base_url` should not end with `/`");
         }
     }
-    ir.props = props
-}
-
-/// Paarse all methods from the trait with `#[api]` attribute macro and
-/// also remember the trait visibility
-fn parse_trait_signature(trait_definition: &ItemTrait, ir: &mut ApiIR) {
-    ir.methods = trait_definition
-        .items
-        .iter()
-        .filter_map(|item| match item {
-            TraitItem::Method(method) => Some(method.to_owned()),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-    ir.visibility = trait_definition.vis.to_owned();
 }
 
 /// Generate the code for the struct definition and implementation
 /// (with `builder()` method and methods copied from source trait)
 fn codegen_struct(ir: &ApiIR) -> TokenStream {
     let vis = &ir.visibility;
-    let name = ir.api_name.as_ident();
-    let builder_name = format!("{}Builder", ir.api_name).as_ident();
+    let name = &ir.name;
+    let builder_name = format!("{}Builder", &ir.name).as_ident();
     let methods = codegen_struct_impl_methods(ir);
 
     quote! {
@@ -138,13 +122,13 @@ fn codegen_struct(ir: &ApiIR) -> TokenStream {
 
 /// Generate builder for Api struct.
 /// Builder allow us to override `base_url` field.
-fn codegen_struct_builder(ir: &ApiIR) -> TokenStream {
+fn codegen_struct_builder(ir: &ApiIR, attr_props: &AttrPropertiesIR) -> TokenStream {
     let vis = &ir.visibility;
-    let api_name = &ir.api_name;
-    let name = ir.api_name.as_ident();
-    let builder_name = format!("{}Builder", ir.api_name).as_ident();
-    let builder_error_name = format!("{}BuilderError", ir.api_name).as_ident();
-    let base_url = if let Some(base_url) = &ir.props.base_url.as_ref().map(LitStr::value) {
+    let display_name = ir.name.to_string();
+    let name = &ir.name;
+    let builder_name = format!("{}Builder", &ir.name).as_ident();
+    let builder_error_name = format!("{}BuilderError", &ir.name).as_ident();
+    let base_url = if let Some(base_url) = attr_props.base_url.as_ref().map(LitStr::value) {
         quote!(::std::option::Option::Some(#base_url.to_owned()))
     } else {
         quote!(::std::option::Option::None)
@@ -184,10 +168,10 @@ fn codegen_struct_builder(ir: &ApiIR) -> TokenStream {
                 if self.base_url.is_none() || self.base_url.as_ref().unwrap().is_empty() {
                     return ::std::result::Result::Err(#builder_error_name)
                 }
-                ::std::result::Result::Ok(#name {
+                ::std::result::Result::Ok((#name {
                     client: self.client.unwrap_or_default(),
                     base_url: self.base_url.unwrap(),
-                })
+                }))
             }
         }
 
@@ -198,7 +182,7 @@ fn codegen_struct_builder(ir: &ApiIR) -> TokenStream {
 
         impl ::std::fmt::Display for #builder_error_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "Cannot construct {} with empty base_url", #api_name)
+                write!(f, "Cannot construct {} with empty base_url", #display_name)
             }
         }
     }
@@ -236,45 +220,32 @@ fn codegen_struct_impl_methods(ir: &ApiIR) -> TokenStream {
 mod tests {
 
     use super::*;
+    use proc_macro2::Group;
 
     #[test]
-    fn test_parse_trait_name() {
-        let mut ir = ApiIR::default();
+    fn test_parse_empty_trait() {
         let trait_definition: ItemTrait = syn::parse_quote! {
             #[api]
             pub trait ExampleTrait {}
         };
-        parse_trait_name(&trait_definition, &mut ir);
-        assert_eq!(ir.api_name, "ExampleTrait");
+        let ir: ApiIR = syn::parse2(trait_definition.to_token_stream()).unwrap();
+        assert_eq!(ir.name, "ExampleTrait");
     }
 
     #[test]
-    fn test_parse_attr() {
-        let mut ir = ApiIR::default();
-        let attr: TokenStream = syn::parse_quote! {
-            base_url = "https://example.com",
-            map_err = "map_err"
-        };
-        parse_attr(attr, &mut ir);
-        assert_eq!(
-            ir.props.base_url.map(|it| it.value()),
-            Some("https://example.com".to_owned())
-        );
-    }
-
-    #[test]
-    fn test_parse_trait_signature_empty_signature() {
-        let mut ir = ApiIR::default();
+    fn test_parse_empty_trait_with_base_url() {
         let trait_definition: ItemTrait = syn::parse_quote! {
-            #[api]
-            pub trait ExampleTrait {
-                #[get("/example")]
-                async fn example(&self);
-            }
+            #[api(base_url = "https://example.com")]
+            pub trait ExampleTrait {}
         };
-        parse_trait_signature(&trait_definition, &mut ir);
-        assert!(!ir.methods.is_empty());
-        assert_eq!(ir.methods[0].sig.ident, "example");
-        assert!(matches!(ir.visibility, Visibility::Public(_)));
+        let ir: ApiIR = syn::parse2(trait_definition.to_token_stream()).unwrap();
+        let group: Group =
+            syn::parse2(trait_definition.attrs.first().unwrap().tokens.to_owned()).unwrap();
+        let attr_props: AttrPropertiesIR = syn::parse2(group.stream().to_token_stream()).unwrap();
+        assert_eq!(ir.name, "ExampleTrait");
+        assert_eq!(
+            attr_props.base_url.map(|it| it.value()),
+            Some("https://example.com".to_string())
+        );
     }
 }

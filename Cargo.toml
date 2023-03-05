@@ -33,7 +33,6 @@ restix = { path = "restix" }
 # main external dependencies
 actix-web = "4"
 anyhow = "1.0"
-async-trait = "0.1"
 chrono = "0.4"
 deadpool-postgres = "0.10"
 env_logger = "0.10"

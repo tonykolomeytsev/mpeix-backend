@@ -23,20 +23,15 @@ impl<T> ResultExt<T> for restix::Result<T> {
     }
 }
 
-pub fn create_restix_client() -> restix::Restix {
+pub fn create_reqwest_client() -> reqwest::Client {
     let connect_timeout = env::get_parsed_or("GATEWAY_CONNECT_TIMEOUT", 1500);
-
-    restix::RestixBuilder::new()
-        .client(
-            reqwest::ClientBuilder::new()
-                .gzip(true)
-                .deflate(true)
-                .redirect(Policy::none())
-                .timeout(std::time::Duration::from_secs(15))
-                .connect_timeout(std::time::Duration::from_millis(connect_timeout))
-                .pool_max_idle_per_host(3)
-                .build()
-                .expect("Something went wrong when building HttClient"),
-        )
+    reqwest::ClientBuilder::new()
+        .gzip(true)
+        .deflate(true)
+        .redirect(Policy::none())
+        .timeout(std::time::Duration::from_secs(15))
+        .connect_timeout(std::time::Duration::from_millis(connect_timeout))
+        .pool_max_idle_per_host(3)
         .build()
+        .expect("Something went wrong when building reqwest::Client")
 }

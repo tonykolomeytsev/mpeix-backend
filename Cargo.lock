@@ -267,7 +267,6 @@ dependencies = [
  "env_logger",
  "feature_schedule",
  "log",
- "reqwest",
  "restix",
  "serde",
  "tokio",
@@ -290,6 +289,7 @@ dependencies = [
  "env_logger",
  "feature_telegram_bot",
  "log",
+ "restix",
 ]
 
 [[package]]
@@ -309,6 +309,7 @@ dependencies = [
  "env_logger",
  "feature_vk_bot",
  "log",
+ "restix",
 ]
 
 [[package]]

@@ -29,7 +29,7 @@ struct AttrQueryIR {
 }
 
 struct AttrMapResponseWithIR {
-    ident: Ident,
+    mapper: TypePath,
 }
 
 enum ArgIR {
@@ -99,8 +99,8 @@ impl Parse for AttrQueryIR {
 
 impl Parse for AttrMapResponseWithIR {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let ident: Ident = syn::parse2(input.parse::<ExprParen>()?.expr.to_token_stream())?;
-        Ok(AttrMapResponseWithIR { ident })
+        let mapper: TypePath = syn::parse2(input.parse::<ExprParen>()?.expr.to_token_stream())?;
+        Ok(AttrMapResponseWithIR { mapper })
     }
 }
 
@@ -406,7 +406,9 @@ fn codegen_client_execution(ir: &MethodIR, method: Method) -> TokenStream {
         .attrs
         .iter()
         .find_map(|attr| match attr {
-            AttrIR::MapResponseWith(AttrMapResponseWithIR { ident }) => Some(quote!(.map(#ident))),
+            AttrIR::MapResponseWith(AttrMapResponseWithIR { mapper }) => {
+                Some(quote!(.map(#mapper)))
+            }
             _ => None,
         })
         .unwrap_or_else(|| quote!());
