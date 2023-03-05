@@ -1,5 +1,5 @@
 [workspace]
-members = ["app_schedule", "app_telegram_bot", "app_vk_bot"]
+members = ["app_schedule", "app_telegram_bot", "app_vk_bot", "restix"]
 
 [workspace.package]
 version = "3.0.25"
@@ -28,7 +28,7 @@ feature_schedule = { path = "crates/feature_schedule" }
 feature_telegram_bot = { path = "crates/feature_telegram_bot" }
 feature_vk_bot = { path = "crates/feature_vk_bot" }
 # super libraries
-restix = { path = "crates/restix" }
+restix = { path = "restix" }
 
 # main external dependencies
 actix-web = "4"
