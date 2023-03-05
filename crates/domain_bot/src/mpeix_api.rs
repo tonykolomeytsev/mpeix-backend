@@ -2,7 +2,7 @@ use domain_schedule_models::{Schedule, ScheduleSearchResult};
 use restix::{api, get};
 use serde::Deserialize;
 
-#[api(base_url = "http://localhost:8000/api/v1/schedules")]
+#[api]
 pub trait MpeixApi {
     #[get("/v1/{type}/{name}/schedule/{offset}")]
     async fn schedule(&self, r#type: Path, name: Path, offset: Path) -> Schedule;
