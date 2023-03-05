@@ -1,0 +1,12 @@
+[package]
+name = "common_restix"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
+
+[dependencies]
+common_errors = { workspace = true }
+
+anyhow = { workspace = true }
+restix = { workspace = true }
+reqwest = { workspace = true }

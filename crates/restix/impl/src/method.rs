@@ -62,7 +62,6 @@ impl ArgTypeIR {
     }
 }
 
-#[derive(Debug)]
 enum FnReturnTypeIR {
     RawResponse,
     Typed(Type),

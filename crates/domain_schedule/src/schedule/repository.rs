@@ -2,6 +2,7 @@ use anyhow::Context;
 use chrono::{Days, NaiveDate};
 use common_in_memory_cache::InMemoryCache;
 use common_persistent_cache::PersistentCache;
+use common_restix::ResultExt;
 use common_rust::env;
 use domain_schedule_models::{Schedule, ScheduleType};
 use log::debug;
@@ -104,7 +105,8 @@ impl ScheduleRepository {
                 week_start.format("%Y.%m.%d").to_string(),
                 week_end.format("%Y.%m.%d").to_string(),
             )
-            .await?;
+            .await
+            .with_common_error()?;
 
         Ok(map_schedule_models(
             name,

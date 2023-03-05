@@ -2,7 +2,7 @@
 members = ["app_schedule", "app_telegram_bot", "app_vk_bot"]
 
 [workspace.package]
-version = "3.0.24"
+version = "3.0.25"
 
 [workspace.dependencies]
 # common crates
@@ -11,6 +11,7 @@ common_database = { path = "crates/common_database" }
 common_errors = { path = "crates/common_errors" }
 common_in_memory_cache = { path = "crates/common_in_memory_cache" }
 common_persistent_cache = { path = "crates/common_persistent_cache" }
+common_restix = { path = "crates/common_restix" }
 common_rust = { path = "crates/common_rust" }
 # domain crates
 domain_bot = { path = "crates/domain_bot" }

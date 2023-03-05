@@ -7,6 +7,9 @@ pub use restix_macro::*;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Debug)]
+pub struct Error(reqwest::Error);
+
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         Some(&self.0)
@@ -16,6 +19,12 @@ impl std::error::Error for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "HttpClient error: {}", &self.0)
+    }
+}
+
+impl AsRef<reqwest::Error> for Error {
+    fn as_ref(&self) -> &reqwest::Error {
+        &self.0
     }
 }
 
@@ -48,9 +57,6 @@ impl RestixBuilder {
         Restix(self.client.unwrap_or_default())
     }
 }
-
-#[derive(Debug)]
-pub struct Error(reqwest::Error);
 
 impl crate::Restix {
     pub async fn execute_raw<'a, B>(

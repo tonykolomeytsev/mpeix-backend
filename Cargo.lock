@@ -252,7 +252,7 @@ checksum = "224afbd727c3d6e4b90103ece64b8d1b67fbb1973b1046c2281eed3f3803f800"
 
 [[package]]
 name = "app_schedule"
-version = "3.0.24"
+version = "3.0.25"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -275,7 +275,7 @@ dependencies = [
 
 [[package]]
 name = "app_telegram_bot"
-version = "3.0.24"
+version = "3.0.25"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -292,7 +292,7 @@ dependencies = [
 
 [[package]]
 name = "app_vk_bot"
-version = "3.0.24"
+version = "3.0.25"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -522,6 +522,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "common_restix"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "common_errors",
+ "reqwest",
+ "restix",
+]
+
+[[package]]
 name = "common_rust"
 version = "0.1.0"
 
@@ -722,6 +732,7 @@ dependencies = [
  "common_errors",
  "common_in_memory_cache",
  "common_persistent_cache",
+ "common_restix",
  "common_rust",
  "deadpool-postgres",
  "domain_schedule_cooldown",

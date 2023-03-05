@@ -1,6 +1,7 @@
 use anyhow::bail;
 use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
+use common_restix::ResultExt;
 use common_rust::env;
 use domain_schedule_models::ScheduleType;
 use lazy_static::lazy_static;
@@ -93,7 +94,11 @@ impl ScheduleIdRepository {
         name: ValidScheduleName,
         r#type: ScheduleType,
     ) -> anyhow::Result<Option<MpeiSearchResult>> {
-        let search_results = self.api.search(name, r#type.to_string()).await?;
+        let search_results = self
+            .api
+            .search(name, r#type.to_string())
+            .await
+            .with_common_error()?;
         Ok(search_results.into_iter().last())
     }
 
