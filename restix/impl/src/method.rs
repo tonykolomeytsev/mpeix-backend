@@ -168,6 +168,13 @@ impl ArgIR {
     fn_arg_as!(as_required_query -> ArgTypeIR::Query { optional: false, .. });
     fn_arg_as!(as_optional_query -> ArgTypeIR::Query { optional: true, .. });
     fn_arg_as!(as_body -> ArgTypeIR::Body);
+
+    fn name(&self) -> Option<&Ident> {
+        match self {
+            Self::Typed { name, .. } => Some(name),
+            _ => None,
+        }
+    }
 }
 
 impl ArgTypeIR {
@@ -210,7 +217,27 @@ fn parse_attr_endpoint_url(attr: TokenStream) -> String {
 }
 
 fn analyze_method_ir(ir: &MethodIR) {
-    //
+    // Analyze attributes
+    let arg_names = &ir.args.iter().filter_map(ArgIR::name).collect::<Vec<_>>();
+    for attr in &ir.attrs {
+        match attr {
+            AttrIR::Query(AttrQueryIR { old_name, new_name }) => {
+                if !arg_names.contains(&old_name) {
+                    abort!(
+                        old_name,
+                        "Cannot find argument with name `{}`",
+                        old_name.to_string()
+                    )
+                }
+                if new_name.value().is_empty() || *old_name == new_name.value() {
+                    abort!(new_name, "Invalid query name")
+                }
+            }
+            _ => continue,
+        }
+    }
+    // Analyze args
+    // TODO: ensure only one body
 }
 
 pub fn method(method: Method, attr: TokenStream, item: TokenStream) -> TokenStream {
