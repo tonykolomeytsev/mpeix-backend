@@ -19,6 +19,5 @@ impl ScheduleSearchRepository {
             .search(query, r#type.map(ToString::to_string))
             .await
             .with_common_error()
-            .map(|it| it.items)
     }
 }
