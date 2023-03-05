@@ -6,7 +6,6 @@ use common_rust::env;
 use deadpool_postgres::Pool;
 use domain_schedule_models::{ScheduleSearchResult, ScheduleType};
 use log::info;
-use restix::Client;
 use tokio::sync::Mutex;
 use tokio_postgres::Row;
 
@@ -26,12 +25,12 @@ pub struct ScheduleSearchRepository {
 struct TypedSearchQuery(ScheduleSearchQuery, Option<ScheduleType>);
 
 impl ScheduleSearchRepository {
-    pub fn new(db_pool: Arc<Pool>, client: Client) -> Self {
+    pub fn new(db_pool: Arc<Pool>, api: MpeiApi) -> Self {
         let cache_capacity = env::get_parsed_or("SCHEDULE_SEARCH_CACHE_CAPACITY", 3000);
         let cache_lifetife = env::get_parsed_or("SCHEDULE_SEARCH_CACHE_LIFETIME_MINUTES", 5);
 
         Self {
-            api: MpeiApi::new(client),
+            api,
             db_pool,
             in_memory_cache: Mutex::new(
                 InMemoryCache::with_capacity(cache_capacity)

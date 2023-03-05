@@ -5,7 +5,6 @@ use common_persistent_cache::PersistentCache;
 use common_rust::env;
 use domain_schedule_models::{Schedule, ScheduleType};
 use log::debug;
-use restix::Client;
 use tokio::sync::Mutex;
 
 use crate::{dto::mpeix::ScheduleName, mpei_api::MpeiApi, time::WeekOfSemester};
@@ -21,14 +20,14 @@ pub struct ScheduleRepository {
 }
 
 impl ScheduleRepository {
-    pub fn new(client: Client) -> Self {
+    pub fn new(api: MpeiApi) -> Self {
         let cache_capacity = env::get_parsed_or("SCHEDULE_CACHE_CAPACITY", 500);
         let cache_max_hits = env::get_parsed_or("SCHEDULE_CACHE_MAX_HITS", 20);
         let cache_lifetife = env::get_parsed_or("SCHEDULE_CACHE_LIFETIME_HOURS", 6);
         let cache_dir = env::get_or("SCHEDULE_CACHE_DIR", "./cache");
 
         Self {
-            api: MpeiApi::new(client),
+            api,
             mediator: Mutex::new(CacheMediator {
                 in_memory_cache: InMemoryCache::with_capacity(cache_capacity)
                     .max_hits(cache_max_hits)

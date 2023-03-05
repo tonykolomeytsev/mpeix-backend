@@ -4,6 +4,7 @@ use common_database::create_db_pool;
 use common_rust::env;
 use domain_schedule::{
     id::repository::ScheduleIdRepository,
+    mpei_api::MpeiApi,
     schedule::repository::ScheduleRepository,
     schedule_shift::repository::ScheduleShiftRepository,
     search::repository::ScheduleSearchRepository,
@@ -22,14 +23,16 @@ pub struct AppComponent;
 impl AppComponent {
     pub fn create_app() -> AppSchedule {
         let db_pool = Arc::new(create_db_pool().expect("DI error while creating db pool"));
-        let http_client = create_http_client();
+        let api = MpeiApi::builder()
+            .client(create_http_client())
+            .build()
+            .expect("DI error while creating MpeiApi");
 
         // Repositories
-        let schedule_id_repository = Arc::new(ScheduleIdRepository::new(http_client.to_owned()));
-        let schedule_repository = Arc::new(ScheduleRepository::new(http_client.to_owned()));
+        let schedule_id_repository = Arc::new(ScheduleIdRepository::new(api.to_owned()));
+        let schedule_repository = Arc::new(ScheduleRepository::new(api.to_owned()));
         let schedule_shift_repository = Arc::new(ScheduleShiftRepository::default());
-        let schedule_search_repository =
-            Arc::new(ScheduleSearchRepository::new(db_pool, http_client));
+        let schedule_search_repository = Arc::new(ScheduleSearchRepository::new(db_pool, api));
 
         // Use-cases
         let get_schedule_id_use_case =
@@ -58,10 +61,10 @@ impl AppComponent {
     }
 }
 
-fn create_http_client() -> restix::Client {
+fn create_http_client() -> restix::Restix {
     let connect_timeout = env::get_parsed_or("GATEWAY_CONNECT_TIMEOUT", 1500);
 
-    restix::ClientBuilder::new()
+    restix::RestixBuilder::new()
         .client(
             reqwest::ClientBuilder::new()
                 .gzip(true)

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Debug};
 
 use proc_macro2::{Ident, TokenStream};
 use proc_macro_error::{abort, ResultExt};
@@ -10,7 +10,7 @@ use crate::{
     Method,
 };
 
-#[derive(Debug)]
+/// Intermediate representation of an Method definition.
 struct MethodIR {
     method: Method,
     fn_name: String,
@@ -20,7 +20,7 @@ struct MethodIR {
     paths: Option<Vec<String>>,
     body: Option<String>,
     fn_args: Vec<FnArgIR>,
-    fn_return_type: Type,
+    fn_return_type: FnReturnTypeIR,
 }
 
 impl MethodIR {
@@ -34,7 +34,7 @@ impl MethodIR {
             paths: None,
             body: None,
             fn_args: vec![],
-            fn_return_type: syn::parse2(quote!(!)).unwrap(),
+            fn_return_type: FnReturnTypeIR::Typed(syn::parse2(quote!(!)).unwrap()),
         }
     }
 }
@@ -62,6 +62,12 @@ impl ArgTypeIR {
     }
 }
 
+#[derive(Debug)]
+enum FnReturnTypeIR {
+    RawResponse,
+    Typed(Type),
+}
+
 pub fn method(method: Method, attr: TokenStream, item: TokenStream) -> TokenStream {
     // Parsing
     let fn_definition = syn::parse2::<ImplItemMethod>(item)
@@ -75,6 +81,7 @@ pub fn method(method: Method, attr: TokenStream, item: TokenStream) -> TokenStre
     codegen_fn_impl(ir)
 }
 
+/// Parse and validate endroint url arg of attribute macro
 fn parse_attr_endpoint_url(attr: TokenStream, ir: &mut MethodIR) {
     let attr_arg = syn::parse2::<LitStr>(attr).expect_or_abort("Expected string endpoint url");
     let endpoint_url = attr_arg.value();
@@ -84,6 +91,7 @@ fn parse_attr_endpoint_url(attr: TokenStream, ir: &mut MethodIR) {
     ir.endpoint_url = endpoint_url
 }
 
+/// Parse and validate attribute `#[query(old = "new")]` if exists
 fn parse_attr_query(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
     let fn_arg_names = fn_definition
         .sig
@@ -133,16 +141,22 @@ fn parse_attr_query(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
     }
 }
 
+/// Parse method name
 fn parse_fn_name(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
     ir.fn_name = fn_definition.sig.ident.to_string()
 }
 
+/// Parse and validate method signature (args and return type)
 fn parse_fn_signature(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
     parse_fn_args(fn_definition, ir);
     parse_fn_return_type(fn_definition, ir);
 }
 
+/// Parse method args and validate its types
 fn parse_fn_args(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
+    let mut query_number = 1;
+    let mut path_number = 1;
+
     for (i, arg) in (&fn_definition.sig.inputs).into_iter().enumerate() {
         match arg {
             FnArg::Receiver(r) => match (i == 0, &r.mutability, &r.reference) {
@@ -155,21 +169,20 @@ fn parse_fn_args(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
                 if i == 0 {
                     abort!(pat_type, "First parameter should be &self parameter");
                 } else {
-                    parse_typed_arg(pat_type, ir, &i);
+                    parse_typed_arg(pat_type, ir, &mut query_number, &mut path_number);
                 }
             }
         }
     }
 }
 
-fn parse_fn_return_type(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
-    ir.fn_return_type = match &fn_definition.sig.output {
-        ReturnType::Default => syn::parse2(quote!(())).unwrap(),
-        ReturnType::Type(_, t) => *t.to_owned(),
-    }
-}
-
-fn parse_typed_arg(pat_type: &PatType, ir: &mut MethodIR, i: &usize) {
+/// Parse and validate specific method argument
+fn parse_typed_arg(
+    pat_type: &PatType,
+    ir: &mut MethodIR,
+    query_number: &mut usize,
+    path_number: &mut usize,
+) {
     let arg_name = match &*pat_type.pat {
         Pat::Ident(ident) => ident.ident.to_string(),
         _ => abort!(pat_type, "Only identifier arguments are supported"),
@@ -191,16 +204,18 @@ fn parse_typed_arg(pat_type: &PatType, ir: &mut MethodIR, i: &usize) {
         Some("Path") => {
             ir.fn_args.push(FnArgIR::Typed {
                 name: arg_name.to_owned(),
-                r#type: ArgTypeIR::Path(*i),
+                r#type: ArgTypeIR::Path(*path_number),
             });
             ir.paths.get_or_insert_with(Vec::new).push(arg_name);
+            *path_number += 1;
         }
         Some("Query") => {
             ir.fn_args.push(FnArgIR::Typed {
                 name: arg_name.to_owned(),
-                r#type: ArgTypeIR::Query(*i),
+                r#type: ArgTypeIR::Query(*query_number),
             });
             ir.queries.get_or_insert_with(Vec::new).push(arg_name);
+            *query_number += 1;
         }
         Some("Body") => {
             if ir.body.is_none() {
@@ -220,11 +235,32 @@ fn parse_typed_arg(pat_type: &PatType, ir: &mut MethodIR, i: &usize) {
     }
 }
 
+/// Parse method return type
+fn parse_fn_return_type(fn_definition: &ImplItemMethod, ir: &mut MethodIR) {
+    ir.fn_return_type = match &fn_definition.sig.output {
+        ReturnType::Default => FnReturnTypeIR::Typed(syn::parse2(quote!(())).unwrap()),
+        ReturnType::Type(_, t) => match t.as_ref() {
+            Type::Path(type_path) => {
+                if type_path.path.is_ident("Response") {
+                    FnReturnTypeIR::RawResponse
+                } else {
+                    FnReturnTypeIR::Typed(*t.to_owned())
+                }
+            }
+            _ => FnReturnTypeIR::Typed(*t.to_owned()),
+        },
+    }
+}
+
+/// Generate impelmentation for the method from its IR
 fn codegen_fn_impl(ir: MethodIR) -> TokenStream {
     let fn_name = ir.fn_name.as_ident();
     let (type_definitions, type_bounds) = codegen_type_bounds(&ir);
     let args = codegen_fn_args(&ir);
-    let fn_return_type = &ir.fn_return_type;
+    let fn_return_type = match &ir.fn_return_type {
+        FnReturnTypeIR::Typed(t) => quote!(#t),
+        FnReturnTypeIR::RawResponse => quote!(::reqwest::Response),
+    };
     let fn_code_block = codegen_fn_code_block(&ir);
 
     quote! {
@@ -235,6 +271,7 @@ fn codegen_fn_impl(ir: MethodIR) -> TokenStream {
     }
 }
 
+/// Generate type definitions and bounds for the method
 fn codegen_type_bounds(ir: &MethodIR) -> (TokenStream, TokenStream) {
     let mut type_definitions = vec![];
     let mut type_bounds = vec![];
@@ -263,6 +300,7 @@ fn codegen_type_bounds(ir: &MethodIR) -> (TokenStream, TokenStream) {
     }
 }
 
+/// Restore method args from IR
 fn codegen_fn_args(ir: &MethodIR) -> TokenStream {
     let args = ir.fn_args.iter().map(|arg| match arg {
         FnArgIR::Receiver => quote!(&self),
@@ -275,6 +313,7 @@ fn codegen_fn_args(ir: &MethodIR) -> TokenStream {
     quote! { #( #args ),* }
 }
 
+/// Merge codegen results into a single code block for method implementation
 fn codegen_fn_code_block(ir: &MethodIR) -> TokenStream {
     let format_url = codegen_format_url(ir);
     let client_execution = codegen_client_execution(ir);
@@ -284,6 +323,7 @@ fn codegen_fn_code_block(ir: &MethodIR) -> TokenStream {
     }
 }
 
+/// Generate `let full_url = format!(...)` statement
 fn codegen_format_url(ir: &MethodIR) -> TokenStream {
     let paths = match &ir.paths {
         None => vec![],
@@ -306,6 +346,7 @@ fn codegen_format_url(ir: &MethodIR) -> TokenStream {
     }
 }
 
+/// Generate client execution statement
 fn codegen_client_execution(ir: &MethodIR) -> TokenStream {
     let method = match &ir.method {
         Method::Get => quote!(::restix::Method::Get),
@@ -337,8 +378,13 @@ fn codegen_client_execution(ir: &MethodIR) -> TokenStream {
     } else {
         quote! { ::std::option::Option::<()>::None }
     };
+    let execute_fn: Ident = match &ir.fn_return_type {
+        FnReturnTypeIR::Typed(_) => syn::parse_quote!(execute_with_serde),
+        FnReturnTypeIR::RawResponse => syn::parse_quote!(execute_raw),
+    };
+
     quote! {
-        self.client.execute(
+        self.client.#execute_fn(
             #method,
             &full_url,
             #queries,
