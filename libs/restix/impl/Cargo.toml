@@ -7,6 +7,10 @@ authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 [lib]
 doctest = false
 
+[features]
+reqwest = []
+json = []
+
 [dependencies]
 proc-macro-error = { workspace = true }
 proc-macro2 = { workspace = true }

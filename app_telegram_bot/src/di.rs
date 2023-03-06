@@ -17,7 +17,6 @@ use domain_telegram_bot::{
     usecases::{DeleteMessageUseCase, ReplyToTelegramUseCase, SetWebhookUseCase},
 };
 use feature_telegram_bot::FeatureTelegramBot;
-use restix::Restix;
 
 use crate::AppTelegramBot;
 
@@ -25,7 +24,7 @@ pub fn create_app() -> AppTelegramBot {
     let db_pool = Arc::new(create_db_pool().expect("DI error while creating db pool"));
     let api = MpeixApi::builder()
         .base_url(env::required("APP_SCHEDULE_BASE_URL"))
-        .client(Restix::builder().client(create_reqwest_client()).build())
+        .client(create_reqwest_client())
         .build()
         .expect("DI error while creating MpeixApi");
 

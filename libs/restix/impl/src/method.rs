@@ -254,18 +254,33 @@ fn codegen_fn_impl(ir: MethodIR, endpoint_url: &str, method: Method) -> TokenStr
     let name = &ir.name;
     let (type_definitions, type_bounds) = codegen_type_bounds(&ir);
     let args = codegen_fn_args(&ir);
-    let return_type = match &ir.return_type {
-        ReturnTypeIR::Typed(t) => quote!(#t),
-        ReturnTypeIR::RawResponse => quote!(::reqwest::Response),
-    };
-    let fn_code_block = codegen_fn_code_block(&ir, endpoint_url, method);
+    let method_return_type = method_return_type(&ir);
+    let fn_code_block = codegen_client_execution(&ir, endpoint_url, method);
+    let client_result_type = client_result_type();
 
     quote! {
-        pub async fn #name #type_definitions ( #args ) -> ::restix::Result<#return_type>
+        pub async fn #name #type_definitions ( #args ) -> #client_result_type<#method_return_type>
         #type_bounds {
             #fn_code_block
         }
     }
+}
+
+fn method_return_type(ir: &MethodIR) -> TokenStream {
+    match &ir.return_type {
+        ReturnTypeIR::Typed(t) => quote!(#t),
+        ReturnTypeIR::RawResponse => client_response_type(),
+    }
+}
+
+#[cfg(feature = "reqwest")]
+fn client_result_type() -> TokenStream {
+    quote!(::reqwest::Result)
+}
+
+#[cfg(feature = "reqwest")]
+fn client_response_type() -> TokenStream {
+    quote!(::reqwest::Response)
 }
 
 /// Generate type definitions and bounds for the method
@@ -316,13 +331,33 @@ fn codegen_fn_args(ir: &MethodIR) -> TokenStream {
     quote! { #( #args ),* }
 }
 
-/// Merge codegen results into a single code block for method implementation
-fn codegen_fn_code_block(ir: &MethodIR, endpoint_url: &str, method: Method) -> TokenStream {
+/// Generate client execution statement
+#[cfg(feature = "reqwest")]
+fn codegen_client_execution(ir: &MethodIR, endpoint_url: &str, method: Method) -> TokenStream {
     let format_url = codegen_format_url(ir, endpoint_url);
-    let client_execution = codegen_client_execution(ir, method);
+    let method_call: Ident = match method {
+        Method::Get => syn::parse_quote!(get),
+        Method::Post => syn::parse_quote!(post),
+    };
+    let queries = codegen_queries(ir);
+    let body_call = if let Some(body) = ir.args.iter().find_map(ArgIR::as_body) {
+        quote!(.body(#body))
+    } else {
+        quote!()
+    };
+    let deserialize_and_return = codegen_deserialize_and_return(ir);
+
     quote! {
         #format_url
-        #client_execution
+        #queries
+
+        let response = self.client
+            .#method_call(&full_url)
+            .query(&queries)
+            #body_call
+            .send()
+            .await?;
+        #deserialize_and_return
     }
 }
 
@@ -347,12 +382,7 @@ fn codegen_format_url(ir: &MethodIR, endpoint_url: &str) -> TokenStream {
     }
 }
 
-/// Generate client execution statement
-fn codegen_client_execution(ir: &MethodIR, method: Method) -> TokenStream {
-    let method = match method {
-        Method::Get => quote!(::restix::Method::Get),
-        Method::Post => quote!(::restix::Method::Post),
-    };
+fn codegen_queries(ir: &MethodIR) -> TokenStream {
     let renamings = ir
         .attrs
         .iter()
@@ -388,43 +418,42 @@ fn codegen_client_execution(ir: &MethodIR, method: Method) -> TokenStream {
             };
             let key = key.unraw();
             quote! {
-                if let ::std::option::Option::Some(q) = #query.as_ref() {
-                    queries.push( (#key, q.as_ref()) );
+                if let ::std::option::Option::Some(#query) = #query.as_ref() {
+                    queries.push( (#key, #query.as_ref()) );
                 }
             }
         })
         .collect::<Vec<_>>();
 
-    let body = if let Some(body) = ir.args.iter().find_map(ArgIR::as_body) {
-        quote! { ::std::option::Option::Some(#body) }
-    } else {
-        quote! { ::std::option::Option::<()>::None }
-    };
-    let execute_fn: Ident = match &ir.return_type {
-        ReturnTypeIR::Typed(_) => syn::parse_quote!(execute_with_serde),
-        ReturnTypeIR::RawResponse => syn::parse_quote!(execute_raw),
-    };
-    let response_mapping = ir
-        .attrs
-        .iter()
-        .find_map(|attr| match attr {
-            AttrIR::MapResponseWith(AttrMapResponseWithIR { mapper }) => {
-                Some(quote!(.map(#mapper)))
-            }
-            _ => None,
-        })
-        .unwrap_or_else(|| quote!());
-
     quote! {
-        let mut queries = ::std::vec![#( #queries ),*];
-
+        let mut queries: ::std::vec::Vec<(&::std::primitive::str, &::std::primitive::str)> = ::std::vec![#( #queries ),*];
         #( #opt_queries )*
+    }
+}
 
-        self.client.#execute_fn(
-            #method,
-            &full_url,
-            queries,
-            #body,
-        ).await #response_mapping
+#[cfg(all(feature = "reqwest", feature = "json"))]
+fn codegen_deserialize_and_return(ir: &MethodIR) -> TokenStream {
+    let mapper = ir.attrs.iter().find_map(|attr| match attr {
+        AttrIR::MapResponseWith(AttrMapResponseWithIR { mapper }) => Some(quote!(#mapper)),
+        _ => None,
+    });
+    if let Some(mapper) = mapper {
+        quote!(::std::result::Result::Ok(#mapper(response.json().await?)))
+    } else {
+        let return_type = method_return_type(ir);
+        quote!(response.json::<#return_type>().await)
+    }
+}
+
+#[cfg(all(feature = "reqwest", not(feature = "json")))]
+fn codegen_deserialize_and_return(ir: &MethodIR) -> TokenStream {
+    let mapper = ir.attrs.iter().find_map(|attr| match attr {
+        AttrIR::MapResponseWith(AttrMapResponseWithIR { mapper }) => Some(quote!(#mapper)),
+        _ => None,
+    });
+    if let Some(mapper) = mapper {
+        quote!(Ok(#mapper(response)))
+    } else {
+        quote!(response)
     }
 }

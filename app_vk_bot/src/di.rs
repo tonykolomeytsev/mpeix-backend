@@ -14,7 +14,6 @@ use domain_bot::{
 };
 use domain_vk_bot::usecases::ReplyToVkUseCase;
 use feature_vk_bot::FeatureVkBot;
-use restix::Restix;
 
 use crate::AppVkBot;
 
@@ -22,7 +21,7 @@ pub fn create_app() -> AppVkBot {
     let db_pool = Arc::new(create_db_pool().expect("DI error while creating db pool"));
     let api = MpeixApi::builder()
         .base_url(env::required("APP_SCHEDULE_BASE_URL"))
-        .client(Restix::builder().client(create_reqwest_client()).build())
+        .client(create_reqwest_client())
         .build()
         .expect("DI error while creating MpeixApi");
 

@@ -14,7 +14,6 @@ use domain_schedule::{
 };
 use domain_schedule_cooldown::ScheduleCooldownRepository;
 use feature_schedule::v1::FeatureSchedule;
-use restix::Restix;
 
 use crate::AppSchedule;
 
@@ -24,7 +23,7 @@ impl AppComponent {
     pub fn create_app() -> AppSchedule {
         let db_pool = Arc::new(create_db_pool().expect("DI error while creating db pool"));
         let api = MpeiApi::builder()
-            .client(Restix::builder().client(create_reqwest_client()).build())
+            .client(create_reqwest_client())
             .build()
             .expect("DI error while creating MpeiApi");
 

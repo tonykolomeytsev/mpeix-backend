@@ -9,5 +9,4 @@ common_errors = { workspace = true }
 common_rust = { workspace = true }
 
 anyhow = { workspace = true }
-restix = { workspace = true }
 reqwest = { workspace = true }

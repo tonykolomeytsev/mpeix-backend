@@ -103,11 +103,12 @@ fn codegen_struct(ir: &ApiIR) -> TokenStream {
     let name = &ir.name;
     let builder_name = format!("{}Builder", &ir.name).as_ident();
     let methods = codegen_struct_impl_methods(ir);
+    let client_type = codegen_client_type();
 
     quote! {
         #[derive(Clone)]
         #vis struct #name {
-            client: ::restix::Restix,
+            client: #client_type,
             base_url: ::std::string::String,
         }
 
@@ -120,14 +121,20 @@ fn codegen_struct(ir: &ApiIR) -> TokenStream {
     }
 }
 
+#[cfg(feature = "reqwest")]
+fn codegen_client_type() -> TokenStream {
+    quote!(::reqwest::Client)
+}
+
 /// Generate builder for Api struct.
 /// Builder allow us to override `base_url` field.
 fn codegen_struct_builder(ir: &ApiIR, attr_props: &AttrPropertiesIR) -> TokenStream {
     let vis = &ir.visibility;
-    let display_name = ir.name.to_string();
     let name = &ir.name;
     let builder_name = format!("{}Builder", &ir.name).as_ident();
     let builder_error_name = format!("{}BuilderError", &ir.name).as_ident();
+    let builder_error_description = format!("Cannot construct {name} with {{}}");
+    let client_type = codegen_client_type();
     let base_url = if let Some(base_url) = attr_props.base_url.as_ref().map(LitStr::value) {
         quote!(::std::option::Option::Some(#base_url.to_owned()))
     } else {
@@ -136,7 +143,7 @@ fn codegen_struct_builder(ir: &ApiIR, attr_props: &AttrPropertiesIR) -> TokenStr
 
     quote! {
         #vis struct #builder_name {
-            client: ::std::option::Option<::restix::Restix>,
+            client: ::std::option::Option<#client_type>,
             base_url: ::std::option::Option<::std::string::String>,
         }
 
@@ -159,30 +166,33 @@ fn codegen_struct_builder(ir: &ApiIR, attr_props: &AttrPropertiesIR) -> TokenStr
                 self
             }
 
-            pub fn client(mut self, client: ::restix::Restix) -> #builder_name {
+            pub fn client(mut self, client: #client_type) -> #builder_name {
                 self.client = ::std::option::Option::Some(client);
                 self
             }
 
             pub fn build(self) -> ::std::result::Result<#name, #builder_error_name> {
                 if self.base_url.is_none() || self.base_url.as_ref().unwrap().is_empty() {
-                    return ::std::result::Result::Err(#builder_error_name)
+                    return ::std::result::Result::Err(#builder_error_name("empty `base_url`".to_owned()));
                 }
-                ::std::result::Result::Ok((#name {
-                    client: self.client.unwrap_or_default(),
+                if self.client.is_none() {
+                    return ::std::result::Result::Err(#builder_error_name("empty `client`".to_owned()))
+                }
+                ::std::result::Result::Ok(#name {
+                    client: self.client.unwrap(),
                     base_url: self.base_url.unwrap(),
-                }))
+                })
             }
         }
 
         #[derive(::std::fmt::Debug)]
-        #vis struct #builder_error_name;
+        #vis struct #builder_error_name(String);
 
         impl ::std::error::Error for #builder_error_name {}
 
         impl ::std::fmt::Display for #builder_error_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "Cannot construct {} with empty base_url", #display_name)
+                write!(f, #builder_error_description, &self.0)
             }
         }
     }

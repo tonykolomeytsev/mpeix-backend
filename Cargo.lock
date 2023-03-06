@@ -538,7 +538,6 @@ dependencies = [
  "common_errors",
  "common_rust",
  "reqwest",
- "restix",
 ]
 
 [[package]]
@@ -1736,7 +1735,6 @@ dependencies = [
  "reqwest",
  "restix_impl",
  "restix_macro",
- "serde",
 ]
 
 [[package]]
