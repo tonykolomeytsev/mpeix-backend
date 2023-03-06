@@ -25,10 +25,16 @@ pub struct ParseScheduleTypeError(String);
 
 impl Display for ScheduleType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_ref())
+    }
+}
+
+impl AsRef<str> for ScheduleType {
+    fn as_ref(&self) -> &str {
         match &self {
-            Self::Group => write!(f, "group"),
-            Self::Person => write!(f, "person"),
-            Self::Room => write!(f, "room"),
+            Self::Group => "group",
+            Self::Person => "person",
+            Self::Room => "room",
         }
     }
 }

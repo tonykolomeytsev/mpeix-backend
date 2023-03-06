@@ -69,13 +69,8 @@ impl ScheduleSearchRepository {
         query: &ScheduleSearchQuery,
         r#type: &ScheduleType,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
-        map_search_models(
-            self.api
-                .search(query, r#type.to_string())
-                .await
-                .with_common_error()?,
-        )
-        .with_context(|| "Error while mapping response from MPEI backend")
+        map_search_models(self.api.search(query, r#type).await.with_common_error()?)
+            .with_context(|| "Error while mapping response from MPEI backend")
     }
 
     pub async fn init_schedule_search_results_db(&self) -> anyhow::Result<()> {
@@ -96,7 +91,7 @@ impl ScheduleSearchRepository {
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
         let stmt = if let Some(r#type) = r#type {
             include_str!("../../sql/select_all_schedule_search_results_typed.pgsql")
-                .replace("$2", &r#type.to_string())
+                .replace("$2", r#type.as_ref())
         } else {
             include_str!("../../sql/select_all_schedule_search_results.pgsql").to_string()
         }

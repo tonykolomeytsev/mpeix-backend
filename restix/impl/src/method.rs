@@ -372,6 +372,7 @@ fn codegen_client_execution(ir: &MethodIR, method: Method) -> TokenStream {
                 Some(new_query) => new_query.value(),
                 None => query.to_string(),
             };
+            let key = key.unraw();
             quote! { (#key, #query.as_ref()) }
         })
         .collect::<Vec<_>>();
@@ -385,6 +386,7 @@ fn codegen_client_execution(ir: &MethodIR, method: Method) -> TokenStream {
                 Some(new_query) => new_query.value(),
                 None => query.to_string(),
             };
+            let key = key.unraw();
             quote! {
                 if let ::std::option::Option::Some(q) = #query.as_ref() {
                     queries.push( (#key, q.as_ref()) );
