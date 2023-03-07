@@ -1,7 +1,8 @@
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::{ensure, Context};
 use common_errors::errors::CommonError;
+use common_rust::env;
 use domain_bot::{
     models::Reply, peer::repository::PlatformId, renderer::RenderTargetPlatform,
     usecases::GenerateReplyUseCase,
@@ -22,13 +23,16 @@ pub struct FeatureTelegramBot {
 
 pub(crate) struct Config {
     secret: String,
+    access_token: String,
+    webhook_url: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            secret: env::var("TELEGRAM_BOT_SECRET")
-                .expect("Environment variable TELEGRAM_BOT_SECRET not provided"),
+            secret: env::required("TELEGRAM_BOT_SECRET"),
+            access_token: env::required("TELEGRAM_BOT_ACCESS_TOKEN"),
+            webhook_url: env::required("TELEGRAM_BOT_WEBHOOK_URL"),
         }
     }
 }
@@ -44,7 +48,9 @@ macro_rules! button {
 
 impl FeatureTelegramBot {
     pub async fn set_webhook(&self) -> anyhow::Result<()> {
-        self.set_webhook_use_case.set_webhook().await
+        self.set_webhook_use_case
+            .set_webhook(&self.config.access_token, &self.config.webhook_url)
+            .await
     }
 
     pub async fn reply(&self, update: Update, secret: String) -> anyhow::Result<()> {
@@ -77,13 +83,17 @@ impl FeatureTelegramBot {
             let text = domain_bot::renderer::render_message(&reply, RenderTargetPlatform::Telegram);
             let keyboard = self.render_keyboard(&reply, &message.chat.r#type);
             self.reply_to_telegram_use_case
-                .reply(&text, message.chat.id, keyboard)
+                .reply(&self.config.access_token, &text, message.chat.id, keyboard)
                 .await
                 .with_context(|| "Error while sending reply to telegram")?;
 
             if is_callback {
                 self.delete_message_use_case
-                    .delete_message(message.chat.id, message.message_id)
+                    .delete_message(
+                        &self.config.access_token,
+                        message.chat.id,
+                        message.message_id,
+                    )
                     .await
                     .unwrap_or_else(|e| error!("Error while deleting message: {e}"));
             }

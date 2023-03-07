@@ -1,7 +1,6 @@
 use anyhow::anyhow;
 use common_errors::errors::CommonError;
 use common_rust::env;
-use reqwest::redirect::Policy;
 
 pub trait ResultExt<T>
 where
@@ -27,10 +26,10 @@ pub fn create_reqwest_client() -> reqwest::Client {
     reqwest::ClientBuilder::new()
         .gzip(true)
         .deflate(true)
-        .redirect(Policy::none())
+        .redirect(reqwest::redirect::Policy::none())
         .timeout(std::time::Duration::from_secs(15))
         .connect_timeout(std::time::Duration::from_millis(connect_timeout))
         .pool_max_idle_per_host(3)
         .build()
-        .expect("Something went wrong when building reqwest::Client")
+        .expect("Error while building reqwest::Client")
 }

@@ -437,11 +437,16 @@ fn codegen_deserialize_and_return(ir: &MethodIR) -> TokenStream {
         AttrIR::MapResponseWith(AttrMapResponseWithIR { mapper }) => Some(quote!(#mapper)),
         _ => None,
     });
-    if let Some(mapper) = mapper {
-        quote!(::std::result::Result::Ok(#mapper(response.json().await?)))
-    } else {
-        let return_type = method_return_type(ir);
-        quote!(response.json::<#return_type>().await)
+    match (mapper, &ir.return_type) {
+        (Some(mapper), ReturnTypeIR::RawResponse) => {
+            quote!(::std::result::Result::Ok(#mapper(response)))
+        }
+        (Some(mapper), _) => quote!(::std::result::Result::Ok(#mapper(response.json().await?))),
+        (None, ReturnTypeIR::RawResponse) => quote!(::std::result::Result::Ok(response)),
+        (None, _) => {
+            let return_type = method_return_type(ir);
+            quote!(response.json::<#return_type>().await)
+        }
     }
 }
 
