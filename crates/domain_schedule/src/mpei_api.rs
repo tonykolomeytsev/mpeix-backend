@@ -1,3 +1,4 @@
+use domain_schedule_models::ScheduleType;
 use restix::{api, get};
 
 use crate::dto::mpei::{MpeiClasses, MpeiSearchResult};
@@ -5,15 +6,18 @@ use crate::dto::mpei::{MpeiClasses, MpeiSearchResult};
 #[api(base_url = "http://ts.mpei.ru/api")]
 pub trait MpeiApi {
     #[get("/search")]
-    #[query(query = "term")]
-    async fn search(&self, query: Query, r#type: Query) -> Vec<MpeiSearchResult>;
+    async fn search(
+        &self,
+        #[query("term")] query: &str,
+        #[query] r#type: &ScheduleType,
+    ) -> Vec<MpeiSearchResult>;
 
     #[get("/schedule/{type}/{id}")]
     async fn schedule(
         &self,
-        r#type: Path,
-        id: Path,
-        start: Query,
-        finish: Query,
+        #[path] r#type: &ScheduleType,
+        #[path] id: i64,
+        #[query] start: &str,
+        #[query] finish: &str,
     ) -> Vec<MpeiClasses>;
 }

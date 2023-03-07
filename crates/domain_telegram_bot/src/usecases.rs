@@ -46,7 +46,7 @@ impl ReplyToTelegramUseCase {
             None
         };
         self.0
-            .send_message(access_token, chat_id.to_string(), text, keyboard)
+            .send_message(access_token, chat_id, text, keyboard)
             .await
             .with_telegram_error()
             .with_context(|| "Error while sending Telegram message")
@@ -64,7 +64,7 @@ impl DeleteMessageUseCase {
         message_id: i64,
     ) -> anyhow::Result<()> {
         self.0
-            .delete_message(access_token, chat_id.to_string(), message_id.to_string())
+            .delete_message(access_token, chat_id, message_id)
             .await
             .with_telegram_error()
             .with_context(|| "Error while deleting Telegram message")

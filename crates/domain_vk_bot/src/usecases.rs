@@ -31,9 +31,9 @@ impl ReplyToVkUseCase {
             .send_message(
                 vk_api::VK_API_VERSION,
                 access_token,
-                rand::random::<u32>().to_string(),
+                rand::random::<u32>(),
                 text,
-                peer_id.to_string(),
+                peer_id,
                 keyboard,
             )
             .await

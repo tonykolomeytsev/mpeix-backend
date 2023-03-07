@@ -102,8 +102,8 @@ impl ScheduleRepository {
             .schedule(
                 &r#type,
                 schedule_id,
-                week_start.format("%Y.%m.%d").to_string(),
-                week_end.format("%Y.%m.%d").to_string(),
+                &week_start.format("%Y.%m.%d").to_string(),
+                &week_end.format("%Y.%m.%d").to_string(),
             )
             .await
             .with_common_error()?;

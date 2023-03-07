@@ -17,7 +17,7 @@ impl ScheduleRepository {
         offset: i8,
     ) -> anyhow::Result<Schedule> {
         self.0
-            .schedule(name, r#type, offset as i32)
+            .schedule(r#type, name, offset as i32)
             .await
             .with_common_error()
     }

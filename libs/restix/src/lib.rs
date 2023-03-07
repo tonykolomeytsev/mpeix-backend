@@ -11,44 +11,26 @@ compile_error!(
     r#"At least one "reqwest" feature must be enabled in order to use the restix library"#
 );
 
-// impl crate::Restix {
-//     pub async fn execute_raw<'a, B>(
-//         &self,
-//         method: crate::Method,
-//         url: &str,
-//         queries: Vec<(&str, &str)>,
-//         body: Option<B>,
-//     ) -> crate::Result<reqwest::Response>
-//     where
-//         B: serde::Serialize,
-//     {
-//         let method = match method {
-//             crate::Method::Get => reqwest::Method::GET,
-//             crate::Method::Post => reqwest::Method::POST,
-//         };
+pub trait AsQuery<T> {
+    fn push_to_vec<'a>(&self, key: &'a str, vec: &mut std::vec::Vec<(&'a str, String)>);
+}
 
-//         let mut builder = self.0.request(method, url).query(&queries);
-//         if let Some(body) = body {
-//             builder = builder.json(&body)
-//         }
-//         builder.send().await.map_err(Error)
-//     }
+impl<T> AsQuery<T> for T
+where
+    T: std::fmt::Display,
+{
+    fn push_to_vec<'a>(&self, key: &'a str, vec: &mut std::vec::Vec<(&'a str, String)>) {
+        vec.push((key, format!("{self}")));
+    }
+}
 
-//     pub async fn execute_with_serde<'a, B, R>(
-//         &self,
-//         method: crate::Method,
-//         url: &str,
-//         queries: Vec<(&str, &str)>,
-//         body: Option<B>,
-//     ) -> crate::Result<R>
-//     where
-//         B: serde::Serialize,
-//         R: serde::de::DeserializeOwned,
-//     {
-//         self.execute_raw(method, url, queries, body)
-//             .await?
-//             .json::<R>()
-//             .await
-//             .map_err(Error)
-//     }
-// }
+impl<T> AsQuery<T> for Option<T>
+where
+    T: std::fmt::Display,
+{
+    fn push_to_vec<'a>(&self, key: &'a str, vec: &mut std::vec::Vec<(&'a str, String)>) {
+        if let Some(value) = self {
+            value.push_to_vec(key, vec);
+        }
+    }
+}

@@ -10,12 +10,12 @@ pub trait VkApi {
     #[get("/method/messages.send")]
     async fn send_message(
         &self,
-        api_version: Query,
-        access_token: Query,
-        random_id: Query,
-        text: Query,
-        peer_id: Query,
-        keyboard: Option<Query>,
+        #[query("v")] api_version: &str,
+        #[query] access_token: &str,
+        #[query] random_id: u32,
+        #[query] text: &str,
+        #[query] peer_id: i64,
+        #[query] keyboard: Option<String>,
     ) -> BaseResponse;
 }
 

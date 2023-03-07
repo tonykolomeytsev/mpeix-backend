@@ -94,7 +94,11 @@ impl ScheduleIdRepository {
         name: ValidScheduleName,
         r#type: ScheduleType,
     ) -> anyhow::Result<Option<MpeiSearchResult>> {
-        let search_results = self.api.search(name, r#type).await.with_common_error()?;
+        let search_results = self
+            .api
+            .search(name.as_ref(), &r#type)
+            .await
+            .with_common_error()?;
         Ok(search_results.into_iter().last())
     }
 

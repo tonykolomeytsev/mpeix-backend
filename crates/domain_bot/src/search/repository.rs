@@ -13,11 +13,8 @@ impl ScheduleSearchRepository {
     pub async fn search_schedule(
         &self,
         query: &str,
-        r#type: Option<&ScheduleType>,
+        r#type: Option<ScheduleType>,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
-        self.0
-            .search(query, r#type.map(ToString::to_string))
-            .await
-            .with_common_error()
+        self.0.search(query, r#type).await.with_common_error()
     }
 }

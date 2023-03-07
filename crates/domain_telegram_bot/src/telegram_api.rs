@@ -5,24 +5,23 @@ use crate::BaseResponse;
 #[api(base_url = "https://api.telegram.org")]
 pub trait TelegramApi {
     #[get("/bot{access_token}/setWebhook")]
-    fn set_webhook(&self, access_token: Path, url: Query) -> BaseResponse;
+    fn set_webhook(&self, #[path] access_token: &str, #[query] url: &str) -> BaseResponse;
 
     #[get("/bot{access_token}/sendMessage")]
-    #[query(keyboard = "reply_markup")]
     async fn send_message(
         &self,
-        access_token: Path,
-        chat_id: Query,
-        text: Query,
-        keyboard: Option<Query>,
+        #[path] access_token: &str,
+        #[query] chat_id: i64,
+        #[query] text: &str,
+        #[query("reply_markup")] keyboard: Option<String>,
     ) -> BaseResponse;
 
     #[get("/bot{access_token}/deleteMessage")]
     async fn delete_message(
         &self,
-        access_token: Path,
-        chat_id: Query,
-        message_id: Query,
+        #[path] access_token: &str,
+        #[query] chat_id: i64,
+        #[query] message_id: i64,
     ) -> BaseResponse;
 }
 
