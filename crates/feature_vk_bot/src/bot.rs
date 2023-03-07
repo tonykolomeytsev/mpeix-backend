@@ -1,7 +1,8 @@
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::{anyhow, bail, ensure, Context};
 use common_errors::errors::CommonError;
+use common_rust::env;
 use domain_bot::{
     models::Reply, peer::repository::PlatformId, renderer::RenderTargetPlatform,
     usecases::GenerateReplyUseCase,
@@ -23,21 +24,21 @@ pub(crate) struct Config {
     confirmation_code: String,
     secret: Option<String>,
     group_id: Option<i64>,
+    access_token: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        let confirmation_code = env::var("VK_BOT_CONFIRMATION_CODE")
-            .expect("Environment variable VK_BOT_CONFIRMATION_CODE not provided");
-        let secret = env::var("VK_BOT_SECRET").ok();
-        let group_id = env::var("VK_BOT_GROUP_ID")
-            .ok()
-            .and_then(|it| it.parse::<i64>().ok());
+        let confirmation_code = env::required("VK_BOT_CONFIRMATION_CODE");
+        let secret = env::get("VK_BOT_SECRET");
+        let group_id = env::get_parsed("VK_BOT_GROUP_ID");
+        let access_token = env::required("VK_BOT_ACCESS_TOKEN");
 
         Self {
             confirmation_code,
             secret,
             group_id,
+            access_token,
         }
     }
 }
@@ -109,7 +110,7 @@ impl FeatureVkBot {
                         domain_bot::renderer::render_message(&reply, RenderTargetPlatform::Vk);
                     let keyboard = self.render_keyboard(&reply, &message.peer_type());
                     self.reply_to_vk_use_case
-                        .reply(&text, message.peer_id, keyboard)
+                        .reply(&self.config.access_token, &text, message.peer_id, keyboard)
                         .await
                         .with_context(|| "Error while sending reply to vk")?;
 

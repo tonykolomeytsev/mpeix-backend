@@ -1,5 +1,3 @@
-use std::env;
-
 use actix_web::{middleware, web::Data, App, HttpServer};
 use anyhow::Context;
 use common_actix::{define_app_error, get_address};
@@ -20,8 +18,8 @@ define_app_error!(AppTelegramBotError);
 #[actix_web::main]
 
 async fn main() -> std::io::Result<()> {
-    env::set_var("RUST_LOG", "debug");
-    env::set_var("RUST_BACKTRACE", "1");
+    std::env::set_var("RUST_LOG", "debug");
+    std::env::set_var("RUST_BACKTRACE", "1");
     env_logger::init();
     let app = Data::new(create_app());
 

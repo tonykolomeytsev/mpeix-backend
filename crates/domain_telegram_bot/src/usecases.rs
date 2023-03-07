@@ -83,14 +83,14 @@ impl BaseResponseExt<BaseResponse> for Result<BaseResponse, reqwest::Error> {
         match self.with_common_error() {
             Ok(BaseResponse { ok, description }) => match (ok, description) {
                 (false, Some(description)) => {
-                    error!("Telegram Api rejects mpeix request with description: {description}");
+                    error!("Telegram Api rejected mpeix request with description: {description}");
                     bail!(CommonError::internal(description));
                 }
                 (false, None) => {
-                    error!("Telegram Api rejects mpeix request without description");
+                    error!("Telegram Api rejected mpeix request without description");
                     bail!(CommonError::internal("Error description was not provided"));
                 }
-                (true, _) => info!("Telegram Api accepts mpeix request"),
+                (true, _) => info!("Telegram Api accepted mpeix request"),
             },
             Err(err) => return Err(err),
         }

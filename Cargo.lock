@@ -814,8 +814,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "common_errors",
+ "common_restix",
+ "common_rust",
+ "env_logger",
+ "log",
  "rand",
  "reqwest",
+ "restix",
  "serde",
  "serde_json",
 ]
@@ -909,6 +914,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "common_errors",
+ "common_rust",
  "domain_bot",
  "domain_vk_bot",
  "env_logger",

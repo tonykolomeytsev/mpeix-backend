@@ -1,70 +1,39 @@
-use std::env;
+use reqwest::{redirect::Policy, ClientBuilder};
+use restix::{api, get};
 
-use anyhow::{anyhow, Context};
-use common_errors::errors::CommonError;
-use reqwest::{redirect::Policy, Client, ClientBuilder};
+use crate::BaseResponse;
 
-const VK_API_VERSION: &str = "5.130";
+pub const VK_API_VERSION: &str = "5.130";
 
-/// Representation of the VK API
-pub struct VkApi {
-    access_token: String,
-    client: Client,
+#[api(base_url = "https://api.vk.com")]
+pub trait VkApi {
+    #[get("/method/messages.send")]
+    async fn send_message(
+        &self,
+        api_version: Query,
+        access_token: Query,
+        random_id: Query,
+        text: Query,
+        peer_id: Query,
+        keyboard: Option<Query>,
+    ) -> BaseResponse;
 }
 
 impl Default for VkApi {
     fn default() -> Self {
-        Self {
-            access_token: env::var("VK_BOT_ACCESS_TOKEN")
-                .expect("Environment variable VK_BOT_ACCESS_TOKEN not provided"),
-            client: ClientBuilder::new()
-                .gzip(true)
-                .deflate(true)
-                .redirect(Policy::none())
-                .timeout(std::time::Duration::from_secs(15))
-                .connect_timeout(std::time::Duration::from_secs(3))
-                .pool_max_idle_per_host(0)
-                .build()
-                .expect("Something went wrong when building HttClient"),
-        }
-    }
-}
-
-impl VkApi {
-    pub async fn send_message(
-        &self,
-        text: &str,
-        peer_id: i64,
-        additional_query: Option<&[(&str, &str)]>,
-    ) -> anyhow::Result<()> {
-        let mut request = self
-            .client
-            .get("https://api.vk.com/method/messages.send")
-            .query(&[
-                ("v", VK_API_VERSION),
-                ("access_token", &self.access_token),
-                ("random_id", &rand::random::<i32>().to_string()),
-                ("peer_id", &peer_id.to_string()),
-                ("message", text),
-            ]);
-        if let Some(query) = additional_query {
-            for (k, v) in query {
-                request = request.query(&[(k, v)]);
-            }
-        }
-        let response = request
-            .send()
-            .await
-            .map_err(|e| anyhow!(CommonError::gateway(e)))
-            .with_context(|| "Error while executing a request to vk backend")?;
-
-        if response.status().is_success() {
-            Ok(())
-        } else {
-            Err(anyhow!(CommonError::gateway(format!(
-                "VK backend response status: {}",
-                response.status()
-            ))))
-        }
+        VkApiBuilder::new()
+            .client(
+                ClientBuilder::new()
+                    .gzip(true)
+                    .deflate(true)
+                    .redirect(Policy::none())
+                    .timeout(std::time::Duration::from_secs(15))
+                    .connect_timeout(std::time::Duration::from_secs(3))
+                    .pool_max_idle_per_host(0)
+                    .build()
+                    .expect("Error while building reqwest::Client"),
+            )
+            .build()
+            .expect("Error while building VkApi")
     }
 }

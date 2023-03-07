@@ -1,5 +1,15 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Deserialize)]
+pub struct BaseResponse {
+    pub error: Option<BaseResponseError>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BaseResponseError {
+    pub error_msg: String,
+}
+
 /// https://dev.vk.com/api/callback/getting-started
 /// https://dev.vk.com/api/community-events/json-schema
 #[derive(Debug, Deserialize)]
