@@ -125,6 +125,7 @@ pub fn api(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// async fn send_message(&self, #[body] message: &Message) -> Update;
 /// ```
 ///
+/// ### Return type
 /// Leave the return type of the method empty so that in the generated implementation the return type
 /// is `Result<Response>` from the Http client being used. For example, if the `"reqwest"` feature is enabled,
 /// return type will be `reqwest::Result<reqwest::Response>`.
@@ -133,9 +134,7 @@ pub fn api(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// if you want to get `Result<T>` as return type in generated implementation. Feature `"json"` should be
 /// enabled to make this work.
 ///
-/// # Example
-///
-/// ## Trait definition
+/// #### Example
 /// ```no_run
 /// #[api]
 /// pub trait MyApi {
@@ -145,9 +144,7 @@ pub fn api(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///     #[get("/search")]
 ///     async fn search(&self, #[query] q: &str) -> Vec<String>;
 /// }
-/// ```
-/// ## Api instance usage
-/// ```no_run
+///
 /// let api = MyApi::builder()
 ///     .base_url("https://api.example.org")
 ///     .client(reqwest::Client::default())
@@ -217,6 +214,7 @@ pub fn get(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// async fn send_message(&self, #[body] message: &Message) -> Update;
 /// ```
 ///
+/// ### Return type
 /// Leave the return type of the method empty so that in the generated implementation the return type
 /// is `Result<Response>` from the Http client being used. For example, if the `"reqwest"` feature is enabled,
 /// return type will be `reqwest::Result<reqwest::Response>`.
@@ -225,9 +223,7 @@ pub fn get(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// if you want to get `Result<T>` as return type in generated implementation. Feature `"json"` should be
 /// enabled to make this work.
 ///
-/// # Example
-///
-/// ## Trait definition
+/// #### Example
 /// ```no_run
 /// #[api]
 /// pub trait MyApi {
@@ -237,9 +233,7 @@ pub fn get(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///     #[get("/search")]
 ///     async fn search(&self, #[query] q: &str) -> Vec<String>;
 /// }
-/// ```
-/// ## Api instance usage
-/// ```no_run
+///
 /// let api = MyApi::builder()
 ///     .base_url("https://api.example.org")
 ///     .client(reqwest::Client::default())
