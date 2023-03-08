@@ -7,6 +7,7 @@ authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 [dependencies]
 common_errors = { workspace = true }
 common_restix = { workspace = true }
+common_rust = { workspace = true }
 
 anyhow = { workspace = true }
 env_logger = { workspace = true }

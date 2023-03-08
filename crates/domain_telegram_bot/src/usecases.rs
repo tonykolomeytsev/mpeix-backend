@@ -12,11 +12,8 @@ use crate::{telegram_api::TelegramApi, BaseResponse, CommonKeyboardMarkup};
 pub struct SetWebhookUseCase(pub(crate) Arc<TelegramApi>);
 
 impl SetWebhookUseCase {
-    pub async fn set_webhook(&self, access_token: &str, url: &str) -> anyhow::Result<()> {
-        self.0
-            .set_webhook(access_token, url)
-            .await
-            .with_telegram_error()
+    pub async fn set_webhook(&self, url: &str) -> anyhow::Result<()> {
+        self.0.set_webhook(url).await.with_telegram_error()
     }
 }
 
@@ -26,7 +23,6 @@ pub struct ReplyToTelegramUseCase(pub(crate) Arc<TelegramApi>);
 impl ReplyToTelegramUseCase {
     pub async fn reply(
         &self,
-        access_token: &str,
         text: &str,
         chat_id: i64,
         keyboard: Option<CommonKeyboardMarkup>,
@@ -46,7 +42,7 @@ impl ReplyToTelegramUseCase {
             None
         };
         self.0
-            .send_message(access_token, chat_id, text, keyboard)
+            .send_message(chat_id, text, keyboard)
             .await
             .with_telegram_error()
             .with_context(|| "Error while sending Telegram message")
@@ -57,14 +53,9 @@ impl ReplyToTelegramUseCase {
 pub struct DeleteMessageUseCase(pub(crate) Arc<TelegramApi>);
 
 impl DeleteMessageUseCase {
-    pub async fn delete_message(
-        &self,
-        access_token: &str,
-        chat_id: i64,
-        message_id: i64,
-    ) -> anyhow::Result<()> {
+    pub async fn delete_message(&self, chat_id: i64, message_id: i64) -> anyhow::Result<()> {
         self.0
-            .delete_message(access_token, chat_id, message_id)
+            .delete_message(chat_id, message_id)
             .await
             .with_telegram_error()
             .with_context(|| "Error while deleting Telegram message")

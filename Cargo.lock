@@ -800,6 +800,7 @@ dependencies = [
  "anyhow",
  "common_errors",
  "common_restix",
+ "common_rust",
  "env_logger",
  "log",
  "reqwest",

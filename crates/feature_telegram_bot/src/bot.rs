@@ -23,7 +23,6 @@ pub struct FeatureTelegramBot {
 
 pub(crate) struct Config {
     secret: String,
-    access_token: String,
     webhook_url: String,
 }
 
@@ -31,7 +30,6 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             secret: env::required("TELEGRAM_BOT_SECRET"),
-            access_token: env::required("TELEGRAM_BOT_ACCESS_TOKEN"),
             webhook_url: env::required("TELEGRAM_BOT_WEBHOOK_URL"),
         }
     }
@@ -49,7 +47,7 @@ macro_rules! button {
 impl FeatureTelegramBot {
     pub async fn set_webhook(&self) -> anyhow::Result<()> {
         self.set_webhook_use_case
-            .set_webhook(&self.config.access_token, &self.config.webhook_url)
+            .set_webhook(&self.config.webhook_url)
             .await
     }
 
@@ -83,17 +81,13 @@ impl FeatureTelegramBot {
             let text = domain_bot::renderer::render_message(&reply, RenderTargetPlatform::Telegram);
             let keyboard = self.render_keyboard(&reply, &message.chat.r#type);
             self.reply_to_telegram_use_case
-                .reply(&self.config.access_token, &text, message.chat.id, keyboard)
+                .reply(&text, message.chat.id, keyboard)
                 .await
                 .with_context(|| "Error while sending reply to telegram")?;
 
             if is_callback {
                 self.delete_message_use_case
-                    .delete_message(
-                        &self.config.access_token,
-                        message.chat.id,
-                        message.message_id,
-                    )
+                    .delete_message(message.chat.id, message.message_id)
                     .await
                     .unwrap_or_else(|e| error!("Error while deleting message: {e}"));
             }

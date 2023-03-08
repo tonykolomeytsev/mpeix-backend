@@ -1,33 +1,32 @@
+use common_rust::env;
 use restix::{api, get};
 
 use crate::BaseResponse;
 
-#[api(base_url = "https://api.telegram.org")]
+#[api]
 pub trait TelegramApi {
-    #[get("/bot{access_token}/setWebhook")]
-    fn set_webhook(&self, #[path] access_token: &str, #[query] url: &str) -> BaseResponse;
+    #[get("/setWebhook")]
+    async fn set_webhook(&self, #[query] url: &str) -> BaseResponse;
 
-    #[get("/bot{access_token}/sendMessage")]
+    #[get("/sendMessage")]
     async fn send_message(
         &self,
-        #[path] access_token: &str,
         #[query] chat_id: i64,
         #[query] text: &str,
         #[query("reply_markup")] keyboard: Option<String>,
     ) -> BaseResponse;
 
-    #[get("/bot{access_token}/deleteMessage")]
-    async fn delete_message(
-        &self,
-        #[path] access_token: &str,
-        #[query] chat_id: i64,
-        #[query] message_id: i64,
-    ) -> BaseResponse;
+    #[get("/deleteMessage")]
+    async fn delete_message(&self, #[query] chat_id: i64, #[query] message_id: i64)
+        -> BaseResponse;
 }
 
 impl Default for TelegramApi {
     fn default() -> Self {
+        let access_token = env::required("TELEGRAM_BOT_ACCESS_TOKEN");
+        let base_url = format!("https://api.telegram.org/bot{access_token}");
         TelegramApi::builder()
+            .base_url(base_url)
             .client(
                 reqwest::ClientBuilder::new()
                     .gzip(true)
