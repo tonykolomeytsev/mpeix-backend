@@ -13,7 +13,7 @@ pub trait VkApi {
         #[query("v")] api_version: &str,
         #[query] access_token: &str,
         #[query] random_id: u32,
-        #[query] text: &str,
+        #[query("message")] text: &str,
         #[query] peer_id: i64,
         #[query] keyboard: Option<String>,
     ) -> BaseResponse;
