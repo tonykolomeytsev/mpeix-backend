@@ -89,7 +89,7 @@ impl Parse for AttrMapResponseWithIR {
 
 fn parse_arg_ir(fn_arg: FnArg, counter: &mut ArgsCounter) -> syn::Result<ArgIR> {
     counter.common += 1;
-    match fn_arg {
+    match &fn_arg {
         FnArg::Receiver(r) => match (counter.common == 1, &r.mutability, &r.reference) {
             (false, _, _) => abort!(r, "First parameter should be &self parameter"),
             (_, Some(_), _) => abort!(r, "Parameter &self should be immutable"),
@@ -103,7 +103,7 @@ fn parse_arg_ir(fn_arg: FnArg, counter: &mut ArgsCounter) -> syn::Result<ArgIR> 
             Ok(ArgIR::Typed {
                 name: syn::parse2(pat_type.pat.to_token_stream())?,
                 r#type: syn::parse2(pat_type.ty.to_token_stream())?,
-                kind: parse_arg_kind_ir(&pat_type)?,
+                kind: parse_arg_kind_ir(pat_type)?,
             })
         }
     }
@@ -187,17 +187,8 @@ impl Parse for ReturnTypeIR {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let return_type: ReturnType = input.parse()?;
         Ok(match return_type {
-            ReturnType::Default => ReturnTypeIR::Typed(syn::parse2(quote!(()))?),
-            ReturnType::Type(_, t) => match t.as_ref() {
-                Type::Path(type_path) => {
-                    if type_path.path.is_ident("Response") {
-                        ReturnTypeIR::RawResponse
-                    } else {
-                        ReturnTypeIR::Typed(*t.to_owned())
-                    }
-                }
-                _ => ReturnTypeIR::Typed(*t.to_owned()),
-            },
+            ReturnType::Default => ReturnTypeIR::RawResponse,
+            ReturnType::Type(_, t) => ReturnTypeIR::Typed(*t),
         })
     }
 }
@@ -216,8 +207,20 @@ pub fn method(method: Method, attr: TokenStream, item: TokenStream) -> TokenStre
     // Parsing
     let ir: MethodIR = syn::parse2(item).unwrap_or_abort();
     let endpoint_url = parse_attr_endpoint_url(attr);
+    analyze_method_ir(&ir);
     // Codegen
     codegen_fn_impl(ir, &endpoint_url, method)
+}
+
+fn analyze_method_ir(ir: &MethodIR) {
+    let body_args = ir
+        .args
+        .iter()
+        .filter_map(ArgIR::as_body)
+        .collect::<Vec<_>>();
+    if body_args.len() > 1 {
+        abort!(body_args[1], "Only one body argument is allowed");
+    }
 }
 
 /// Generate impelmentation for the method from its IR
@@ -359,10 +362,13 @@ fn codegen_deserialize_and_return(ir: &MethodIR) -> TokenStream {
 
 #[cfg(all(feature = "reqwest", not(feature = "json")))]
 fn codegen_deserialize_and_return(ir: &MethodIR) -> TokenStream {
-    let mapper = ir.attrs.iter().find_map(|attr| match attr {
-        AttrIR::MapResponseWith(AttrMapResponseWithIR { mapper }) => Some(quote!(#mapper)),
-        _ => None,
-    });
+    let mapper = ir
+        .attrs
+        .iter()
+        .map(|attr| match attr {
+            AttrIR::MapResponseWith(AttrMapResponseWithIR { mapper }) => Some(quote!(#mapper)),
+        })
+        .next();
     if let Some(mapper) = mapper {
         quote!(Ok(#mapper(response)))
     } else {

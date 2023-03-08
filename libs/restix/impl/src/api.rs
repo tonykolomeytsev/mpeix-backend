@@ -31,7 +31,7 @@ impl Parse for ApiIR {
                 .iter()
                 .filter_map(|item| match item {
                     TraitItem::Method(method) => Some(method.to_owned()),
-                    _ => None,
+                    _ => abort!(item, "Only methods are allowed in an api definition"),
                 })
                 .collect::<Vec<_>>(),
             visibility: item_trait.vis,
@@ -133,7 +133,7 @@ fn codegen_struct_builder(ir: &ApiIR, attr_props: &AttrPropertiesIR) -> TokenStr
     let name = &ir.name;
     let builder_name = format!("{}Builder", &ir.name).as_ident();
     let builder_error_name = format!("{}BuilderError", &ir.name).as_ident();
-    let builder_error_description = format!("Cannot construct {name} with {{}}");
+    let builder_error_description = format!("Cannot construct {name}: {{}}");
     let client_type = codegen_client_type();
     let base_url = if let Some(base_url) = attr_props.base_url.as_ref().map(LitStr::value) {
         quote!(::std::option::Option::Some(#base_url.to_owned()))
@@ -172,9 +172,17 @@ fn codegen_struct_builder(ir: &ApiIR, attr_props: &AttrPropertiesIR) -> TokenStr
             }
 
             pub fn build(self) -> ::std::result::Result<#name, #builder_error_name> {
-                if self.base_url.is_none() || self.base_url.as_ref().unwrap().is_empty() {
-                    return ::std::result::Result::Err(#builder_error_name("empty `base_url`".to_owned()));
+                if let Some(base_url) = &self.base_url {
+                    if base_url.is_empty() {
+                        return ::std::result::Result::Err(#builder_error_name("empty `base_url`".to_owned()));
+                    }
+                    if base_url.ends_with('/') {
+                        return ::std::result::Result::Err(#builder_error_name("`base_url` should not end with `/`".to_owned()));
+                    }
+                } else {
+                    return ::std::result::Result::Err(#builder_error_name("`base_url` not specified".to_owned()));
                 }
+
                 if self.client.is_none() {
                     return ::std::result::Result::Err(#builder_error_name("empty `client`".to_owned()))
                 }
@@ -226,36 +234,55 @@ fn codegen_struct_impl_methods(ir: &ApiIR) -> TokenStream {
     }
 }
 
+#[cfg(feature = "reqwest")]
 #[cfg(test)]
 mod tests {
 
     use super::*;
-    use proc_macro2::Group;
 
     #[test]
-    fn test_parse_empty_trait() {
+    fn test_parse_api_ir_empty() {
         let trait_definition: ItemTrait = syn::parse_quote! {
             #[api]
             pub trait ExampleTrait {}
         };
         let ir: ApiIR = syn::parse2(trait_definition.to_token_stream()).unwrap();
         assert_eq!(ir.name, "ExampleTrait");
+        assert_eq!(ir.visibility, syn::parse_quote!(pub));
+        assert!(ir.methods.is_empty());
     }
 
     #[test]
-    fn test_parse_empty_trait_with_base_url() {
+    fn test_parse_api_ir() {
         let trait_definition: ItemTrait = syn::parse_quote! {
-            #[api(base_url = "https://example.com")]
-            pub trait ExampleTrait {}
+            #[api]
+            pub trait ExampleTrait {
+                #[get("/search")]
+                async fn search(&self, #[query("q")] query: &str) -> Vec<String>;
+
+                #[post("/user/{id}/publish")]
+                async fn publish(&self, #[path] id: i32);
+            }
         };
         let ir: ApiIR = syn::parse2(trait_definition.to_token_stream()).unwrap();
-        let group: Group =
-            syn::parse2(trait_definition.attrs.first().unwrap().tokens.to_owned()).unwrap();
-        let attr_props: AttrPropertiesIR = syn::parse2(group.stream().to_token_stream()).unwrap();
         assert_eq!(ir.name, "ExampleTrait");
+        assert_eq!(ir.visibility, syn::parse_quote!(pub));
+        assert_eq!(ir.methods.len(), 2);
+    }
+
+    #[test]
+    fn test_parse_attr_props_ir() {
+        let attr_props: AttrPropertiesIR =
+            syn::parse2(quote!(base_url = "https://example.com")).unwrap();
         assert_eq!(
             attr_props.base_url.map(|it| it.value()),
             Some("https://example.com".to_string())
         );
+    }
+
+    #[test]
+    fn test_parse_attr_props_empty() {
+        let attr_props: AttrPropertiesIR = syn::parse2(quote!()).unwrap();
+        assert_eq!(attr_props.base_url, None);
     }
 }

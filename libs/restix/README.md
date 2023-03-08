@@ -12,7 +12,7 @@ Restix turns HTTP Api into a trait definition:
 #[api]
 pub trait MyApi {
     #[get("/user/{id}")]
-    async fn user(&self, id: Path, tag: Query) -> User;
+    async fn user(&self, #[path] id: i64, #[query] tag: &str) -> User;
 }
 ```
 
@@ -29,53 +29,45 @@ let api = MyApi::builder()
 Then you can use `api` to make requests:
 
 ```rust
-let user_id = 12345;
-// request to http://localhost:8081/user/0ae2de7d?tag=latest
-let user = api.user(user_id, "latest").await?;
+// request to http://localhost:8081/user/12345?tag=latest
+let user = api.user(12345, "latest").await?;
 ```
 
-### Details
+## Api declaration
 
-The trait `MyApi` will be expanded to:
+Attributes on the trait methods and its arguments indicate how request implementation will be generated.
 
+### Request method
+
+Every method should be marked with attribute macros: `#[get("...")]`, `#[post("...")]`, and others.
+The relative URL of the resource is specified in the attributes:
 ```rust
-#[derive(Clone)]
-pub struct MyApi {
-    client: reqwest::Client,
-    base_url: String,
-}
-
-impl MyApi {
-    pub fn builder() -> MyApiBuilder {
-        MyApiBuilder::default()
-    }
-
-    pub async fn user<Path1, Query1>(
-        &self, 
-        id: Path1, 
-        tag: Query1,
-    ) -> reqwest::Result<User>
-    where
-        Path1: Display,
-        Query1: AsRef<str>,
-    {
-        let full_url = format!(
-            "{base_url}/user/{id}", 
-            base_url = &self.base_url, 
-            id = id,
-        );
-        let queries = vec![
-            ("tag", tag.as_ref()),
-        ];
-        self.client
-            .get(full_url)
-            .query(&queries)
-            .send()
-            .await?
-            .json::<User>()
-            .await
-    }
-}
-
-// And also MyApiBuilder implementation...
+#[get("/users/list")]
 ```
+
+### URL manipulation
+
+Request URL can be updated dynamically using format blocks in the URL and arguments in the method:
+```rust
+#[get("/group/{id}/users")]
+async fn get_group_users(&self, #[path] id: i64) -> Vec<User>;
+```
+
+Query parameters can also be added:
+```rust
+#[get("/group/{id}/users")]
+async fn get_group_users(&self, #[path] id: i64, #[query] sort: &str) -> Vec<User>;
+```
+
+### Request body
+
+An argument can be specified for use as an HTTP request body with the `#[body]` attribute.
+Argument type must implement `serde::Serialize`:
+```rust
+#[post("/group/create")]
+async fn create_group(&self, #[body] group: Group) -> Group;
+```
+
+## Features
+
+By default Restix uses `"reqwest"` and `"json"` features. This means that the generated Api implementations use `reqwest` for requests and `serde` for deserializing responses.
