@@ -73,7 +73,7 @@ impl ScheduleIdRepository {
             .get_id_from_remote(name.to_owned(), r#type.to_owned())
             .await?
         {
-            Some(search_result) if self.fuzzy_equals(&search_result.label, &cache_key.name) => {
+            Some(search_result) => {
                 debug!("Got schedule id from remote");
                 // Put value to cache
                 self.cache
@@ -99,7 +99,9 @@ impl ScheduleIdRepository {
             .search(name.as_ref(), &r#type)
             .await
             .with_common_error()?;
-        Ok(search_results.into_iter().last())
+        Ok(search_results
+            .into_iter()
+            .find(|result| self.fuzzy_equals(name.as_ref(), &result.label)))
     }
 
     fn fuzzy_equals(&self, a: &str, b: &str) -> bool {
