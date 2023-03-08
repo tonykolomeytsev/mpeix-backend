@@ -1,7 +1,7 @@
 pub mod di;
 pub mod dto;
 pub mod id;
-pub(crate) mod mpei_api;
+pub mod mpei_api;
 pub mod schedule;
 pub mod schedule_shift;
 pub mod search;

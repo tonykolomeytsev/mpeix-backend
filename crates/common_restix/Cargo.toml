@@ -1,5 +1,5 @@
 [package]
-name = "feature_vk_bot"
+name = "common_restix"
 version = "0.1.0"
 edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
@@ -7,10 +7,6 @@ authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 [dependencies]
 common_errors = { workspace = true }
 common_rust = { workspace = true }
-domain_bot = { workspace = true }
-domain_vk_bot = { workspace = true }
 
 anyhow = { workspace = true }
-once_cell = { workspace = true }
-log = { workspace = true }
-env_logger = { workspace = true }
+reqwest = { workspace = true }

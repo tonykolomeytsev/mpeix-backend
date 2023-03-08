@@ -1,5 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+/// https://core.telegram.org/bots/api#making-requests
+#[derive(Debug, Deserialize)]
+pub struct BaseResponse {
+    pub ok: bool,
+    pub description: Option<String>,
+}
+
 /// https://core.telegram.org/bots/api/#update
 #[derive(Debug, Deserialize)]
 pub struct Update {

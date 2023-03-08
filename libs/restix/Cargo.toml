@@ -1,0 +1,19 @@
+[package]
+name = "restix"
+version = "0.1.0"
+edition = "2021"
+authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
+
+[lib]
+doctest = false
+
+[features]
+default = ["reqwest", "json"]
+reqwest = ["dep:reqwest", "restix_impl/reqwest"]
+json = ["reqwest?/json", "restix_impl/json"]
+
+[dependencies]
+restix_impl = { path = "impl" }
+restix_macro = { path = "macro" }
+
+reqwest = { workspace = true, optional = true }

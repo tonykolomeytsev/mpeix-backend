@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Display};
+use std::fmt::Display;
 
 /// # CommonError
 ///
@@ -8,7 +8,7 @@ use std::{error::Error, fmt::Display};
 /// - `UserError` - errors that occur due to the fact that the user sent incorrect data.
 ///
 /// All low-level project components should wrap their root/leaf errors with `CommonError`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum CommonError {
     InternalError(String),
     GatewayError(String),
@@ -42,16 +42,17 @@ impl Display for CommonError {
     }
 }
 
-impl Error for CommonError {}
+impl std::error::Error for CommonError {}
 
 pub trait CommonErrorExt {
-    fn as_common_error(&self) -> Option<&CommonError>;
+    fn as_common_error(&self) -> Option<CommonError>;
 }
 
 impl CommonErrorExt for anyhow::Error {
-    fn as_common_error(&self) -> Option<&CommonError> {
+    fn as_common_error(&self) -> Option<CommonError> {
         self.chain()
             .find_map(|err| err.downcast_ref::<CommonError>())
+            .map(|err| err.to_owned())
     }
 }
 

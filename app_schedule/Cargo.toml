@@ -9,6 +9,7 @@ readme = "README.md"
 common_actix = { workspace = true }
 common_database = { workspace = true }
 common_errors = { workspace = true }
+common_restix = { workspace = true }
 domain_mobile = { workspace = true }
 domain_schedule = { workspace = true }
 domain_schedule_cooldown = { workspace = true }
@@ -19,5 +20,6 @@ actix-web = { workspace = true }
 anyhow = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }
+restix = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
 tokio = { workspace = true }

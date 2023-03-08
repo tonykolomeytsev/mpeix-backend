@@ -1,7 +1,8 @@
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::{ensure, Context};
 use common_errors::errors::CommonError;
+use common_rust::env;
 use domain_bot::{
     models::Reply, peer::repository::PlatformId, renderer::RenderTargetPlatform,
     usecases::GenerateReplyUseCase,
@@ -22,13 +23,14 @@ pub struct FeatureTelegramBot {
 
 pub(crate) struct Config {
     secret: String,
+    webhook_url: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            secret: env::var("TELEGRAM_BOT_SECRET")
-                .expect("Environment variable TELEGRAM_BOT_SECRET not provided"),
+            secret: env::required("TELEGRAM_BOT_SECRET"),
+            webhook_url: env::required("TELEGRAM_BOT_WEBHOOK_URL"),
         }
     }
 }
@@ -44,7 +46,9 @@ macro_rules! button {
 
 impl FeatureTelegramBot {
     pub async fn set_webhook(&self) -> anyhow::Result<()> {
-        self.set_webhook_use_case.set_webhook().await
+        self.set_webhook_use_case
+            .set_webhook(&self.config.webhook_url)
+            .await
     }
 
     pub async fn reply(&self, update: Update, secret: String) -> anyhow::Result<()> {

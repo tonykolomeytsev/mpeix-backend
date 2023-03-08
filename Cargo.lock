@@ -252,13 +252,14 @@ checksum = "224afbd727c3d6e4b90103ece64b8d1b67fbb1973b1046c2281eed3f3803f800"
 
 [[package]]
 name = "app_schedule"
-version = "3.0.24"
+version = "3.0.31"
 dependencies = [
  "actix-web",
  "anyhow",
  "common_actix",
  "common_database",
  "common_errors",
+ "common_restix",
  "domain_mobile",
  "domain_schedule",
  "domain_schedule_cooldown",
@@ -266,42 +267,49 @@ dependencies = [
  "env_logger",
  "feature_schedule",
  "log",
+ "restix",
  "serde",
  "tokio",
 ]
 
 [[package]]
 name = "app_telegram_bot"
-version = "3.0.24"
+version = "3.0.31"
 dependencies = [
  "actix-web",
  "anyhow",
  "common_actix",
  "common_database",
  "common_errors",
+ "common_restix",
+ "common_rust",
  "domain_bot",
  "domain_schedule_models",
  "domain_telegram_bot",
  "env_logger",
  "feature_telegram_bot",
  "log",
+ "restix",
 ]
 
 [[package]]
 name = "app_vk_bot"
-version = "3.0.24"
+version = "3.0.31"
 dependencies = [
  "actix-web",
  "anyhow",
  "common_actix",
  "common_database",
  "common_errors",
+ "common_restix",
+ "common_rust",
  "domain_bot",
  "domain_schedule_models",
  "domain_vk_bot",
  "env_logger",
  "feature_vk_bot",
  "log",
+ "restix",
 ]
 
 [[package]]
@@ -494,6 +502,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "common_di"
+version = "0.1.0"
+
+[[package]]
 name = "common_errors"
 version = "0.1.0"
 dependencies = [
@@ -516,6 +528,16 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+]
+
+[[package]]
+name = "common_restix"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "common_errors",
+ "common_rust",
+ "reqwest",
 ]
 
 [[package]]
@@ -693,7 +715,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "common_di",
  "common_errors",
+ "common_restix",
  "deadpool-postgres",
  "domain_schedule_models",
  "env_logger",
@@ -701,6 +725,7 @@ dependencies = [
  "log",
  "regex",
  "reqwest",
+ "restix",
  "serde",
  "tokio",
  "tokio-postgres",
@@ -716,9 +741,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "common_di",
  "common_errors",
  "common_in_memory_cache",
  "common_persistent_cache",
+ "common_restix",
  "common_rust",
  "deadpool-postgres",
  "domain_schedule_cooldown",
@@ -730,6 +757,7 @@ dependencies = [
  "num-traits",
  "regex",
  "reqwest",
+ "restix",
  "serde",
  "tokio",
  "tokio-postgres",
@@ -771,7 +799,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "common_errors",
+ "common_restix",
+ "common_rust",
+ "env_logger",
+ "log",
  "reqwest",
+ "restix",
  "serde",
  "serde_json",
 ]
@@ -782,8 +815,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "common_errors",
+ "common_restix",
+ "common_rust",
+ "env_logger",
+ "log",
  "rand",
  "reqwest",
+ "restix",
  "serde",
  "serde_json",
 ]
@@ -864,6 +902,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "common_errors",
+ "common_rust",
  "domain_bot",
  "domain_telegram_bot",
  "env_logger",
@@ -876,6 +915,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "common_errors",
+ "common_rust",
  "domain_bot",
  "domain_vk_bot",
  "env_logger",
@@ -1310,9 +1350,9 @@ dependencies = [
 
 [[package]]
 name = "lru"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71e7d46de488603ffdd5f30afbc64fbba2378214a2c3a2fb83abf3d33126df17"
+checksum = "03f1160296536f10c833a82dca22267d5486734230d47bf00bf435885814ba1e"
 dependencies = [
  "hashbrown 0.13.2",
 ]
@@ -1564,6 +1604,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1674,6 +1738,34 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "winreg",
+]
+
+[[package]]
+name = "restix"
+version = "0.1.0"
+dependencies = [
+ "reqwest",
+ "restix_impl",
+ "restix_macro",
+]
+
+[[package]]
+name = "restix_impl"
+version = "0.1.0"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "restix_macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "restix_impl",
 ]
 
 [[package]]
@@ -1979,9 +2071,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.25.0"
+version = "1.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8e00990ebabbe4c14c08aca901caed183ecd5c09562a12c824bb53d3c3fd3af"
+checksum = "03201d01c3c27a29c8a5cee5b55a93ddae1ccf6f08f65365c2c918f8c1b76f64"
 dependencies = [
  "autocfg",
  "bytes",
@@ -1993,7 +2085,7 @@ dependencies = [
  "signal-hook-registry",
  "socket2",
  "tokio-macros",
- "windows-sys 0.42.0",
+ "windows-sys 0.45.0",
 ]
 
 [[package]]

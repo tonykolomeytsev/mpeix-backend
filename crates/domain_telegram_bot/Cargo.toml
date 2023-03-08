@@ -6,8 +6,13 @@ authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
 common_errors = { workspace = true }
+common_restix = { workspace = true }
+common_rust = { workspace = true }
 
 anyhow = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
 reqwest = { workspace = true, features = ["gzip", "deflate", "json"] }
+restix = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

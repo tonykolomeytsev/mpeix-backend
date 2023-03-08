@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::{bail, Context};
 use common_in_memory_cache::InMemoryCache;
+use common_restix::ResultExt;
 use common_rust::env;
 use deadpool_postgres::Pool;
 use domain_schedule_models::{ScheduleSearchResult, ScheduleType};
@@ -25,13 +26,12 @@ pub struct ScheduleSearchRepository {
 struct TypedSearchQuery(ScheduleSearchQuery, Option<ScheduleType>);
 
 impl ScheduleSearchRepository {
-    pub fn new(db_pool: Arc<Pool>) -> Self {
+    pub fn new(db_pool: Arc<Pool>, api: MpeiApi) -> Self {
         let cache_capacity = env::get_parsed_or("SCHEDULE_SEARCH_CACHE_CAPACITY", 3000);
         let cache_lifetife = env::get_parsed_or("SCHEDULE_SEARCH_CACHE_LIFETIME_MINUTES", 5);
-        let connect_timeout = env::get_parsed_or("GATEWAY_CONNECT_TIMEOUT", 1500);
 
         Self {
-            api: MpeiApi::with_timeout_ms(connect_timeout),
+            api,
             db_pool,
             in_memory_cache: Mutex::new(
                 InMemoryCache::with_capacity(cache_capacity)
@@ -69,8 +69,13 @@ impl ScheduleSearchRepository {
         query: &ScheduleSearchQuery,
         r#type: &ScheduleType,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
-        map_search_models(self.api.search(query.as_ref(), r#type).await?)
-            .with_context(|| "Error while mapping response from MPEI backend")
+        map_search_models(
+            self.api
+                .search(query.as_ref(), r#type)
+                .await
+                .with_common_error()?,
+        )
+        .with_context(|| "Error while mapping response from MPEI backend")
     }
 
     pub async fn init_schedule_search_results_db(&self) -> anyhow::Result<()> {
@@ -91,7 +96,7 @@ impl ScheduleSearchRepository {
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
         let stmt = if let Some(r#type) = r#type {
             include_str!("../../sql/select_all_schedule_search_results_typed.pgsql")
-                .replace("$2", &r#type.to_string())
+                .replace("$2", r#type.as_ref())
         } else {
             include_str!("../../sql/select_all_schedule_search_results.pgsql").to_string()
         }

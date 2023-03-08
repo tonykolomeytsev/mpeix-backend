@@ -1,3 +1,4 @@
+use common_restix::ResultExt;
 use domain_schedule_models::{ScheduleSearchResult, ScheduleType};
 
 use crate::mpeix_api::MpeixApi;
@@ -6,15 +7,14 @@ use crate::mpeix_api::MpeixApi;
 ///
 /// We do not need caching or other complex logic here, because it
 /// is implemented on the side of the `app_schedule` microservice.
-#[derive(Default)]
-pub struct ScheduleSearchRepository(MpeixApi);
+pub struct ScheduleSearchRepository(pub(crate) MpeixApi);
 
 impl ScheduleSearchRepository {
     pub async fn search_schedule(
         &self,
         query: &str,
-        r#type: Option<&ScheduleType>,
+        r#type: Option<ScheduleType>,
     ) -> anyhow::Result<Vec<ScheduleSearchResult>> {
-        self.0.search_schedule(query, r#type).await
+        self.0.search(query, r#type).await.with_common_error()
     }
 }

@@ -5,9 +5,11 @@ edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 
 [dependencies]
+common_di = { workspace = true }
 common_errors = { workspace = true }
 common_in_memory_cache = { workspace = true }
 common_persistent_cache = { workspace = true }
+common_restix = { workspace = true }
 common_rust = { workspace = true }
 domain_schedule_cooldown = { workspace = true }
 domain_schedule_models = { workspace = true }
@@ -22,6 +24,7 @@ log = { workspace = true }
 num-traits = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["gzip", "deflate", "json"] }
+restix = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true }
 tokio-postgres = { workspace = true }

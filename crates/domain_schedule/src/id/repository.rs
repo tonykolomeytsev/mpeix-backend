@@ -1,8 +1,7 @@
-use std::collections::VecDeque;
-
 use anyhow::bail;
 use common_errors::errors::CommonError;
 use common_in_memory_cache::InMemoryCache;
+use common_restix::ResultExt;
 use common_rust::env;
 use domain_schedule_models::ScheduleType;
 use lazy_static::lazy_static;
@@ -36,15 +35,14 @@ struct ScheduleName {
 /// Value for in-memory cache
 struct ScheduleId(i64);
 
-impl Default for ScheduleIdRepository {
-    fn default() -> Self {
+impl ScheduleIdRepository {
+    pub fn new(api: MpeiApi) -> Self {
         let cache_capacity = env::get_parsed_or("SCHEDULE_ID_CACHE_CAPACITY", 3000);
         let cache_max_hits = env::get_parsed_or("SCHEDULE_ID_CACHE_MAX_HITS", 10);
         let cache_lifetife = env::get_parsed_or("SCHEDULE_ID_CACHE_LIFETIME_HOURS", 12);
-        let connect_timeout = env::get_parsed_or("GATEWAY_CONNECT_TIMEOUT", 1500);
 
         Self {
-            api: MpeiApi::with_timeout_ms(connect_timeout),
+            api,
             cache: Mutex::new(
                 InMemoryCache::with_capacity(cache_capacity)
                     .max_hits(cache_max_hits)
@@ -75,7 +73,7 @@ impl ScheduleIdRepository {
             .get_id_from_remote(name.to_owned(), r#type.to_owned())
             .await?
         {
-            Some(search_result) if self.fuzzy_equals(&search_result.label, &cache_key.name) => {
+            Some(search_result) => {
                 debug!("Got schedule id from remote");
                 // Put value to cache
                 self.cache
@@ -96,12 +94,14 @@ impl ScheduleIdRepository {
         name: ValidScheduleName,
         r#type: ScheduleType,
     ) -> anyhow::Result<Option<MpeiSearchResult>> {
-        let mut search_results = self
+        let search_results = self
             .api
-            .search::<VecDeque<MpeiSearchResult>>(name.as_ref(), &r#type)
-            .await?;
-
-        Ok(search_results.pop_front())
+            .search(name.as_ref(), &r#type)
+            .await
+            .with_common_error()?;
+        Ok(search_results
+            .into_iter()
+            .find(|result| self.fuzzy_equals(name.as_ref(), &result.label)))
     }
 
     fn fuzzy_equals(&self, a: &str, b: &str) -> bool {

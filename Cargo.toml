@@ -2,15 +2,17 @@
 members = ["app_schedule", "app_telegram_bot", "app_vk_bot"]
 
 [workspace.package]
-version = "3.0.24"
+version = "3.0.31"
 
 [workspace.dependencies]
 # common crates
 common_actix = { path = "crates/common_actix" }
 common_database = { path = "crates/common_database" }
+common_di = { path = "crates/common_di" }
 common_errors = { path = "crates/common_errors" }
 common_in_memory_cache = { path = "crates/common_in_memory_cache" }
 common_persistent_cache = { path = "crates/common_persistent_cache" }
+common_restix = { path = "crates/common_restix" }
 common_rust = { path = "crates/common_rust" }
 # domain crates
 domain_bot = { path = "crates/domain_bot" }
@@ -25,6 +27,8 @@ domain_vk_bot = { path = "crates/domain_vk_bot" }
 feature_schedule = { path = "crates/feature_schedule" }
 feature_telegram_bot = { path = "crates/feature_telegram_bot" }
 feature_vk_bot = { path = "crates/feature_vk_bot" }
+# super libraries
+restix = { path = "libs/restix" }
 
 # main external dependencies
 actix-web = "4"
@@ -33,15 +37,19 @@ chrono = "0.4"
 deadpool-postgres = "0.10"
 env_logger = "0.10"
 log = "0.4"
-lru = "0.9"
+lru = "0.10"
 num-traits = "0.2.15"
 once_cell = "1.17"
+proc-macro-error = "1.0"
+proc-macro2 = "1.0"
+quote = "1.0"
 rand = "0.8"
 regex = "1.7"
 reqwest = "0.11"
 serde = "1.0"
 serde_json = "1.0"
-tokio = "1.23"
+syn = "1.0"
+tokio = "1.26"
 tokio-postgres = "0.7"
 tokio-test = "0.4"
 toml = "0.7"
