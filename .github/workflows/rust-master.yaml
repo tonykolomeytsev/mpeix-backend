@@ -13,7 +13,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
+      - name: Cache Crates
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./target
+            ~/.cargo
+          key: debug-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            debug-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-
+            debug-${{ runner.os }}-
+
       - name: Build
         run: cargo build --verbose
-      - name: Run tests
+
+      - name: Test
         run: cargo test --verbose
