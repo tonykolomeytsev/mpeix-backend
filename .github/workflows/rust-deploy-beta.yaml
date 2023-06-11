@@ -1,7 +1,6 @@
 name: Deploy beta-version to DEV server
 
 on:
-  workflow_dispatch:
   push:
     tags:
       - "beta/*"
