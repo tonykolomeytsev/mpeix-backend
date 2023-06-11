@@ -1,7 +1,7 @@
 ARG APP_NAME="app_vk_bot"
 
 # Build our app here
-FROM rust:1.67.0 as build
+FROM rust:1.70.0 as build
 ARG APP_NAME
 ENV PKG_CONFIG_ALLOW_CROSS=1
 WORKDIR /usr/src/${APP_NAME}
