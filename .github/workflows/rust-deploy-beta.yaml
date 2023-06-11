@@ -1,6 +1,7 @@
 name: Deploy beta-version to DEV server
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "beta/*"
@@ -59,7 +60,7 @@ jobs:
           echo "$SSH_KEY" > ~/.ssh/deploy.key
           chmod 600 ~/.ssh/deploy.key
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy.key $SSH_USER@$SSH_HOST \
-            "/root/autodeploy.sh ${{ env.RELEASE_VERSION }} schedule telegram-bot vk-bot"
+            "UPDATE_VERSION=${{ env.RELEASE_VERSION }} make deploy"
         env:
           SSH_KEY: ${{ secrets.VDS_SSH_KEY }}
           SSH_USER: ${{ vars.DEV_VDS_USER }}
