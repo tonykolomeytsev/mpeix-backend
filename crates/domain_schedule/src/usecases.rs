@@ -209,7 +209,7 @@ impl GetScheduleUseCase {
         name: ScheduleName,
     ) -> anyhow::Result<()> {
         debug!("Checking if the schedule needs to be corrected shift...");
-        let mut week = schedule
+        let week = schedule
             .weeks
             .first_mut()
             .ok_or_else(|| anyhow!("Encountered invalid schedule with empty weeks field"))?;
