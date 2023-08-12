@@ -25,7 +25,6 @@ impl InitDomainBotUseCase {
 }
 
 /// Determine [UserAction] from text sent by user
-#[derive(Default)]
 pub struct TextToActionUseCase;
 
 lazy_static! {
@@ -460,7 +459,7 @@ mod t2a_tests {
         ($name:tt, $exp:expr, $inputs:expr) => {
             #[test]
             fn $name() {
-                let use_case = TextToActionUseCase::default();
+                let use_case = TextToActionUseCase;
                 for text in $inputs {
                     assert_eq!(use_case.text_to_action(text).unwrap(), $exp);
                 }
@@ -569,7 +568,7 @@ mod t2a_tests {
 
     #[test]
     fn action_day_of_week() {
-        let use_case = TextToActionUseCase::default();
+        let use_case = TextToActionUseCase;
         for text in [
             "понедельник",
             "вторник",

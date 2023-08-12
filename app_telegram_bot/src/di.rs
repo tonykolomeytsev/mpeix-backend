@@ -32,7 +32,7 @@ pub fn create_app() -> AppTelegramBot {
     let schedule_repository = Arc::new(ScheduleRepository::new(api.to_owned()));
     let schedule_search_repository = Arc::new(ScheduleSearchRepository::new(api));
 
-    let text_to_action_use_case = Arc::new(TextToActionUseCase::default());
+    let text_to_action_use_case = Arc::new(TextToActionUseCase);
     let get_upcoming_events_use_case =
         Arc::new(GetUpcomingEventsUseCase::new(schedule_repository.clone()));
     let generate_reply_use_case = Arc::new(GenerateReplyUseCase::new(
