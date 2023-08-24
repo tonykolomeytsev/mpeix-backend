@@ -8,10 +8,9 @@ use regex::Regex;
 
 lazy_static! {
     static ref VALID_GROUP_NAME_PATTERN: Regex = Regex::new(r#"[а-яА-Я0-9-]{5,20}"#).unwrap();
-    static ref SHORTENED_GROUP_NAME_PATTERN: Regex = Regex::new(r#".*-\d[^0-9]*-.*"#).unwrap();
-    static ref VALID_PERSON_NAME_PATTERN: Regex =
-        Regex::new(r#"([а-яА-Я]+(\s|[-])?){1,5}"#).unwrap();
-    static ref SPACES_PATTERN: Regex = Regex::new(r#"\s+"#).unwrap();
+    static ref SHORTENED_GROUP_NAME_PATTERN: Regex = Regex::new(r".*-\d[^0-9]*-.*").unwrap();
+    static ref VALID_PERSON_NAME_PATTERN: Regex = Regex::new(r"([а-яА-Я]+(\s|[-])?){1,5}").unwrap();
+    static ref SPACES_PATTERN: Regex = Regex::new(r"\s+").unwrap();
 }
 
 /// Type for schedule owner's name representation.

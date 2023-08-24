@@ -28,7 +28,7 @@ impl InitDomainBotUseCase {
 pub struct TextToActionUseCase;
 
 lazy_static! {
-    static ref MENTIONS_PATTERN: Regex = Regex::new(r#"(\[.*\],?)|(@\w+,?)"#).unwrap();
+    static ref MENTIONS_PATTERN: Regex = Regex::new(r"(\[.*\],?)|(@\w+,?)").unwrap();
     static ref DAY_OF_WEEK_MAP: Vec<(i8, Vec<&'static str>)> = vec![
         (1, vec!["пн", "понедельник", "mon", "monday"]),
         (2, vec!["вт", "вторник", "tue", "tuesday"]),
@@ -38,7 +38,7 @@ lazy_static! {
         (6, vec!["сб", "суббота", "sat", "saturday"]),
     ];
     static ref DAY_OF_WEEK_PATTERN: Regex = create_multipattern(
-        r#"(пар[ыау]\s+)?((в|во)\s+)?"#,
+        r"(пар[ыау]\s+)?((в|во)\s+)?",
         &DAY_OF_WEEK_MAP
             .iter()
             .flat_map(|(_, v)| v)

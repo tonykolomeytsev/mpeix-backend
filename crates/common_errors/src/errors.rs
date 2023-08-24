@@ -94,7 +94,7 @@ mod tests {
             .with_context(|| "Some context 1")
             .with_context(|| "Some context 2")
             .with_context(|| "Some context 3");
-        assert!(matches!(err.unwrap_err().as_common_error(), None));
+        assert!(err.unwrap_err().as_common_error().is_none());
     }
 
     fn create_error(e: CommonError) -> anyhow::Result<()> {
