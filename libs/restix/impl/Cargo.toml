@@ -8,6 +8,7 @@ authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 doctest = false
 
 [features]
+default = ["reqwest", "json"]
 reqwest = []
 json = []
 

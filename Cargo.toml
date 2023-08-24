@@ -1,5 +1,6 @@
 [workspace]
 members = ["app_schedule", "app_telegram_bot", "app_vk_bot"]
+resolver = "2"
 
 [workspace.package]
 version = "3.0.33"
