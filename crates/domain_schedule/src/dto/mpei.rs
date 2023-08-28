@@ -33,8 +33,10 @@ pub struct MpeiClasses {
     pub kind_of_work: String,
     /// Person
     pub lecturer: String,
+    /// Group variations
     pub stream: Option<String>,
     pub group: Option<String>,
+    pub sub_group: Option<String>,
 }
 
 struct NaiveDateVisitor;

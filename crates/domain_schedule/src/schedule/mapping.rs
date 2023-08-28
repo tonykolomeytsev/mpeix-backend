@@ -29,10 +29,11 @@ pub(crate) fn map_schedule_models(
             r#type: get_classes_type(&cls.kind_of_work),
             raw_type: cls.kind_of_work.to_owned(),
             place: cls.auditorium.to_owned(),
-            groups: match (&cls.stream, &cls.group) {
-                (Some(stream), _) => stream.to_owned(),
-                (None, Some(group)) => group.to_owned(),
-                (_, _) => String::new(),
+            groups: match (&cls.stream, &cls.group, &cls.sub_group) {
+                (Some(stream), _, _) => stream.to_owned(),
+                (None, Some(group), _) => group.to_owned(),
+                (None, None, Some(sub_group)) => sub_group.to_owned(),
+                (_, _, _) => String::new(),
             },
             person: check_is_not_empty(&cls.lecturer),
             number: get_number(&time),

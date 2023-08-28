@@ -82,7 +82,7 @@ pub struct Classes {
     pub r#type: ClassesType,
     pub raw_type: String,
     pub place: String,
-    pub groups: String,
+    pub groups: String, // TODO: split into separate fields: stream, group, sub_group
     pub person: String,
     pub time: ClassesTime,
     pub number: i8,
