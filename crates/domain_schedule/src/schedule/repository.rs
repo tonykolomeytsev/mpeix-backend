@@ -104,6 +104,7 @@ impl ScheduleRepository {
                 schedule_id,
                 &week_start.format("%Y.%m.%d").to_string(),
                 &week_end.format("%Y.%m.%d").to_string(),
+                1, // default language
             )
             .await
             .with_common_error()?;

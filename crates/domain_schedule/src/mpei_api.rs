@@ -19,5 +19,6 @@ pub trait MpeiApi {
         #[path] id: i64,
         #[query] start: &str,
         #[query] finish: &str,
+        #[query] lng: u8,
     ) -> Vec<MpeiClasses>;
 }
