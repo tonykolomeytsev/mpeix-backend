@@ -11,7 +11,7 @@ app = FastAPI()
 
 
 @app.get("/v1/health")
-async def read_root() -> str:
+async def health() -> str:
     return "I'm alive :)"
 
 
@@ -20,7 +20,7 @@ class RequestBody(BaseModel):
 
 
 @app.post("/v1/predict")
-async def read_item(body: RequestBody) -> dict[str, str]:
+async def predict(body: RequestBody) -> dict[str, str]:
     if len(body.text) == 0:
         raise HTTPException(status_code=400, detail="Empty text")
     return model.predict(body.text)
