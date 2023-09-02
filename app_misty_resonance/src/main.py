@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from .model import Model
+import uvicorn
 import os
 
-path_to_weights = os.environ.get("WEIGHTS_PATH", "/var/opt/weights.pt")
+path_to_weights = os.getenv("WEIGHTS_PATH", "/var/opt/weights.pt")
 model = Model(path_to_weights)
 
 app = FastAPI()
@@ -23,3 +24,15 @@ async def read_item(body: RequestBody) -> dict[str, str]:
     if len(body.text) == 0:
         raise HTTPException(status_code=400, detail="Empty text")
     return model.predict(body.text)
+
+
+if __name__ == "__main__":
+    print("Starting server...")
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", 8080)),
+        debug=bool(os.getenv("DEBUG", False)),
+        log_level=os.getenv("LOG_LEVEL", "info"),
+        proxy_headers=True,
+    )

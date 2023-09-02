@@ -1,8 +1,19 @@
-FROM python:3.10
+FROM python:3.10-slim AS base
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONFAULTHANDLER 1
 
+FROM base AS python-deps
+RUN pip install pipenv && \
+    apt update && \
+    apt install -y --no-install-recommends gcc wget
+RUN wget -O /tmp/torch-2.0.1+cpu-cp310-cp310-linux_x86_64.whl https://download.pytorch.org/whl/cpu/torch-2.0.1%2Bcpu-cp310-cp310-linux_x86_64.whl
+COPY Pipfile .
+ENV PIPENV_VENV_IN_PROJECT 1
+RUN pipenv install --deploy
+
+FROM gcr.io/distroless/python3-debian11
 WORKDIR /app
-COPY ./requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
-COPY ./src /app/src
-
-CMD ["uvicorn", "src.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "80"]
+COPY --from=python-deps /.venv/lib/python3.10/site-packages /app/site-packages
+ENV PYTHONPATH /app/site-packages
+COPY . .
+ENTRYPOINT [ "python", "src/main.py" ]
