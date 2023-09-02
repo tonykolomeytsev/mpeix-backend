@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 transformers = "==4.30.2"
 razdel = "==0.5.0"
-torch = { file = "/tmp/torch-2.0.1+cpu-cp310-cp310-linux_x86_64.whl" }
+torch = { file = "/tmp/torch-2.0.1+cpu-cp39-cp39-linux_x86_64.whl" }
 natasha = "==1.5.0"
 fastapi = "==0.103.0"
 uvicorn = "==0.23.2"
@@ -14,4 +14,4 @@ uvicorn = "==0.23.2"
 [dev-packages]
 
 [requires]
-python-version = "3.10"
+python-version = "3.9"
