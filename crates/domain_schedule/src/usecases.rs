@@ -115,9 +115,12 @@ impl GetScheduleUseCase {
             }
         }
 
+        // Ignore empty values from remote
+        let remote_is_empty = remote.is_ok() && self.is_schedule_empty(remote.as_ref().unwrap());
+
         // if we cannot get value from remote and didn't disable expiration policy at the beginning,
         // try to disable expiration policy and look for cached value again
-        if remote.is_err() && !ignore_expiration {
+        if remote.is_err() && !ignore_expiration || remote_is_empty {
             if let Some(schedule) = self
                 .get_schedule_from_cache(&name, &r#type, week_start, &week_of_semester, true)
                 .await?
@@ -232,6 +235,10 @@ impl GetScheduleUseCase {
             info!("Schedule 'week_of_semester' field was fixed to {true_week_of_semester}");
         }
         Ok(())
+    }
+
+    fn is_schedule_empty(&self, schedule: &Schedule) -> bool {
+        schedule.weeks.is_empty()
     }
 }
 
