@@ -129,9 +129,9 @@ impl GetScheduleUseCase {
             }
         }
 
-        // If we successfully got new value from remote,
+        // If we successfully got new value from remote and this value is not empty,
         // put it into the cache
-        if remote.is_ok() {
+        if remote.is_ok() && !remote_is_empty {
             // put new remote value into the cache
             self.schedule_repository
                 .insert_schedule_to_cache(
