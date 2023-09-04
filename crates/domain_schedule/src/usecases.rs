@@ -238,7 +238,7 @@ impl GetScheduleUseCase {
     }
 
     fn is_schedule_empty(&self, schedule: &Schedule) -> bool {
-        schedule.weeks.is_empty()
+        schedule.weeks.iter().all(|week| week.days.is_empty())
     }
 }
 
