@@ -3,7 +3,7 @@ members = ["app_schedule", "app_telegram_bot", "app_vk_bot"]
 resolver = "1"
 
 [workspace.package]
-version = "3.0.33"
+version = "3.1.2"
 rust-version = "1.76.0"
 
 [workspace.dependencies]
@@ -33,7 +33,7 @@ feature_vk_bot = { path = "crates/feature_vk_bot" }
 restix = { path = "libs/restix" }
 
 # main external dependencies
-actix-web = "4"
+actix-web = "4.0"
 anyhow = "1.0"
 chrono = "0.4"
 deadpool-postgres = "0.10"

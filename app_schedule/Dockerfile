@@ -9,7 +9,7 @@ COPY . .
 RUN cargo install --path ${APP_NAME}
 
 # Deploy our app with 'Distroless' image by Google
-FROM gcr.io/distroless/cc-debian11
+FROM gcr.io/distroless/cc-debian12
 ARG APP_NAME
 COPY --from=build /usr/local/cargo/bin/${APP_NAME} /usr/local/bin/${APP_NAME}
 CMD [ "app_schedule" ]
