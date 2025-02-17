@@ -1,7 +1,7 @@
 ARG APP_NAME="app_schedule"
 
 # Build our app here
-FROM rust:1.71.1 as build
+FROM rust:1.76.0 as build
 ARG APP_NAME
 ENV PKG_CONFIG_ALLOW_CROSS=1
 WORKDIR /usr/src/${APP_NAME}
