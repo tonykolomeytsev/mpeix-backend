@@ -3,7 +3,7 @@ members = ["app_schedule", "app_telegram_bot", "app_vk_bot"]
 resolver = "1"
 
 [workspace.package]
-version = "3.0.32"
+version = "3.0.33"
 rust-version = "1.76.0"
 
 [workspace.dependencies]
