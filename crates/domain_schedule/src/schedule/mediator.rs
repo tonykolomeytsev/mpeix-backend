@@ -1,4 +1,4 @@
-use std::hash::Hash;
+use std::{fmt::Display, hash::Hash};
 
 use anyhow::{anyhow, Ok};
 use chrono::{Datelike, NaiveDate};
@@ -83,18 +83,20 @@ impl CacheMediator {
     }
 }
 
-impl ToString for InMemoryCacheKey {
-    fn to_string(&self) -> String {
+impl Display for InMemoryCacheKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let year = &self.week_start.year();
         let r#type = &self.r#type.to_lowercase();
         let name = &self.name.to_uppercase();
 
-        format!(
+        write!(
+            f,
             "{}/{} {} [{}].cache",
             year,
             r#type,
             name,
             &self.week_start.format("%Y-%m-%d")
-        )
+        )?;
+        std::result::Result::Ok(())
     }
 }

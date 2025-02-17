@@ -61,7 +61,7 @@ impl FromStr for ScheduleShift {
         for (year, semester_rule) in shifts_table {
             let year = Year::new(year.parse()?);
             for semester in SEMESTERS {
-                if let Some(rule) = semester_rule.get(&semester.to_string()) {
+                if let Some(rule) = semester_rule.get(semester.to_string()) {
                     let first_day = rule
                         .get("first-day")
                         .and_then(|it| it.as_str())
@@ -138,6 +138,13 @@ mod tests {
                     ShiftRule {
                         first_day: NaiveDate::from_ymd_opt(2023, 2, 8).unwrap(),
                         week_number: Some(0),
+                    }
+                ),
+                (
+                    (Year::new(2025), ShiftedSemester::Spring),
+                    ShiftRule {
+                        first_day: NaiveDate::from_ymd_opt(2025, 2, 10).unwrap(),
+                        week_number: Some(1),
                     }
                 )
             ])),
