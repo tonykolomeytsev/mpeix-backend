@@ -4,6 +4,7 @@ version.workspace = true
 edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
 readme = "README.md"
+rust-version.workspace = true
 
 [dependencies]
 common_actix = { workspace = true }

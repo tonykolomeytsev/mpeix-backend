@@ -3,6 +3,7 @@ name = "common_in_memory_cache"
 version = "0.1.0"
 edition = "2021"
 authors = ["Anton Kolomeytsev <tonykolomeytsev@gmail.com>"]
+rust-version.workspace = true
 
 [dependencies]
 chrono = { workspace = true }

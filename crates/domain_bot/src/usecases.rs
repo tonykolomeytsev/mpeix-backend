@@ -250,8 +250,7 @@ impl GenerateReplyUseCase {
             .weeks
             .iter()
             .flat_map(|week| &week.days)
-            .find(|day| day.date == selected_date)
-            .map(Clone::clone)
+            .find(|day| day.date == selected_date).cloned()
             // mock day without classes
             .unwrap_or_else(|| Day {
                 day_of_week: selected_date.weekday().number_from_monday() as u8,

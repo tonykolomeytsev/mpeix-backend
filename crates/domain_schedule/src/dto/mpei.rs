@@ -41,7 +41,7 @@ pub struct MpeiClasses {
 
 struct NaiveDateVisitor;
 
-impl<'de> Visitor<'de> for NaiveDateVisitor {
+impl Visitor<'_> for NaiveDateVisitor {
     type Value = NaiveDate;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -58,7 +58,7 @@ impl<'de> Visitor<'de> for NaiveDateVisitor {
 
 struct NaiveTimeVisitor;
 
-impl<'de> Visitor<'de> for NaiveTimeVisitor {
+impl Visitor<'_> for NaiveTimeVisitor {
     type Value = NaiveTime;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
