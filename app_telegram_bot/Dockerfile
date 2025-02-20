@@ -6,7 +6,7 @@ ARG APP_NAME
 ENV PKG_CONFIG_ALLOW_CROSS=1
 WORKDIR /usr/src/${APP_NAME}
 COPY . .
-RUN cargo install --path ${APP_NAME}
+RUN cargo install --locked --path ${APP_NAME}
 
 # Deploy our app with 'Distroless' image by Google
 FROM gcr.io/distroless/cc-debian12
