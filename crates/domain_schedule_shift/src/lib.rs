@@ -144,7 +144,7 @@ mod tests {
                     (Year::new(2025), ShiftedSemester::Spring),
                     ShiftRule {
                         first_day: NaiveDate::from_ymd_opt(2025, 2, 10).unwrap(),
-                        week_number: Some(1),
+                        week_number: Some(0),
                     }
                 )
             ])),

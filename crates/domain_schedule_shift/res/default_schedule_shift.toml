@@ -5,4 +5,4 @@ spring = { first-day = "2021-02-15", week-number = 0 }
 spring = { first-day = "2023-02-08", week-number = 0 }
 
 [2025]
-spring = { first-day = "2025-02-10", week-number = 1 }
+spring = { first-day = "2025-02-10", week-number = 0 }
